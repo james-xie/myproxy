@@ -1,0 +1,28 @@
+package com.gllue.transport.backend.datasource;
+
+import com.gllue.common.concurrent.ExtensibleFuture;
+import com.gllue.transport.core.connection.Connection;
+import com.gllue.transport.backend.connection.ConnectionArguments;
+import javax.annotation.Nullable;
+
+public interface DataSource<T extends Connection> {
+  String getName();
+
+  int acquiredConnections();
+
+  int cachedConnections();
+
+  int maxCapacity();
+
+  void registerConnection(T connection);
+
+  T acquireConnection(@Nullable String database);
+
+  ExtensibleFuture<T> tryAcquireConnection(@Nullable String database);
+
+  void releaseConnection(T connection);
+
+  void closeConnection(T connection);
+
+  ConnectionArguments getConnectionArguments();
+}
