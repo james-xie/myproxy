@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.BaseQueryHandlerTest;
 import java.util.List;
 import org.junit.Test;
@@ -35,6 +36,19 @@ public class EncryptColumnProcessorTest extends BaseQueryHandlerTest {
             + "  primary key (`id`)\n"
             + ");";
     assertFalse(processor.prepare(parseCreateTableQuery(query)));
+  }
+
+
+  @Test(expected = BadSQLException.class)
+  public void testEncryptColumnWithDefaultExpr() {
+    var processor = new EncryptColumnProcessor();
+    var query =
+        "CREATE TABLE `table` (\n"
+            + "  `id` INT NOT NULL AUTO_INCREMENT,\n"
+            + "  `name` ENCRYPT(255) NOT NULL default 'abc',\n"
+            + "  primary key (`id`)\n"
+            + ");";
+    processor.prepare(parseCreateTableQuery(query));
   }
 
   @Test

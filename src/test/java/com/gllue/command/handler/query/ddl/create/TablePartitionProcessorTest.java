@@ -9,7 +9,6 @@ import com.gllue.AssertUtils;
 import com.gllue.command.handler.query.BadCommentAttributeException;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.BaseQueryHandlerTest;
-import com.gllue.common.exception.BadColumnException;
 import com.gllue.config.Configurations.Type;
 import com.gllue.config.GenericConfigPropertyKey;
 import com.gllue.sql.parser.SQLCommentAttributeKey;
