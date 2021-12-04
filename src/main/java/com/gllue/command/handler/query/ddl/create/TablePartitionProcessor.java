@@ -121,7 +121,8 @@ class TablePartitionProcessor {
   }
 
   boolean prepare(MySqlCreateTableStatement stmt) {
-    var isPartitionTable = (boolean) attributes.get(SQLCommentAttributeKey.PARTITION_TABLE);
+    var isPartitionTable =
+        (boolean) attributes.getOrDefault(SQLCommentAttributeKey.PARTITION_TABLE, false);
     if (!isPartitionTable) {
       return false;
     }

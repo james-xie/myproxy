@@ -16,10 +16,23 @@ public abstract class AbstractTableUpdateCommand
     public ColumnType type;
     public boolean nullable;
     public String defaultValue;
+    public boolean builtin;
+
+    public Column(
+        final String name,
+        final ColumnType type,
+        final boolean nullable,
+        final String defaultValue) {
+      this(name, type, nullable, defaultValue, false);
+    }
 
     public static Column newColumn(final ColumnMetaData column) {
       return new Column(
-          column.getName(), column.getType(), column.isNullable(), column.getDefaultValue());
+          column.getName(),
+          column.getType(),
+          column.isNullable(),
+          column.getDefaultValue(),
+          column.isBuiltin());
     }
   }
 

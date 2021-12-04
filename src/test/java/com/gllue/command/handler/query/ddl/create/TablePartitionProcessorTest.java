@@ -20,6 +20,14 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class TablePartitionProcessorTest extends BaseQueryHandlerTest {
+  void mockConfigurations() {
+    when(configurations.getValue(
+        Type.GENERIC, GenericConfigPropertyKey.EXTENSION_TABLE_MAX_COLUMNS_PER_TABLE))
+        .thenReturn(100);
+    when(configurations.getValue(
+        Type.GENERIC, GenericConfigPropertyKey.EXTENSION_TABLE_COLUMNS_ALLOCATION_WATERMARK))
+        .thenReturn(0.9);
+  }
 
   @Test
   public void testPrepare() {
@@ -67,14 +75,8 @@ public class TablePartitionProcessorTest extends BaseQueryHandlerTest {
 
   @Test(expected = BadSQLException.class)
   public void testCreateTableWithPartitionByClause() {
-    mockConfigurations();
-
     Map<SQLCommentAttributeKey, Object> attributes =
-        Map.of(
-            SQLCommentAttributeKey.PARTITION_TABLE,
-            true,
-            SQLCommentAttributeKey.EXTENSION_COLUMNS,
-            new String[] {"name", "value"});
+        Map.of(SQLCommentAttributeKey.PARTITION_TABLE, true);
     var processor = new TablePartitionProcessor(configurations, attributes);
     var query =
         "CREATE TABLE `table` (\n"

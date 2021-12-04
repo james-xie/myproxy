@@ -44,7 +44,11 @@ class TablePartitionProcessor {
     this.table = table;
 
     var extensionColumns = (String[]) attributes.get(SQLCommentAttributeKey.EXTENSION_COLUMNS);
-    this.extensionColumns = new HashSet<>(Arrays.asList(extensionColumns));
+    if (extensionColumns == null) {
+      this.extensionColumns = new HashSet<>();
+    } else {
+      this.extensionColumns = new HashSet<>(Arrays.asList(extensionColumns));
+    }
 
     int maxColumnsPerTable =
         configurations.getValue(

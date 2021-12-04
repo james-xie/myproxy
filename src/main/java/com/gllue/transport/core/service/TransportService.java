@@ -25,7 +25,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public final class TransportService implements FrontendConnectionManager {
+public class TransportService implements FrontendConnectionManager {
   @Getter
   private final DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
 

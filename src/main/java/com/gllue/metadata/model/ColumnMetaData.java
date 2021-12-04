@@ -15,6 +15,7 @@ public class ColumnMetaData extends AbstractMetaData {
   @Getter private final ColumnType type;
   @Getter private final boolean nullable;
   @Getter private final String defaultValue;
+  @Getter private final boolean builtin;
 
   public ColumnMetaData(
       final String name,
@@ -22,6 +23,16 @@ public class ColumnMetaData extends AbstractMetaData {
       final boolean nullable,
       final String defaultValue,
       final int version) {
+    this(name, type, nullable, defaultValue, version, false);
+  }
+
+  public ColumnMetaData(
+      final String name,
+      final ColumnType type,
+      final boolean nullable,
+      final String defaultValue,
+      final int version,
+      final boolean builtin) {
     super(name, version);
     Preconditions.checkArgument(
         !Strings.isNullOrEmpty(name), "Column name cannot be null or empty.");
@@ -31,6 +42,7 @@ public class ColumnMetaData extends AbstractMetaData {
     this.type = type;
     this.nullable = nullable;
     this.defaultValue = defaultValue;
+    this.builtin = builtin;
   }
 
   public void writeTo(final StreamOutput output) {
@@ -39,6 +51,7 @@ public class ColumnMetaData extends AbstractMetaData {
     output.writeByte((byte) type.getId());
     output.writeBoolean(nullable);
     output.writeNullableString(defaultValue);
+    output.writeBoolean(builtin);
   }
 
   @Accessors(chain = true)
@@ -47,6 +60,7 @@ public class ColumnMetaData extends AbstractMetaData {
     @Setter private ColumnType type;
     @Setter private boolean nullable;
     @Setter private String defaultValue;
+    @Setter private boolean builtin = false;
 
     public Builder setVersion(final int version) {
       this.version = version;
@@ -60,6 +74,7 @@ public class ColumnMetaData extends AbstractMetaData {
       this.type = ColumnType.getColumnType(input.readByte());
       this.nullable = input.readBoolean();
       this.defaultValue = input.readNullableString();
+      this.builtin = input.readBoolean();
     }
 
     @Override
@@ -69,11 +84,12 @@ public class ColumnMetaData extends AbstractMetaData {
       this.type = metadata.getType();
       this.nullable = metadata.isNullable();
       this.defaultValue = metadata.getDefaultValue();
+      this.builtin = metadata.isBuiltin();
     }
 
     @Override
     public ColumnMetaData build() {
-      return new ColumnMetaData(name, type, nullable, defaultValue, version);
+      return new ColumnMetaData(name, type, nullable, defaultValue, version, builtin);
     }
   }
 }

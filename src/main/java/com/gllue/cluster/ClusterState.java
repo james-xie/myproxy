@@ -3,7 +3,7 @@ package com.gllue.cluster;
 import com.gllue.metadata.model.MultiDatabasesMetaData;
 import lombok.Getter;
 
-public final class ClusterState {
+public class ClusterState {
   private final ClusterNode current;
   @Getter private final ClusterNode[] nodes;
   @Getter private final MultiDatabasesMetaData metaData;

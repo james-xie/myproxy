@@ -3,6 +3,7 @@ package com.gllue.metadata.command;
 import static com.gllue.common.util.PathUtils.joinPaths;
 import static org.mockito.Mockito.when;
 
+import com.gllue.TestHelper;
 import com.gllue.common.io.stream.ByteArrayStreamInput;
 import com.gllue.common.util.RandomUtils;
 import com.gllue.config.Configurations;
@@ -68,17 +69,11 @@ public abstract class BaseCommandTest {
   }
 
   TableMetaData bytesToTableMetaData(byte[] bytes) {
-    var input = new ByteArrayStreamInput(bytes);
-    var builder = new TableMetaData.Builder();
-    builder.readStream(input);
-    return builder.build();
+    return TestHelper.bytesToTableMetaData(bytes);
   }
 
   PartitionTableMetaData bytesToPartitionTableMetaData(byte[] bytes) {
-    var input = new ByteArrayStreamInput(bytes);
-    var builder = new PartitionTableMetaData.Builder();
-    builder.readStream(input);
-    return builder.build();
+    return TestHelper.bytesToPartitionTableMetaData(bytes);
   }
 
   String getPersistPath(String... paths) {

@@ -45,10 +45,16 @@ public enum ColumnType {
   VARCHAR(42),
   BINARY(43),
   VARBINARY(44),
-  BLOB(45),
-  TEXT(46),
-  ENUM(47),
-  SET(48),
+  ENUM(45),
+  SET(46),
+  TINYTEXT(47),
+  TEXT(48),
+  MEDIUMTEXT(49),
+  LONGTEXT(50),
+  TINYBLOB(51),
+  BLOB(52),
+  MEDIUMBLOB(53),
+  LONGBLOB(54),
 
   /**
    * Spatial Data Types
@@ -102,6 +108,6 @@ public enum ColumnType {
     if (type != null) {
       return type;
     }
-    throw new IllegalArgumentException(String.format("Unknown column type id, [%d]", value));
+    throw new IllegalArgumentException(String.format("Unknown column type id, [%s]", value));
   }
 }

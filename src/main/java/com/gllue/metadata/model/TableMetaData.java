@@ -68,6 +68,14 @@ public class TableMetaData extends AbstractMetaData {
     return columns.length;
   }
 
+  public List<String> getColumnNames() {
+    var names = new ArrayList<String>();
+    for (var column: columns) {
+      names.add(column.getName());
+    }
+    return names;
+  }
+
   @Override
   public void writeTo(StreamOutput output) {
     super.writeTo(output);

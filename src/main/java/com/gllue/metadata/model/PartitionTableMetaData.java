@@ -31,11 +31,19 @@ public class PartitionTableMetaData extends TableMetaData {
       TableMetaData primaryTable, TableMetaData[] extensionTables) {
     List<ColumnMetaData> columns = new ArrayList<>();
     for (int i = 0; i < primaryTable.getNumberOfColumns(); i++) {
-      columns.add(primaryTable.getColumn(i));
+      var col = primaryTable.getColumn(i);
+      if (col.isBuiltin()) {
+        continue;
+      }
+      columns.add(col);
     }
     for (var extensionTable : extensionTables) {
       for (int i = 0; i < extensionTable.getNumberOfColumns(); i++) {
-        columns.add(extensionTable.getColumn(i));
+        var col = extensionTable.getColumn(i);
+        if (col.isBuiltin()) {
+          continue;
+        }
+        columns.add(col);
       }
     }
     return columns.toArray(ColumnMetaData[]::new);

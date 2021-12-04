@@ -45,7 +45,9 @@ public class CreateTableHandler extends AbstractDDLHandler {
     var attributes = request.getCommentsAttributes();
     var encryptProcessor = new EncryptColumnProcessor();
     var tablePartitionProcessor = new TablePartitionProcessor(configurations, attributes);
-    if (!encryptProcessor.prepare(stmt) && !tablePartitionProcessor.prepare(stmt)) {
+    var shouldEncrypt = encryptProcessor.prepare(stmt);
+    var shouldPartition = tablePartitionProcessor.prepare(stmt);
+    if (!shouldEncrypt && !shouldPartition) {
       // Do nothing for the create table query.
       submitQueryToBackendDatabase(request, request.getQuery(), callback);
       return;

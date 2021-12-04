@@ -56,6 +56,10 @@ public class TablePartitionHelper {
         EXTENSION_TABLE_ID_COLUMN, ID_COLUMN_TYPE, false, null, PRIMARY_KEY_COMMENT);
   }
 
+  public static boolean isExtensionTableIdColumn(final String columnName) {
+    return EXTENSION_TABLE_ID_COLUMN.equals(columnName);
+  }
+
   public static MySqlCreateTableStatement newCreateExtensionTableStatement(
       final String tableName,
       final List<SQLTableElement> columnDefs,

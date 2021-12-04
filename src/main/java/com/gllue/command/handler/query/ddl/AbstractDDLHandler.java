@@ -1,5 +1,6 @@
 package com.gllue.command.handler.query.ddl;
 
+import static com.gllue.command.handler.query.TablePartitionHelper.isExtensionTableIdColumn;
 import static com.gllue.common.util.SQLStatementUtils.columnDefaultExpr;
 import static com.gllue.common.util.SQLStatementUtils.columnIsNullable;
 import static com.gllue.common.util.SQLStatementUtils.toSQLString;
@@ -47,11 +48,13 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
   }
 
   protected AbstractTableUpdateCommand.Column buildCommandColumn(SQLColumnDefinition columnDef) {
+    var name = unquoteName(columnDef.getColumnName());
     return new AbstractTableUpdateCommand.Column(
-        unquoteName(columnDef.getColumnName()),
+        name,
         ColumnType.getColumnType(columnDef.getDataType().getName()),
         columnIsNullable(columnDef),
-        columnDefaultExpr(columnDef));
+        columnDefaultExpr(columnDef),
+        isExtensionTableIdColumn(name));
   }
 
   protected MetaDataCommand<MultiDatabasesMetaData> buildCreateStandardTableCommand(
@@ -93,9 +96,9 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
       List<MySqlCreateTableStatement> stmtList,
       boolean isPartitionTable) {
     if (isPartitionTable) {
-      return buildCreateStandardTableCommand(datasource, database, table, stmtList.get(0));
-    } else {
       return buildCreatePartitionTableCommand(datasource, database, table, stmtList);
+    } else {
+      return buildCreateStandardTableCommand(datasource, database, table, stmtList.get(0));
     }
   }
 
@@ -152,10 +155,11 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
 
   protected Function<CommandResult, Promise<CommandResult>> createTablePromiseSupplier(
       QueryHandlerRequest request, List<MySqlCreateTableStatement> statements) {
-    var index = new AtomicInteger(statements.size());
+    var size = statements.size();
+    var index = new AtomicInteger(0);
     return (result) -> {
-      var i = index.decrementAndGet();
-      if (i < 0) return null;
+      var i = index.getAndIncrement();
+      if (i >= size) return null;
 
       var stmt = statements.get(i);
       var query = toSQLString(stmt);

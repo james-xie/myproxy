@@ -63,7 +63,8 @@ public class UpdatePartitionTableCommand extends AbstractTableUpdateCommand {
           .setName(column.name)
           .setType(column.type)
           .setNullable(column.nullable)
-          .setDefaultValue(column.defaultValue);
+          .setDefaultValue(column.defaultValue)
+          .setBuiltin(column.builtin);
       builder.addColumn(colBuilder.build());
     }
     return builder.build();

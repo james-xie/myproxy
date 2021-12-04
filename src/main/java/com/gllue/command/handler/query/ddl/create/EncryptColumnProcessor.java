@@ -4,6 +4,7 @@ import static com.gllue.common.util.SQLStatementUtils.isEncryptColumn;
 import static com.gllue.common.util.SQLStatementUtils.updateEncryptToVarbinary;
 
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
+import com.alibaba.druid.sql.ast.statement.SQLForeignKeyConstraint;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.command.handler.CommandHandlerException;
 import com.gllue.command.handler.query.BadSQLException;
@@ -69,14 +70,16 @@ class EncryptColumnProcessor {
       var tableElements = newStmt.getTableElementList();
       int elements = tableElements.size();
       for (int i = 0; i < elements; i++) {
-        if (!(tableElements.get(i) instanceof SQLColumnDefinition)) {
-          continue;
-        }
-
-        var columnDef = (SQLColumnDefinition) tableElements.get(i);
-        if (isEncryptColumn(columnDef)) {
-          // Change the column type 'ENCRYPT' to the 'VARBINARY'.
-          tableElements.set(i, updateEncryptToVarbinary(columnDef));
+        var element = tableElements.get(i);
+        if (element instanceof SQLColumnDefinition) {
+          var columnDef = (SQLColumnDefinition) tableElements.get(i);
+          if (isEncryptColumn(columnDef)) {
+            // Change the column type 'ENCRYPT' to the 'VARBINARY'.
+            tableElements.set(i, updateEncryptToVarbinary(columnDef));
+          }
+        } else if (element instanceof SQLForeignKeyConstraint) {
+          // fix druid clone statement bug.
+          tableElements.set(i, stmt.getTableElementList().get(i));
         }
       }
 

@@ -37,8 +37,6 @@ public class CreatePartitionTableCommand extends AbstractTableUpdateCommand {
     this.extensionTables = extensionTables;
 
     validateColumnNames(primaryTable.columns);
-    Preconditions.checkArgument(
-        extensionTables.length > 0, "Extension table array cannot be empty.");
     for (var extTable : extensionTables) {
       validateColumnNames(extTable.columns);
     }
@@ -54,7 +52,8 @@ public class CreatePartitionTableCommand extends AbstractTableUpdateCommand {
           .setName(column.name)
           .setType(column.type)
           .setNullable(column.nullable)
-          .setDefaultValue(column.defaultValue);
+          .setDefaultValue(column.defaultValue)
+          .setBuiltin(column.builtin);
       builder.addColumn(colBuilder.build());
     }
     return builder.build();
