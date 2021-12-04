@@ -2,17 +2,17 @@ package com.gllue.command.handler.query;
 
 import static com.gllue.common.util.SQLStatementUtils.newColumnDefinition;
 import static com.gllue.common.util.SQLStatementUtils.newCreateTableStatement;
+import static com.gllue.common.util.SQLStatementUtils.newKey;
 import static com.gllue.common.util.SQLStatementUtils.newPrimaryKey;
 
 import com.alibaba.druid.sql.ast.statement.SQLAssignItem;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
-import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
+import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.metadata.model.ColumnType;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -20,8 +20,9 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public class TablePartitionHelper {
   public static final String EXTENSION_TABLE_PREFIX = "$e_";
-  public static final String EXTENSION_TABLE_PRIMARY_KEY = "$_ext_pk";
-  public static final ColumnType PRIMARY_KEY_COLUMN_TYPE = ColumnType.BIGINT;
+  public static final String EXTENSION_TABLE_ID_COLUMN = "$_ext_id";
+  public static final String KEY_FOR_EXTENSION_TABLE_ID_COLUMN = "$_key_for_ext_id";
+  public static final ColumnType ID_COLUMN_TYPE = ColumnType.BIGINT;
   public static final String PRIMARY_KEY_COMMENT = "Primary key of the extension table.";
 
   public static final Set<String> AVAILABLE_TABLE_OPTION_KEYS =
@@ -43,12 +44,16 @@ public class TablePartitionHelper {
   }
 
   public static SQLPrimaryKey newExtensionTablePrimaryKey() {
-    return newPrimaryKey(EXTENSION_TABLE_PRIMARY_KEY);
+    return newPrimaryKey(EXTENSION_TABLE_ID_COLUMN);
   }
 
-  public static SQLColumnDefinition newExtensionTablePrimaryKeyColumn() {
+  public static MySqlKey newKeyForExtensionTableIdColumn() {
+    return newKey(KEY_FOR_EXTENSION_TABLE_ID_COLUMN, EXTENSION_TABLE_ID_COLUMN);
+  }
+
+  public static SQLColumnDefinition newExtensionTableIdColumn() {
     return newColumnDefinition(
-        EXTENSION_TABLE_PRIMARY_KEY, PRIMARY_KEY_COLUMN_TYPE, false, null, PRIMARY_KEY_COMMENT);
+        EXTENSION_TABLE_ID_COLUMN, ID_COLUMN_TYPE, false, null, PRIMARY_KEY_COMMENT);
   }
 
   public static MySqlCreateTableStatement newCreateExtensionTableStatement(
@@ -57,7 +62,7 @@ public class TablePartitionHelper {
       final List<SQLTableElement> indices,
       final List<SQLTableElement> constraints,
       final List<SQLAssignItem> tableOptions) {
-    columnDefs.add(newExtensionTablePrimaryKeyColumn());
+    columnDefs.add(newExtensionTableIdColumn());
     return newCreateTableStatement(
         tableName,
         columnDefs,
@@ -72,7 +77,7 @@ public class TablePartitionHelper {
       final String tableName,
       final List<SQLTableElement> columnDefs,
       final List<SQLAssignItem> tableOptions) {
-    columnDefs.add(newExtensionTablePrimaryKeyColumn());
+    columnDefs.add(newExtensionTableIdColumn());
     return newCreateTableStatement(
         tableName, columnDefs, newExtensionTablePrimaryKey(), null, null, tableOptions, false);
   }

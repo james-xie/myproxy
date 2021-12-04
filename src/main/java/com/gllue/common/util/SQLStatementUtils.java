@@ -22,8 +22,10 @@ import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLUniqueConstraint;
+import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlTableIndex;
 import com.gllue.constant.ServerConstants;
 import com.gllue.metadata.model.ColumnType;
 import com.google.common.base.Preconditions;
@@ -131,6 +133,15 @@ public class SQLStatementUtils {
           .add(new SQLSelectOrderByItem(new SQLIdentifierExpr(quoteName(columnName))));
     }
     return primaryKey;
+  }
+
+  public static MySqlKey newKey(final String name, final String... columnNames) {
+    var index = new MySqlKey();
+    index.setName(quoteName(name));
+    for (var columnName : columnNames) {
+      index.addColumn(new SQLSelectOrderByItem(new SQLIdentifierExpr(quoteName(columnName))));
+    }
+    return index;
   }
 
   public static SQLColumnDefinition newColumnDefinition(

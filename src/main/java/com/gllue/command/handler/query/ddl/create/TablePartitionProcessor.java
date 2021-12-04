@@ -3,7 +3,8 @@ package com.gllue.command.handler.query.ddl.create;
 import static com.gllue.command.handler.query.TablePartitionHelper.generateExtensionTableName;
 import static com.gllue.command.handler.query.TablePartitionHelper.generatePrimaryTableName;
 import static com.gllue.command.handler.query.TablePartitionHelper.newExtensionTablePrimaryKey;
-import static com.gllue.command.handler.query.TablePartitionHelper.newExtensionTablePrimaryKeyColumn;
+import static com.gllue.command.handler.query.TablePartitionHelper.newExtensionTableIdColumn;
+import static com.gllue.command.handler.query.TablePartitionHelper.newKeyForExtensionTableIdColumn;
 import static com.gllue.common.util.SQLStatementUtils.getForeignKeyReferencingColumns;
 import static com.gllue.common.util.SQLStatementUtils.getIndexColumns;
 import static com.gllue.common.util.SQLStatementUtils.getPrimaryKeyColumns;
@@ -19,7 +20,6 @@ import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLUniqueConstraint;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.gllue.command.handler.CommandHandlerException;
 import com.gllue.command.handler.query.BadCommentAttributeException;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.config.Configurations;
@@ -89,7 +89,7 @@ class TablePartitionProcessor {
   }
 
   private void validateStatement(MySqlCreateTableStatement stmt) {
-    if (stmt.getTablePartitionBy() != null) {
+    if (stmt.getTablePartitionBy() != null || stmt.getPartitioning() != null) {
       throw new BadSQLException(
           "Add extension column to a table with 'partition by' clause is not allowed.");
     }
@@ -126,10 +126,9 @@ class TablePartitionProcessor {
       return false;
     }
 
-    prepared = true;
     var extensionColumns = (String[]) attributes.get(SQLCommentAttributeKey.EXTENSION_COLUMNS);
-    if (extensionColumns == null || extensionColumns.length == 0) {
-      return true;
+    if (extensionColumns == null) {
+      extensionColumns = new String[0];
     }
 
     var columnNames =
@@ -160,6 +159,7 @@ class TablePartitionProcessor {
         buildColumnOrdinalValueMap(
             columnNames, (int) (maxColumnsPerTable * columnsAllocationWatermark));
 
+    prepared = true;
     return true;
   }
 
@@ -352,6 +352,9 @@ class TablePartitionProcessor {
       throw new BadSQLException("No column definition in primary table.");
     }
 
+    definition.addColumnDefinition(0, newExtensionTableIdColumn());
+    definition.addIndex(newKeyForExtensionTableIdColumn());
+
     return newCreateTableStatement(
         tableName,
         definition.columnDefs,
@@ -369,7 +372,7 @@ class TablePartitionProcessor {
       throw new BadSQLException("No column definition in extension table.");
     }
 
-    definition.addColumnDefinition(0, newExtensionTablePrimaryKeyColumn());
+    definition.addColumnDefinition(0, newExtensionTableIdColumn());
     definition.primaryKey = newExtensionTablePrimaryKey();
     return newCreateTableStatement(
         tableName,
