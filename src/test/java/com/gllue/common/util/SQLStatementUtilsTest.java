@@ -248,6 +248,11 @@ public class SQLStatementUtilsTest {
         isColumnDefinitionEquals(
             newColumnDefinition("col1", ColumnType.CHAR, false, "", null),
             newColumnDefinition("col1", ColumnType.CHAR, false, null, null)));
+
+    var col1 = newColumnDefinition("col1", ColumnType.CHAR, false, "", null);
+    var col2 = col1.clone();
+    col1.setCollateExpr(new SQLIdentifierExpr("utf8mb4"));
+    assertFalse(isColumnDefinitionEquals(col1, col2));
   }
 
   @Test

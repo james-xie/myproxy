@@ -13,7 +13,6 @@ import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
-import com.gllue.command.handler.CommandHandlerException;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.common.exception.BadColumnException;
 import com.gllue.common.exception.ColumnExistsException;
@@ -77,6 +76,7 @@ public class AlterTableStatementProcessor {
     if (encryptColumnProcessor.isAddEncryptColumn(item)) {
       encryptColumnProcessor.validateEncryptColumnDefinition(columnDef);
       item = encryptColumnProcessor.updateEncryptToVarbinary(item);
+      columnDef = item.getColumns().get(0);
     }
     var columnName = unquoteName(columnDef.getColumnName());
     ensureAlterItemNoDuplication(columnName);
@@ -191,6 +191,7 @@ public class AlterTableStatementProcessor {
     if (isEncryptColumn || isModifyToEncryptColumn) {
       if (isEncryptColumn && isModifyToEncryptColumn) {
         item = encryptColumnProcessor.updateEncryptToVarbinary(item);
+        columnDef = item.getNewColumnDefinition();
       } else if (isModifyToEncryptColumn) {
         return processModifyVarcharToEncryptColumn(item, columnName);
       } else {
@@ -273,7 +274,16 @@ public class AlterTableStatementProcessor {
             newColumnName);
         throw new ColumnExistsException(newColumnName);
       }
-      return List.of(item);
+
+      var newItem = new MySqlAlterTableModifyColumn();
+      newItem.setNewColumnDefinition(columnDef);
+      if (item.getFirstColumn() != null) {
+        newItem.setFirstColumn(item.getFirstColumn());
+      }
+      if (item.getAfterColumn() != null) {
+        newItem.setAfterColumn(item.getAfterColumn());
+      }
+      return List.of(newItem);
     }
 
     var result = new ArrayList<SQLAlterTableItem>();
@@ -327,6 +337,7 @@ public class AlterTableStatementProcessor {
     if (isEncryptColumn || isChangeToEncryptColumn) {
       if (isEncryptColumn && isChangeToEncryptColumn) {
         item = encryptColumnProcessor.updateEncryptToVarbinary(item);
+        columnDef = item.getNewColumnDefinition();
       } else if (isChangeToEncryptColumn) {
         return processChangeVarcharToEncryptColumn(item, oldColumnName, newColumnName);
       } else {

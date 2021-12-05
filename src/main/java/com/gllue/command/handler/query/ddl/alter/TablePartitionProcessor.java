@@ -13,7 +13,6 @@ import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.gllue.command.handler.CommandHandlerException;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.common.exception.BadColumnException;
 import com.gllue.common.exception.ColumnExistsException;

@@ -242,6 +242,7 @@ public class SQLStatementUtils {
     if (!unquoteName(col1.getColumnName()).equals(unquoteName(col2.getColumnName()))) {
       return false;
     }
+
     if (!col1.getDataType().toString().equalsIgnoreCase(col2.getDataType().toString())) {
       return false;
     }
@@ -250,6 +251,14 @@ public class SQLStatementUtils {
     if ((defaultExpr1 == null && defaultExpr2 != null)
         || (defaultExpr1 != null && defaultExpr2 == null)
         || (defaultExpr1 != null && !defaultExpr1.toString().equals(defaultExpr2.toString()))) {
+      return false;
+    }
+
+    var collate1 = col1.getCollateExpr();
+    var collate2 = col2.getCollateExpr();
+    if ((collate1 == null && collate2 != null)
+        || (collate1 != null && collate2 == null)
+        || (collate1 != null && !collate1.toString().equals(collate2.toString()))) {
       return false;
     }
 

@@ -29,7 +29,7 @@ public class SQLParserTest {
                 + "  `id` INT NOT NULL AUTO_INCREMENT,\n"
                 + "  `type` VARCHAR(50) DEFAULT 'no type',\n"
                 + "  `name` ENCRYPT(255) NOT NULL,\n"
-                + "  `value` LONGTEXT not null,\n"
+                + "  `value` LONGTEXT not null COLLATE utf8_bin,\n"
                 + "  primary key (`id`),\n"
                 + "  unique key `configvalue_type_name` (`type`,`name`),"
                 + "  INDEX `idx_name_type` (`name`(10), `type`),"

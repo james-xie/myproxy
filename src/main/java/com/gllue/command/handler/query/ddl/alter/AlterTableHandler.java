@@ -127,9 +127,15 @@ public class AlterTableHandler extends AbstractDDLHandler {
       var newStmt = alterTableProcessor.processStatement(statement);
       encryptColumnProcessor.ensureEncryptKey();
 
-      var alterTablePromise =
-          transportService.submitQueryToBackendDatabase(
-              request.getBackendConnectionId(), toSQLString(newStmt));
+      Promise<CommandResult> alterTablePromise;
+      if (newStmt.getItems().isEmpty()) {
+        alterTablePromise = Promise.emptyPromise();
+      } else {
+        alterTablePromise =
+            transportService.submitQueryToBackendDatabase(
+                request.getBackendConnectionId(), toSQLString(newStmt));
+      }
+
       if (!encryptColumnProcessor.shouldDoEncryptOrDecrypt()) {
         return alterTablePromise;
       }

@@ -45,7 +45,7 @@ class EncryptColumnProcessor {
   }
 
   void ensureTargetColumnType(SQLDataType dataType) {
-    if (isDataTypeNameEquals(dataType, ColumnType.VARCHAR)) {
+    if (!isDataTypeNameEquals(dataType, ColumnType.VARCHAR)) {
       throw new BadSQLException(
           "Cannot change encrypt column to column type [%s].", dataType.getName());
     }
@@ -60,8 +60,8 @@ class EncryptColumnProcessor {
   }
 
   boolean isModifyToEncryptColumn(SQLAlterTableItem item) {
-    if (item instanceof MySqlAlterTableChangeColumn) {
-      return isEncryptColumn(((MySqlAlterTableChangeColumn) item).getNewColumnDefinition());
+    if (item instanceof MySqlAlterTableModifyColumn) {
+      return isEncryptColumn(((MySqlAlterTableModifyColumn) item).getNewColumnDefinition());
     }
     return false;
   }
@@ -200,7 +200,7 @@ class EncryptColumnProcessor {
   String generateAlterSqlToRenameTemporaryColumn(String tableName) {
     assert shouldDoEncryptOrDecrypt();
 
-    var sqlPrefix = String.format("ALTER TABLE `%s`", tableName);
+    var sqlPrefix = String.format("ALTER TABLE `%s` ", tableName);
     var alterItems = new ArrayList<String>();
     var allColumns = new ArrayList<EncryptColumnInfo>(encryptColumns);
     allColumns.addAll(decryptColumns);
