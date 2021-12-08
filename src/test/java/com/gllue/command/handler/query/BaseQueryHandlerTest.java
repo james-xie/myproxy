@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doAnswer;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.AssertUtils;
 import com.gllue.cluster.ClusterState;
@@ -67,17 +68,20 @@ public abstract class BaseQueryHandlerTest {
   }
 
   protected MultiDatabasesMetaData prepareMultiDatabasesMetaData(
-      String datasource, String database, TableMetaData tableMetaData) {
+      String datasource, String database, TableMetaData... tableMetaData) {
     var builder = new MultiDatabasesMetaData.Builder();
     var databaseMetaData = prepareDatabase(datasource, database);
-    if (tableMetaData != null) {
-      databaseMetaData.addTable(tableMetaData);
+    for (var table : tableMetaData) {
+      databaseMetaData.addTable(table);
     }
     builder.addDatabase(databaseMetaData);
     return builder.build();
   }
 
   protected MultiDatabasesMetaData prepareMultiDatabasesMetaData(TableMetaData tableMetaData) {
+    if (tableMetaData == null) {
+      return prepareMultiDatabasesMetaData(DATASOURCE, DATABASE);
+    }
     return prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, tableMetaData);
   }
 
@@ -146,6 +150,10 @@ public abstract class BaseQueryHandlerTest {
 
   protected SQLAlterTableStatement parseAlterTableQuery(final String query) {
     return (SQLAlterTableStatement) sqlParser.parse(query);
+  }
+
+  protected SQLSelectStatement parseSelectQuery(final String query) {
+    return (SQLSelectStatement) sqlParser.parse(query);
   }
 
   protected void assertSQLEquals(final SQLStatement expected, final SQLStatement actual) {

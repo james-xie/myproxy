@@ -4,7 +4,7 @@ import com.gllue.command.handler.query.BaseQueryHandlerTest;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
+//@RunWith(MockitoJUnitRunner.class)
 public class TablePartitionProcessorTest extends BaseQueryHandlerTest {
 
 }

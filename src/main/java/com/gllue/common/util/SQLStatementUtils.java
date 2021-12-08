@@ -8,24 +8,31 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLIndex;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLStatement;
+import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableDropColumnItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAssignItem;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
+import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLForeignKeyConstraint;
 import com.alibaba.druid.sql.ast.statement.SQLNotNullConstraint;
 import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
+import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUniqueConstraint;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlTableIndex;
+import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
+import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
+import com.alibaba.druid.sql.visitor.VisitorFeature;
 import com.gllue.constant.ServerConstants;
 import com.gllue.metadata.model.ColumnType;
 import com.google.common.base.Preconditions;
@@ -196,8 +203,36 @@ public class SQLStatementUtils {
     return statement;
   }
 
+
+  static class CustomMySqlOutputVisitor extends MySqlOutputVisitor {
+    public CustomMySqlOutputVisitor(Appendable appender) {
+      super(appender);
+    }
+
+    public boolean visit(SQLPropertyExpr x) {
+      if (x.getOwner() == null) {
+        print0(x.getName());
+        return false;
+      }
+      return super.visit(x);
+    }
+  }
+
   public static String toSQLString(final SQLStatement stmt) {
-    return SQLUtils.toSQLString(stmt, stmt.getDbType());
+    if (stmt.getDbType() != DbType.mysql) {
+      return SQLUtils.toSQLString(stmt, stmt.getDbType());
+    }
+
+    StringBuilder out = new StringBuilder();
+    SQLASTOutputVisitor visitor = new CustomMySqlOutputVisitor(out);
+
+    var option = SQLUtils.DEFAULT_FORMAT_OPTION;
+    visitor.setUppCase(option.isUppCase());
+    visitor.setPrettyFormat(option.isPrettyFormat());
+    visitor.setParameterized(option.isParameterized());
+
+    stmt.accept(visitor);
+    return out.toString();
   }
 
   public static SQLAlterTableStatement newAlterTableStatement(
@@ -284,5 +319,69 @@ public class SQLStatementUtils {
     var newColumnDef = columnDef.clone();
     newColumnDef.getDataType().setName(ColumnType.VARBINARY.name());
     return newColumnDef;
+  }
+
+  public static boolean propertyOwnerIsDatabase(final SQLPropertyExpr expr) {
+    return expr.getOwner() instanceof SQLPropertyExpr;
+  }
+
+  public static String getPropertyOwner(final SQLPropertyExpr expr) {
+    var owner = expr.getOwner();
+    if (owner instanceof SQLName) {
+      return ((SQLName) owner).getSimpleName();
+    }
+    throw new IllegalArgumentException(
+        String.format(
+            "Unknown type for SQLPropertyExpr owner. [%s]", owner.getClass().getSimpleName()));
+  }
+
+  public static String getTableOwner(final SQLPropertyExpr propertyExpr) {
+    var expr = propertyExpr.getOwner();
+    if (expr instanceof SQLIdentifierExpr) {
+      return ((SQLIdentifierExpr) expr).getName();
+    }
+    if (expr instanceof SQLPropertyExpr) {
+      return ((SQLPropertyExpr) expr).getSimpleName();
+    }
+    return null;
+  }
+
+  public static String getSchemaOwner(final SQLPropertyExpr propertyExpr) {
+    var expr = propertyExpr.getOwner();
+    if (expr instanceof SQLPropertyExpr) {
+      SQLExpr owner = ((SQLPropertyExpr) expr).getOwner();
+      if (owner instanceof SQLIdentifierExpr) {
+        return ((SQLIdentifierExpr) owner).getName();
+      }
+
+      if (owner instanceof SQLPropertyExpr) {
+        return ((SQLPropertyExpr) owner).getSimpleName();
+      }
+    }
+    return null;
+  }
+
+  public static String getSchema(final SQLExprTableSource tableSource) {
+    var schema = tableSource.getSchema();
+    if (schema != null) {
+      schema = unquoteName(schema);
+    }
+    return schema;
+  }
+
+  public static String getTableName(final SQLExprTableSource tableSource) {
+    var tableName = tableSource.getTableName();
+    if (tableName != null) {
+      tableName = unquoteName(tableName);
+    }
+    return tableName;
+  }
+
+  public static String getAliasOrTableName(final SQLExprTableSource tableSource) {
+    var alias = tableSource.getAlias();
+    if (alias != null) {
+      return unquoteName(alias);
+    }
+    return getTableName(tableSource);
   }
 }

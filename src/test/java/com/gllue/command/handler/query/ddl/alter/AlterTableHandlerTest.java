@@ -4,5 +4,7 @@ import com.gllue.command.handler.query.BaseQueryHandlerTest;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.class)
-public class AlterTableHandlerTest extends BaseQueryHandlerTest {}
+//@RunWith(MockitoJUnitRunner.class)
+public class AlterTableHandlerTest extends BaseQueryHandlerTest {
+
+}

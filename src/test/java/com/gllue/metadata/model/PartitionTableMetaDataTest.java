@@ -17,9 +17,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class PartitionTableMetaDataTest {
-  TableMetaData prepareTable(String name, String[] columns) {
+  TableMetaData prepareTable(String name, String[] columns, TableType tableType) {
     var builder = new TableMetaData.Builder();
-    builder.setName(name).setType(TableType.PRIMARY).setIdentity(name).setVersion(1);
+    builder.setName(name).setType(tableType).setIdentity(name).setVersion(1);
     for (var column : columns) {
       builder.addColumn(
           new ColumnMetaData.Builder().setName(column).setType(ColumnType.INT).build());
@@ -28,7 +28,7 @@ public class PartitionTableMetaDataTest {
   }
 
   TableMetaData preparePrimaryTable(String name) {
-    return prepareTable(name, new String[] {"col1", "col2", "col3"});
+    return prepareTable(name, new String[] {"col1", "col2", "col3"}, TableType.PRIMARY);
   }
 
   String[] generateExtensionColumns(int ordinalValue) {
@@ -40,7 +40,7 @@ public class PartitionTableMetaDataTest {
   }
 
   TableMetaData prepareExtensionTable(String name, int ordinalValue) {
-    return prepareTable(name, generateExtensionColumns(ordinalValue));
+    return prepareTable(name, generateExtensionColumns(ordinalValue), TableType.EXTENSION);
   }
 
   PartitionTableMetaData prepareTable() {

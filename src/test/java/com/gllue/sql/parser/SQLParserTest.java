@@ -1,7 +1,8 @@
 package com.gllue.sql.parser;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.gllue.common.util.SQLStatementUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -56,7 +57,6 @@ public class SQLParserTest {
                 + ") ENGINE=InnoDB AUTO_INCREMENT=110 DEFAULT CHARSET=utf8");
     printStatement(stmt);
 
-
     var stmt1 =
         parser.parse(
             ""
@@ -89,19 +89,21 @@ public class SQLParserTest {
   @Test
   public void testParseAlterTableAddKey() {
     var parser = newParser();
-    var stmt1 = parser.parse(""
-        + "alter table configvalue "
-        + "add column `a` ENCRYPT null,"
-        + "add column `b` ENCRYPT null,"
-        + "modify column `a` ENCRYPT null,"
-        + "change column `a` `b` ENCRYPT null,"
-        + "change column `a` `b` INT null,"
-        + "drop column `a`,"
-        + "rename to `configvalue1`,"
-        + "add key `idx_type_name`(`type`, `name`),"
-        + "add index `idx_type_name`(`type`, `name`),"
-        + "add unique index `idx_type_name`(`type`, `name`)"
-        + ";");
+    var stmt1 =
+        parser.parse(
+            ""
+                + "alter table configvalue "
+                + "add column `a` ENCRYPT null,"
+                + "add column `b` ENCRYPT null,"
+                + "modify column `a` ENCRYPT null,"
+                + "change column `a` `b` ENCRYPT null,"
+                + "change column `a` `b` INT null,"
+                + "drop column `a`,"
+                + "rename to `configvalue1`,"
+                + "add key `idx_type_name`(`type`, `name`),"
+                + "add index `idx_type_name`(`type`, `name`),"
+                + "add unique index `idx_type_name`(`type`, `name`)"
+                + ";");
     printStatement(stmt1);
   }
 
@@ -170,7 +172,30 @@ public class SQLParserTest {
   @Test
   public void testParseSelect() {
     var parser = newParser();
-    var stmt = parser.parse("select * from configvalue1 where name = 'company_site';");
-    printStatement(stmt);
+    var stmt =
+        (SQLSelectStatement)
+            parser.parse(
+                "select *, db.t1.*, t1.* from a t1 "
+                    + "inner join b t2 on t1.id = t2.fk_id "
+                    + "inner join (select * from c) t3 on t1.id = t3.fk_id "
+                    + "inner join c t4 on t1.id = t4.fk_id "
+                    + "inner join d t5 on t1.id = t5.fk_id "
+                    + "where t1.name = 'company_site' and t2.value in ( "
+                    + "   select value from configvalue "
+                    + ") and t2.id in (1,2,3,4,5)"
+                    + "group by t1.id "
+                    + "order by t1.id desc;");
+    //    printStatement(stmt);
+
+    var stmt1 =
+        (SQLSelectStatement) parser.parse("select `t1.a`.id from elasticjob.jobtask as `t1.a`;");
+
+    var stmt2 =
+        (SQLSelectStatement) parser.parse("select * from ((select 1) union (select 2)) t;");
+
+//    var visitor = new SelectQueryInspectVisitor();
+//    stmt.accept(visitor);
+
+    System.out.println(SQLStatementUtils.toSQLString(stmt));
   }
 }

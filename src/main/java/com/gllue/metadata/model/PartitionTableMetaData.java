@@ -13,7 +13,7 @@ import lombok.experimental.Accessors;
 
 public class PartitionTableMetaData extends TableMetaData {
   @Getter private final TableMetaData primaryTable;
-  private final TableMetaData[] extensionTables;
+  @Getter private final TableMetaData[] extensionTables;
 
   public PartitionTableMetaData(
       final String identity,
@@ -150,6 +150,7 @@ public class PartitionTableMetaData extends TableMetaData {
     }
 
     public Builder addExtensionTable(TableMetaData table) {
+      assert table.getType() == TableType.EXTENSION;
       this.extensionTables.add(table);
       return this;
     }

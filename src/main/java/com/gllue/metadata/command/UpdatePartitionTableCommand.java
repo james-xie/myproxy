@@ -53,9 +53,9 @@ public class UpdatePartitionTableCommand extends AbstractTableUpdateCommand {
     }
   }
 
-  private TableMetaData buildTableMetaData(Table table) {
+  private TableMetaData buildTableMetaData(Table table, TableType tableType) {
     var builder = new TableMetaData.Builder();
-    builder.setName(table.name).setType(TableType.PRIMARY).setIdentity(table.name);
+    builder.setName(table.name).setType(tableType).setIdentity(table.name);
 
     for (var column : table.columns) {
       var colBuilder = new ColumnMetaData.Builder();
@@ -85,10 +85,10 @@ public class UpdatePartitionTableCommand extends AbstractTableUpdateCommand {
         .setName(name)
         .setIdentity(identity)
         .setNextVersion(table.getVersion())
-        .setPrimaryTable(buildTableMetaData(primaryTable));
+        .setPrimaryTable(buildTableMetaData(primaryTable, TableType.PRIMARY));
 
     for (var extensionTable : extensionTables) {
-      builder.addExtensionTable(buildTableMetaData(extensionTable));
+      builder.addExtensionTable(buildTableMetaData(extensionTable, TableType.EXTENSION));
     }
 
     var newTable = builder.build();

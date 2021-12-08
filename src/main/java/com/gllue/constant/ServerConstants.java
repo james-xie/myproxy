@@ -20,4 +20,8 @@ public final class ServerConstants {
    */
   public static final String MYSQL_QUOTE_SYMBOL = "`";
 
+  /**
+   * A symbol which is used to represent all columns.
+   */
+  public static final String ALL_COLUMN_EXPR = "*";
 }

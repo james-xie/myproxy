@@ -33,6 +33,8 @@ public enum ServerErrorCode implements SQLErrorCode {
 
   ER_BAD_COMMENT_ATTRIBUTE(10104, "Bad comment attribute. [key=%s, value=%s]"),
 
+  ER_NO_ENCRYPT_KEY(10105, "No encrypt key."),
+
   ER_SERVER_ERROR(10000, "Server error. [%s]");
 
   private final int errorCode;

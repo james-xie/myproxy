@@ -42,9 +42,9 @@ public class CreatePartitionTableCommand extends AbstractTableUpdateCommand {
     }
   }
 
-  private TableMetaData buildTableMetaData(Table table) {
+  private TableMetaData buildTableMetaData(Table table, TableType tableType) {
     var builder = new TableMetaData.Builder();
-    builder.setName(table.name).setType(TableType.PRIMARY).setIdentity(table.name);
+    builder.setName(table.name).setType(tableType).setIdentity(table.name);
 
     for (var column : table.columns) {
       var colBuilder = new ColumnMetaData.Builder();
@@ -68,9 +68,9 @@ public class CreatePartitionTableCommand extends AbstractTableUpdateCommand {
     Preconditions.checkArgument(!database.hasTable(name), "Table already exists. [%s]", name);
 
     var builder = new PartitionTableMetaData.Builder();
-    builder.setName(name).setPrimaryTable(buildTableMetaData(primaryTable));
+    builder.setName(name).setPrimaryTable(buildTableMetaData(primaryTable, TableType.PRIMARY));
     for (var extensionTable : extensionTables) {
-      builder.addExtensionTable(buildTableMetaData(extensionTable));
+      builder.addExtensionTable(buildTableMetaData(extensionTable, TableType.EXTENSION));
     }
 
     do {

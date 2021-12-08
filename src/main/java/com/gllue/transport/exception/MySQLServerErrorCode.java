@@ -30,17 +30,23 @@ public enum MySQLServerErrorCode implements SQLErrorCode {
 
   ER_BAD_TABLE_ERROR(1051, "42S02", "Unknown table '%s'"),
 
+  ER_NON_UNIQ_ERROR(1052, "23000", "Column '%s' in %s is ambiguous"),
+
   ER_BAD_FIELD_ERROR(1054, "42S22", "Unknown column '%s' in '%s'"),
 
   ER_DUP_FIELDNAME(1060, "42S21", "Duplicate column name '%s'"),
 
   ER_DUP_KEYNAME(1061, "42000", "Duplicate key name '%s'"),
 
-  ER_PARSE_ERROR(1064, "42000", "Message: %s"),
+  ER_PARSE_ERROR(1064, "42000", "SQL parse error: %s"),
+
+  ER_ER_NONUNIQ_TABLE(1066, "42000", "Not unique table/alias: '%s'"),
 
   ER_NO_SUCH_THREAD(1094, "HY000", "Unknown thread id: %lu"),
 
   ER_NET_READ_ERROR(1158, "08S01", "Got an error reading communication packets"),
+
+  ER_DERIVED_MUST_HAVE_ALIAS(1248, "42000", "Every derived table must have its own alias"),
 
   ER_NO_SUCH_USER(1449, "HY000", "The user ('%s') does not exist"),
 
