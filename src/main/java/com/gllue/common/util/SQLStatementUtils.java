@@ -8,7 +8,6 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.SQLIndex;
 import com.alibaba.druid.sql.ast.SQLName;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
@@ -20,8 +19,10 @@ import com.alibaba.druid.sql.ast.statement.SQLAssignItem;
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLForeignKeyConstraint;
+import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLNotNullConstraint;
 import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
@@ -29,14 +30,14 @@ import com.alibaba.druid.sql.ast.statement.SQLUniqueConstraint;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlTableIndex;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
 import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
-import com.alibaba.druid.sql.visitor.VisitorFeature;
 import com.gllue.constant.ServerConstants;
 import com.gllue.metadata.model.ColumnType;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
@@ -203,36 +204,8 @@ public class SQLStatementUtils {
     return statement;
   }
 
-
-  static class CustomMySqlOutputVisitor extends MySqlOutputVisitor {
-    public CustomMySqlOutputVisitor(Appendable appender) {
-      super(appender);
-    }
-
-    public boolean visit(SQLPropertyExpr x) {
-      if (x.getOwner() == null) {
-        print0(x.getName());
-        return false;
-      }
-      return super.visit(x);
-    }
-  }
-
   public static String toSQLString(final SQLStatement stmt) {
-    if (stmt.getDbType() != DbType.mysql) {
-      return SQLUtils.toSQLString(stmt, stmt.getDbType());
-    }
-
-    StringBuilder out = new StringBuilder();
-    SQLASTOutputVisitor visitor = new CustomMySqlOutputVisitor(out);
-
-    var option = SQLUtils.DEFAULT_FORMAT_OPTION;
-    visitor.setUppCase(option.isUppCase());
-    visitor.setPrettyFormat(option.isPrettyFormat());
-    visitor.setParameterized(option.isParameterized());
-
-    stmt.accept(visitor);
-    return out.toString();
+    return SQLUtils.toSQLString(stmt, stmt.getDbType());
   }
 
   public static SQLAlterTableStatement newAlterTableStatement(
@@ -383,5 +356,34 @@ public class SQLStatementUtils {
       return unquoteName(alias);
     }
     return getTableName(tableSource);
+  }
+
+  private static void doListTableSources(
+      final SQLTableSource tableSource,
+      Predicate<SQLTableSource> predicate,
+      List<SQLTableSource> tableSources) {
+    if (tableSource instanceof SQLJoinTableSource) {
+      var source = (SQLJoinTableSource) tableSource;
+      doListTableSources(source.getLeft(), predicate, tableSources);
+      doListTableSources(source.getRight(), predicate, tableSources);
+    } else {
+      if (predicate.apply(tableSource)) {
+        tableSources.add(tableSource);
+      }
+    }
+  }
+
+  public static List<SQLTableSource> listTableSources(
+      final SQLTableSource tableSource, Predicate<SQLTableSource> predicate) {
+    var tableSources = new ArrayList<SQLTableSource>();
+    doListTableSources(tableSource, predicate, tableSources);
+    return tableSources;
+  }
+
+  public static List<SQLSelectItem> newSQLSelectItems(
+      final SQLExpr owner, List<String> columnNames) {
+    return columnNames.stream()
+        .map(x -> new SQLSelectItem(new SQLPropertyExpr(owner, quoteName(x))))
+        .collect(Collectors.toList());
   }
 }

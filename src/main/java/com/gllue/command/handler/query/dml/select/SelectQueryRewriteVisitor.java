@@ -4,6 +4,8 @@ import static com.gllue.command.handler.query.TablePartitionHelper.EXTENSION_TAB
 import static com.gllue.command.handler.query.TablePartitionHelper.QUOTED_EXTENSION_TABLE_ID_COLUMN;
 import static com.gllue.common.util.SQLStatementUtils.getAliasOrTableName;
 import static com.gllue.common.util.SQLStatementUtils.getSchema;
+import static com.gllue.common.util.SQLStatementUtils.listTableSources;
+import static com.gllue.common.util.SQLStatementUtils.newSQLSelectItems;
 import static com.gllue.common.util.SQLStatementUtils.quoteName;
 import static com.gllue.common.util.SQLStatementUtils.unquoteName;
 import static com.gllue.constant.ServerConstants.ALL_COLUMN_EXPR;
@@ -24,18 +26,22 @@ import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
+import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.NoEncryptKeyException;
-import com.gllue.command.handler.query.TablePartitionHelper;
 import com.gllue.common.exception.BadColumnException;
+import com.gllue.common.exception.ColumnExistsException;
 import com.gllue.common.exception.NoDatabaseException;
 import com.gllue.common.util.SQLStatementUtils;
+import com.gllue.metadata.model.ColumnMetaData;
 import com.gllue.metadata.model.ColumnType;
 import com.gllue.metadata.model.PartitionTableMetaData;
 import com.gllue.metadata.model.TableType;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Stack;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -49,12 +55,19 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
 
   @Getter private boolean queryChanged = false;
   private TableScope scope;
+  private SubQueryTreeNode subQueryTreeRoot = null;
+  private Stack<SubQueryTreeNode> subQueryTreeNodeStack;
   private boolean inheritScope = true;
   private boolean shouldVisitProperty = true;
   private int aliasIndex = 0;
+  private int selectQueryBlockDepth = 0;
+  private String subQueryAlias = null;
+  private int subQueryTableSourceDepth = 0;
 
   public boolean visit(SQLSubqueryTableSource x) {
     inheritScope = false;
+    subQueryTableSourceDepth++;
+    subQueryAlias = x.getAlias();
     return true;
   }
 
@@ -63,7 +76,9 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return true;
   }
 
-  public void endVisit(SQLSubqueryTableSource x) {}
+  public void endVisit(SQLSubqueryTableSource x) {
+    subQueryTableSourceDepth--;
+  }
 
   private void setQueryChanged() {
     queryChanged = true;
@@ -79,7 +94,8 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     this.scope = scope.getParent();
   }
 
-  private void collectTableAliases(SQLTableSource tableSource, List<Object> tableAliases) {
+  private boolean collectTableAliases(SQLTableSource tableSource, List<Object> tableAliases) {
+    var hasSubQuery = false;
     if (tableSource instanceof SQLExprTableSource) {
       var source = (SQLExprTableSource) tableSource;
       if (source.getAlias() != null) {
@@ -89,21 +105,25 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
       }
     } else if (tableSource instanceof SQLJoinTableSource) {
       var source = (SQLJoinTableSource) tableSource;
-      collectTableAliases(source.getLeft(), tableAliases);
-      collectTableAliases(source.getRight(), tableAliases);
+      hasSubQuery = collectTableAliases(source.getLeft(), tableAliases);
+      hasSubQuery |= collectTableAliases(source.getRight(), tableAliases);
     } else if (tableSource instanceof SQLUnionQueryTableSource) {
       var source = (SQLUnionQueryTableSource) tableSource;
       if (source.getAlias() == null) {
         throw new NoTableAliasException();
       }
       tableAliases.add(source.getAlias());
+      hasSubQuery = true;
     } else if (tableSource instanceof SQLSubqueryTableSource) {
       var source = (SQLSubqueryTableSource) tableSource;
       if (source.getAlias() == null) {
         throw new NoTableAliasException();
       }
       tableAliases.add(source.getAlias());
+      hasSubQuery = true;
     }
+
+    return hasSubQuery;
   }
 
   private int findAllColumnExpr(List<SQLSelectItem> items) {
@@ -203,7 +223,7 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
   }
 
   private SQLTableSource joinExtensionTables(
-      SQLExprTableSource tableSource, PartitionTableMetaData table) {
+      String schema, SQLExprTableSource tableSource, PartitionTableMetaData table) {
     if (table.getNumberOfExtensionTables() == 0) {
       return tableSource;
     }
@@ -220,20 +240,17 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     var aliases = new String[extensionTables.length];
     SQLTableSource left = tableSource;
     for (var extTable : extensionTables) {
-      var alias = quoteName(generateTableAlias());
-      aliases[i++] = alias;
-      var aliasExpr = new SQLIdentifierExpr(alias);
+      var alias = generateTableAlias();
+      var quoteAlias = quoteName(alias);
+      aliases[i++] = quoteAlias;
+      var aliasExpr = new SQLIdentifierExpr(quoteAlias);
       var extTableName = quoteName(extTable.getName());
-      var right = new SQLExprTableSource(new SQLIdentifierExpr(extTableName), alias);
+      var right = new SQLExprTableSource(new SQLIdentifierExpr(extTableName), quoteAlias);
       var condition = newTableJoinCondition(primaryTableAlias, aliasExpr);
       left = new SQLJoinTableSource(left, JoinType.LEFT_OUTER_JOIN, right, condition);
+      scope.addTable(schema, alias, extTable);
     }
 
-    var schema = getSchema(tableSource);
-    if (schema == null) {
-      ensureDefaultDatabase();
-      schema = defaultDatabase;
-    }
     var aliasOrTableName = getAliasOrTableName(tableSource);
     scope.addExtensionTableAlias(schema, aliasOrTableName, aliases);
 
@@ -252,7 +269,7 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
       var aliasOrTableName = getAliasOrTableName(source);
       var table = scope.getTable(schema, aliasOrTableName);
       if (table != null && table.getType() == TableType.PARTITION) {
-        return joinExtensionTables(source, (PartitionTableMetaData) table);
+        return joinExtensionTables(schema, source, (PartitionTableMetaData) table);
       }
     } else if (tableSource instanceof SQLJoinTableSource) {
       var source = (SQLJoinTableSource) tableSource;
@@ -262,13 +279,192 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return tableSource;
   }
 
+  private List<String> resolveSubQuerySelectColumns(
+      SubQueryTreeNode treeNode, SQLSubqueryTableSource tableSource) {
+    if (treeNode == null) {
+      return null;
+    }
+
+    var queryBlock = tableSource.getSelect().getFirstQueryBlock();
+    var selectList = queryBlock.getSelectList();
+    tryPromoteColumnsInSubQuery(treeNode, queryBlock.getFrom(), selectList);
+
+    var scope = treeNode.getTableScope();
+    var columnNames = new ArrayList<String>();
+    var hasAllColumnExpr = false;
+    for (var item : selectList) {
+      var alias = item.getAlias();
+      var expr = item.getExpr();
+      if (expr instanceof SQLPropertyExpr) {
+        var propertyExpr = (SQLPropertyExpr) expr;
+        var schema = getSchemaOwner(propertyExpr);
+        var tableOrAlias = getTableOwner(propertyExpr);
+        var name = propertyExpr.getName();
+        if (ALL_COLUMN_EXPR.equals(name)) {
+          hasAllColumnExpr = true;
+        }
+
+        var table = scope.getTable(schema, tableOrAlias);
+        if (table != null) {
+          var column = table.getColumn(unquoteName(name));
+          // Only add encrypted columns to the subQuery tree node.
+          if (column.getType() == ColumnType.ENCRYPT) {
+            var nameOrAlias = alias == null ? column.getName() : unquoteName(alias);
+            treeNode.addColumn(nameOrAlias, column);
+          }
+        } else if (alias != null) {
+          var child = treeNode.getChild(tableOrAlias);
+          var column = child != null ? child.lookupColumn(name) : null;
+          if (column != null) {
+            treeNode.addColumn(unquoteName(alias), column);
+          }
+        }
+
+        columnNames.add(alias != null ? alias : name);
+      } else {
+        columnNames.add(alias != null ? alias : expr.toString());
+      }
+    }
+
+    if (hasAllColumnExpr) {
+      return null;
+    }
+
+    ensureNoDuplicateColumn(columnNames);
+    return columnNames;
+  }
+
+  private void ensureNoDuplicateColumn(List<String> columnNames) {
+    var columnNameSet = new HashSet<String>();
+    for (var column : columnNames) {
+      if (columnNameSet.contains(column)) {
+        throw new ColumnExistsException(column);
+      }
+      columnNameSet.add(column);
+    }
+  }
+
+  private void tryPromoteColumnsInSubQuery(
+      SubQueryTreeNode treeNode, SQLTableSource tableSource, List<SQLSelectItem> items) {
+    var subQuerySources = listTableSources(tableSource, (x) -> x instanceof SQLSubqueryTableSource);
+    if (subQuerySources.isEmpty()) {
+      return;
+    }
+
+    var aliasMap = new HashMap<String, SQLSubqueryTableSource>();
+    var subQueryColumnMap = new HashMap<String, List<String>>();
+    for (var source : subQuerySources) {
+      var subQuerySource = (SQLSubqueryTableSource) source;
+      var alias = subQuerySource.getAlias();
+      if (alias == null) {
+        throw new NoTableAliasException();
+      }
+      alias = unquoteName(alias);
+      aliasMap.put(alias, subQuerySource);
+      subQueryColumnMap.put(
+          alias, resolveSubQuerySelectColumns(treeNode.getChild(alias), subQuerySource));
+    }
+
+    boolean promoted = false;
+    var newItems = new ArrayList<SQLSelectItem>();
+    for (var item : items) {
+      var expr = item.getExpr();
+      if (expr instanceof SQLPropertyExpr) {
+        var propertyExpr = (SQLPropertyExpr) expr;
+        var alias = getTableOwner(propertyExpr);
+        if (!ALL_COLUMN_EXPR.equals(propertyExpr.getName()) || !aliasMap.containsKey(alias)) {
+          newItems.add(item);
+          continue;
+        }
+
+        var subQueryColumns = subQueryColumnMap.get(alias);
+        if (subQueryColumns == null) {
+          promoted = false;
+          break;
+        }
+
+        promoted = true;
+        var owner = new SQLIdentifierExpr(alias);
+        newItems.addAll(newSQLSelectItems(owner, subQueryColumns));
+      } else {
+        newItems.add(item);
+      }
+    }
+
+    if (promoted) {
+      items.clear();
+      items.addAll(newItems);
+      setQueryChanged();
+    }
+  }
+
+  private SQLExpr rewritePropertyOwnerForEncryptColumn(SQLPropertyExpr property) {
+    if (encryptKey == null) {
+      throw new NoEncryptKeyException();
+    }
+
+    var columnExpr = property.toString();
+    var encryptExpr = String.format("AES_DECRYPT(%s, '%s')", columnExpr, encryptKey);
+    return new SQLIdentifierExpr(encryptExpr);
+  }
+
+  private void rewriteEncryptColumnInSelectItems(List<SQLSelectItem> items) {
+    for (var item : items) {
+      var expr = item.getExpr();
+      if (expr instanceof SQLPropertyExpr) {
+        var propertyExpr = (SQLPropertyExpr) expr;
+        var schema = getSchemaOwner(propertyExpr);
+        var tableOrAlias = getTableOwner(propertyExpr);
+        var name = unquoteName(propertyExpr.getName());
+        var table = scope.getTable(schema, tableOrAlias);
+
+        ColumnMetaData column;
+        if (table != null) {
+          column = table.getColumn(name);
+        } else {
+          if (ALL_COLUMN_EXPR.equals(name)) {
+            var child = subQueryTreeRoot.getChild(tableOrAlias);
+            if (child != null && child.anyColumnExists()) {
+              throw new BadSQLException(
+                  "Some encrypt columns are not promoted to the outer select statement.");
+            }
+          }
+
+          column = SubQueryTreeNode.lookupColumn(subQueryTreeRoot, tableOrAlias, name);
+        }
+        if (column != null && column.getType() == ColumnType.ENCRYPT) {
+          item.setExpr(rewritePropertyOwnerForEncryptColumn(propertyExpr));
+          setQueryChanged();
+        }
+      }
+    }
+  }
+
   public boolean visit(MySqlSelectQueryBlock x) {
     newScope(x.getFrom());
+
+    if (selectQueryBlockDepth == 0) {
+      subQueryTreeRoot = new SubQueryTreeNode(null, scope);
+      subQueryTreeNodeStack = new Stack<>();
+      subQueryTreeNodeStack.push(subQueryTreeRoot);
+    } else if (selectQueryBlockDepth == subQueryTableSourceDepth) {
+      assert subQueryAlias != null;
+      var treeNode = new SubQueryTreeNode(subQueryAlias, scope);
+      subQueryTreeNodeStack.peek().addChild(treeNode);
+      subQueryTreeNodeStack.push(treeNode);
+    }
+
+    selectQueryBlockDepth++;
+
     shouldVisitProperty = scope.anyTablesInScope();
-    if (shouldVisitProperty) {
-      var tableAliases = new ArrayList<Object>();
-      collectTableAliases(x.getFrom(), tableAliases);
+
+    var tableAliases = new ArrayList<Object>();
+    var hasSubQuery = collectTableAliases(x.getFrom(), tableAliases);
+    if (hasSubQuery || shouldVisitProperty) {
       rewriteSelectAllColumnExpr(x.getSelectList(), tableAliases);
+    }
+
+    if (shouldVisitProperty) {
       rewriteSingleTableSelectAllColumnExpr(x.getSelectList());
       x.setFrom(rewriteTableSourceForPartitionTable(x.getFrom()));
     }
@@ -276,6 +472,16 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
   }
 
   public void endVisit(MySqlSelectQueryBlock x) {
+    if (selectQueryBlockDepth == subQueryTableSourceDepth) {
+      subQueryTreeNodeStack.pop();
+    }
+
+    selectQueryBlockDepth--;
+    if (selectQueryBlockDepth == 0) {
+      tryPromoteColumnsInSubQuery(subQueryTreeRoot, x.getFrom(), x.getSelectList());
+      rewriteEncryptColumnInSelectItems(x.getSelectList());
+    }
+
     exitScope();
   }
 
@@ -301,18 +507,6 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     setQueryChanged();
   }
 
-  private void rewritePropertyOwnerForEncryptColumn(SQLPropertyExpr property) {
-    if (encryptKey == null) {
-      throw new NoEncryptKeyException();
-    }
-
-    var columnExpr = property.toString();
-    var encryptExpr = String.format("AES_DECRYPT(%s, '%s')", columnExpr, encryptKey);
-    property.setName(encryptExpr);
-    property.setOwner((SQLExpr) null);
-    setQueryChanged();
-  }
-
   public boolean visit(SQLPropertyExpr x) {
     if (!shouldVisitProperty) {
       return false;
@@ -326,7 +520,7 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
 
     var column = unquoteName(x.getName());
-    if(EXTENSION_TABLE_ID_COLUMN.equals(column)) {
+    if (EXTENSION_TABLE_ID_COLUMN.equals(column)) {
       return false;
     } else if (!table.hasColumn(column)) {
       throw new BadColumnException(tableName, column);
@@ -335,9 +529,6 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     if (table.getType() == TableType.PARTITION) {
       rewritePropertyOwnerForPartitionTable(
           x, (PartitionTableMetaData) table, schema, tableName, column);
-    }
-    if (table.getColumn(column).getType() == ColumnType.ENCRYPT) {
-      rewritePropertyOwnerForEncryptColumn(x);
     }
     return false;
   }

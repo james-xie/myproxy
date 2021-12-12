@@ -188,10 +188,18 @@ public class SQLParserTest {
     //    printStatement(stmt);
 
     var stmt1 =
-        (SQLSelectStatement) parser.parse("select `t1.a`.id from elasticjob.jobtask as `t1.a`;");
+        (SQLSelectStatement) parser.parse("select `t1.a`.id as tid from elasticjob.jobtask as `t1.a`;");
 
     var stmt2 =
         (SQLSelectStatement) parser.parse("select * from ((select 1) union (select 2)) t;");
+
+    var stmt3 =
+        (SQLSelectStatement)
+            parser.parse(
+                "SELECT `Name`, SUM(`Value`)/(SELECT SUM(`Value`) FROM `table1`) AS \"% of Total\"\n"
+                    + "FROM `table1`\n"
+                    + "WHERE `Year` BETWEEN 2000 AND 2001 and exists (select id from configvalue where id = `table1`.id)\n"
+                    + "GROUP BY `Name`;");
 
 //    var visitor = new SelectQueryInspectVisitor();
 //    stmt.accept(visitor);

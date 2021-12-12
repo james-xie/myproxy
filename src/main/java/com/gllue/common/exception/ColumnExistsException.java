@@ -7,6 +7,7 @@ public class ColumnExistsException extends BaseServerException {
   private final String column;
 
   public ColumnExistsException(final String column) {
+    super(column);
     this.column = column;
   }
 
