@@ -222,6 +222,10 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return new SQLBinaryOpExpr(left, SQLBinaryOperator.Equality, right, DbType.mysql);
   }
 
+  /**
+   * Convert the partition table source object to the join table source object. it just
+   * joins the primary table and extension tables.
+   */
   private SQLTableSource joinExtensionTables(
       String schema, SQLExprTableSource tableSource, PartitionTableMetaData table) {
     if (table.getNumberOfExtensionTables() == 0) {
@@ -344,6 +348,18 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
   }
 
+  /**
+   * Try to promote columns in the subQuery to the outer select statement.
+   * For example:
+   *  before promotion:
+   *    select * from (
+   *      select col1, col2 from table1
+   *    ) t
+   * after promotion:
+   *    select t.col1, t.col2 from (
+   *      select col1, col2 from table1
+   *    ) t
+   */
   private void tryPromoteColumnsInSubQuery(
       SubQueryTreeNode treeNode, SQLTableSource tableSource, List<SQLSelectItem> items) {
     var subQuerySources = listTableSources(tableSource, (x) -> x instanceof SQLSubqueryTableSource);
@@ -398,6 +414,9 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
   }
 
+  /**
+   * Replace the encrypt column property to the AES_DECRYPT() accessor.
+   */
   private SQLExpr rewritePropertyOwnerForEncryptColumn(SQLPropertyExpr property) {
     if (encryptKey == null) {
       throw new NoEncryptKeyException();
@@ -422,11 +441,15 @@ public class SelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
         if (table != null) {
           column = table.getColumn(name);
         } else {
+          // if the select items contains "*" expression, and the subQuery has encrypted
+          // column exists, it indicates that some encrypted columns are not promoted to
+          // the outer select statement. if we ignore this case, some encrypted columns
+          // will not be decrypted.
           if (ALL_COLUMN_EXPR.equals(name)) {
             var child = subQueryTreeRoot.getChild(tableOrAlias);
             if (child != null && child.anyColumnExists()) {
               throw new BadSQLException(
-                  "Some encrypt columns are not promoted to the outer select statement.");
+                  "Some encrypted columns are not promoted to the outer select statement.");
             }
           }
 
