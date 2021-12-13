@@ -7,6 +7,7 @@ import static org.mockito.Mockito.doAnswer;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
+import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.AssertUtils;
@@ -154,6 +155,10 @@ public abstract class BaseQueryHandlerTest {
 
   protected SQLSelectStatement parseSelectQuery(final String query) {
     return (SQLSelectStatement) sqlParser.parse(query);
+  }
+
+  protected SQLDeleteStatement parseDeleteQuery(final String query) {
+    return (SQLDeleteStatement) sqlParser.parse(query);
   }
 
   protected void assertSQLEquals(final SQLStatement expected, final SQLStatement actual) {

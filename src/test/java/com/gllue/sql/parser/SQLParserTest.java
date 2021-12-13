@@ -165,7 +165,28 @@ public class SQLParserTest {
   @Test
   public void testParseDelete() {
     var parser = newParser();
-    var stmt = parser.parse("delete from configvalue1 where name = 'company_site';");
+    var stmt =
+        parser.parse(
+            "delete from configvalue1 where name = 'company_site' order by id desc limit 1;");
+    var stmt1 =
+        parser.parse(
+            "DELETE t1, t2 FROM t1 INNER JOIN t2 INNER JOIN t3\n"
+                + "WHERE t1.id=t2.id AND t2.id=t3.id;");
+    var stmt2 =
+        parser.parse(
+            "DELETE FROM t1, t2 USING t1 INNER JOIN t2 INNER JOIN t3\n"
+                + "WHERE t1.id=t2.id AND t2.id=t3.id;");
+    var stmt3 =
+        parser.parse(
+            "delete candidate, ext1 \n"
+                + "from candidate \n"
+                + "left join candidateexperience ext1 on candidate.id = ext1.candidate_id\n"
+                + "inner join (\n"
+                + "    select candidate.id from candidate\n"
+                + "    left join candidateexperience ext1 on candidate.id = ext1.candidate_id\n"
+                + "    order by candidate.id desc \n"
+                + "    limit 1\n"
+                + ") tmp on candidate.id = tmp.id;");
     printStatement(stmt);
   }
 
@@ -176,10 +197,10 @@ public class SQLParserTest {
         (SQLSelectStatement)
             parser.parse(
                 "select *, db.t1.*, t1.* from a t1 "
-                    + "inner join b t2 on t1.id = t2.fk_id "
+                    + "inner join db.b t2 on t1.id = t2.fk_id "
                     + "inner join (select * from c) t3 on t1.id = t3.fk_id "
-                    + "inner join c t4 on t1.id = t4.fk_id "
-                    + "inner join d t5 on t1.id = t5.fk_id "
+                    + "inner join db.c t4 on t1.id = t4.fk_id "
+                    + "inner join db.d t5 on t1.id = t5.fk_id "
                     + "where t1.name = 'company_site' and t2.value in ( "
                     + "   select value from configvalue "
                     + ") and t2.id in (1,2,3,4,5)"
@@ -188,10 +209,10 @@ public class SQLParserTest {
     //    printStatement(stmt);
 
     var stmt1 =
-        (SQLSelectStatement) parser.parse("select `t1.a`.id as tid from elasticjob.jobtask as `t1.a`;");
+        (SQLSelectStatement)
+            parser.parse("select `t1.a`.id as tid from elasticjob.jobtask as `t1.a`;");
 
-    var stmt2 =
-        (SQLSelectStatement) parser.parse("select * from ((select 1) union (select 2)) t;");
+    var stmt2 = (SQLSelectStatement) parser.parse("select * from ((select 1) union (select 2)) t;");
 
     var stmt3 =
         (SQLSelectStatement)
@@ -201,8 +222,8 @@ public class SQLParserTest {
                     + "WHERE `Year` BETWEEN 2000 AND 2001 and exists (select id from configvalue where id = `table1`.id)\n"
                     + "GROUP BY `Name`;");
 
-//    var visitor = new SelectQueryInspectVisitor();
-//    stmt.accept(visitor);
+    //    var visitor = new SelectQueryInspectVisitor();
+    //    stmt.accept(visitor);
 
     System.out.println(SQLStatementUtils.toSQLString(stmt));
   }

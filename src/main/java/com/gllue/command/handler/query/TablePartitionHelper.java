@@ -100,4 +100,11 @@ public class TablePartitionHelper {
     return newCreateTableStatement(
         tableName, columnDefs, newExtensionTablePrimaryKey(), null, null, tableOptions, false);
   }
+
+  public static SQLBinaryOpExpr newTableJoinCondition(
+      final SQLExpr primaryTableAlias, final SQLExpr extensionTableAlias) {
+    var left = new SQLPropertyExpr(primaryTableAlias, QUOTED_EXTENSION_TABLE_ID_COLUMN);
+    var right = new SQLPropertyExpr(extensionTableAlias, QUOTED_EXTENSION_TABLE_ID_COLUMN);
+    return new SQLBinaryOpExpr(left, SQLBinaryOperator.Equality, right, DbType.mysql);
+  }
 }

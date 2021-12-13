@@ -15,6 +15,8 @@ import com.gllue.command.handler.HandlerRequest;
 import com.gllue.command.handler.HandlerResult;
 import com.gllue.command.handler.query.ddl.alter.AlterTableHandler;
 import com.gllue.command.handler.query.ddl.create.CreateTableHandler;
+import com.gllue.command.handler.query.dml.select.SelectQueryHandler;
+import com.gllue.command.handler.query.dml.select.SelectQueryResult;
 import com.gllue.common.Callback;
 import com.gllue.config.Configurations;
 import com.gllue.repository.PersistRepository;
@@ -28,6 +30,7 @@ public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest,
 
   private final AlterTableHandler alterTableHandler;
   private final CreateTableHandler createTableHandler;
+  private final SelectQueryHandler selectQueryHandler;
 
   public ConcreteQueryHandler(
       final PersistRepository repository,
@@ -42,6 +45,9 @@ public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest,
             repository, configurations, clusterState, transportService, sqlParser);
     this.createTableHandler =
         new CreateTableHandler(
+            repository, configurations, clusterState, transportService, sqlParser);
+    this.selectQueryHandler =
+        new SelectQueryHandler(
             repository, configurations, clusterState, transportService, sqlParser);
   }
 
@@ -69,7 +75,7 @@ public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest,
   private void dispatchQueryHandler(
       SQLStatement stmt, QueryHandlerRequest request, Callback<HandlerResult> callback) {
     if (stmt instanceof SQLSelectStatement) {
-
+      invokeHandlerExecute(selectQueryHandler, request, Callback.wrap(callback));
     } else if (stmt instanceof MySqlUpdateStatement) {
 
     } else if (stmt instanceof MySqlInsertStatement) {

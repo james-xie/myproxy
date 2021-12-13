@@ -1,5 +1,8 @@
 package com.gllue.command.handler.query.dml.select;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.BaseQueryHandlerTest;
 import com.gllue.command.handler.query.TablePartitionHelper;
@@ -33,6 +36,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var stmt = parseSelectQuery(query);
     stmt.accept(rewriter);
     assertSQLEquals(query, stmt);
+    assertFalse(rewriter.isQueryChanged());
   }
 
   @Test
@@ -62,6 +66,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "INNER JOIN table3 t3 ON t.id = t3.id\n"
             + "WHERE t.id = 1",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
@@ -103,6 +108,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "WHERE t.id = 1\n"
             + "AND t2.col2 = '456'",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
@@ -173,6 +179,76 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "WHERE `t`.`id` = 1\n"
             + "AND `$ext_0`.`col2` = '456'",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
+  }
+
+  @Test
+  public void testRewritePartitionTableForSubQuery() {
+    var table1 = prepareTable("table1", "id", "col1");
+    var primaryTable =
+        new TableMetaData.Builder()
+            .setName("table2")
+            .setIdentity(RandomUtils.randomShortUUID())
+            .setType(TableType.PRIMARY)
+            .addColumn(new ColumnMetaData.Builder().setName("id").setType(ColumnType.INT).build())
+            .addColumn(
+                new ColumnMetaData.Builder().setName("col1").setType(ColumnType.ENCRYPT).build())
+            .addColumn(
+                new ColumnMetaData.Builder()
+                    .setName(TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN)
+                    .setType(ColumnType.INT)
+                    .setBuiltin(true)
+                    .build())
+            .build();
+    var extensionTable =
+        new TableMetaData.Builder()
+            .setName("ext_table_1")
+            .setIdentity(RandomUtils.randomShortUUID())
+            .setType(TableType.EXTENSION)
+            .addColumn(
+                new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build())
+            .addColumn(
+                new ColumnMetaData.Builder()
+                    .setName(TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN)
+                    .setType(ColumnType.INT)
+                    .setBuiltin(true)
+                    .build())
+            .build();
+
+    var builder =
+        new PartitionTableMetaData.Builder()
+            .setName("table2")
+            .setIdentity(RandomUtils.randomShortUUID())
+            .setPrimaryTable(primaryTable)
+            .addExtensionTable(extensionTable);
+    var table2 = builder.build();
+    var datasource = DATASOURCE;
+    var database = DATABASE;
+    var encryptKey = "key";
+    var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
+    var factory = new TableScopeFactory(datasource, database, databasesMetaData);
+    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var query =
+        "select * from `table1`\n"
+            + "inner join (\n"
+            + "    select * from `table2`\n"
+            + ") t2 on table1.id = t2.col2\n"
+            + "where t2.id = 1 and t2.col1 = '1234' and table1.col1 = 'abc'";
+    var stmt = parseSelectQuery(query);
+    stmt.accept(rewriter);
+    assertSQLEquals(
+        "SELECT `table1`.`id`, `table1`.`col1`, t2.`id`\n"
+            + ", AES_DECRYPT(t2.`col1`, 'key')\n"
+            + ", AES_DECRYPT(t2.`col2`, 'key')\n"
+            + "FROM `table1`\n"
+            + "INNER JOIN (\n"
+            + "   SELECT `table2`.`id`, `table2`.`col1`, `$ext_0`.`col2`\n"
+            + "   FROM `table2`\n"
+            + "   LEFT JOIN `ext_table_1` `$ext_0` ON `table2`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + ") t2 ON table1.id = t2.col2\n"
+            + "WHERE t2.id = 1 AND t2.col1 = '1234' AND table1.col1 = 'abc'",
+        stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
@@ -233,6 +309,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "WHERE t.id = 1\n"
             + "AND t2.col2 = '456'",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
@@ -293,6 +370,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "WHERE t.id = 1\n"
             + "AND t2.col2 = '456'",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test(expected = BadSQLException.class)
@@ -404,6 +482,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "WHERE t.id = 1\n"
             + "AND t2.col2 = '456'",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
@@ -437,5 +516,6 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "   FROM table2)\n"
             + ") t",
         stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 }
