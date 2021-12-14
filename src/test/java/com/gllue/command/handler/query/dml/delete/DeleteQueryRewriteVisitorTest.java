@@ -4,14 +4,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.gllue.command.handler.query.BaseQueryHandlerTest;
-import com.gllue.command.handler.query.TablePartitionHelper;
 import com.gllue.command.handler.query.dml.select.TableScopeFactory;
-import com.gllue.common.util.RandomUtils;
-import com.gllue.metadata.model.ColumnMetaData;
-import com.gllue.metadata.model.ColumnType;
-import com.gllue.metadata.model.PartitionTableMetaData;
-import com.gllue.metadata.model.TableMetaData;
-import com.gllue.metadata.model.TableType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -47,46 +40,6 @@ public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertFalse(rewriter.isQueryChanged());
     assertSQLEquals(query, stmt);
-  }
-
-  private PartitionTableMetaData preparePartitionTable(String tableName) {
-    var primaryTable =
-        new TableMetaData.Builder()
-            .setName(tableName)
-            .setIdentity(RandomUtils.randomShortUUID())
-            .setType(TableType.PRIMARY)
-            .addColumn(new ColumnMetaData.Builder().setName("id").setType(ColumnType.INT).build())
-            .addColumn(
-                new ColumnMetaData.Builder().setName("col1").setType(ColumnType.ENCRYPT).build())
-            .addColumn(
-                new ColumnMetaData.Builder()
-                    .setName(TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN)
-                    .setType(ColumnType.INT)
-                    .setBuiltin(true)
-                    .build())
-            .build();
-    var extensionTable =
-        new TableMetaData.Builder()
-            .setName("ext_table_1")
-            .setIdentity(RandomUtils.randomShortUUID())
-            .setType(TableType.EXTENSION)
-            .addColumn(
-                new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build())
-            .addColumn(
-                new ColumnMetaData.Builder()
-                    .setName(TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN)
-                    .setType(ColumnType.INT)
-                    .setBuiltin(true)
-                    .build())
-            .build();
-
-    var builder =
-        new PartitionTableMetaData.Builder()
-            .setName(tableName)
-            .setIdentity(RandomUtils.randomShortUUID())
-            .setPrimaryTable(primaryTable)
-            .addExtensionTable(extensionTable);
-    return builder.build();
   }
 
   @Test

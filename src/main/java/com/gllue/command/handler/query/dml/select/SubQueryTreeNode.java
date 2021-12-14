@@ -79,6 +79,16 @@ public class SubQueryTreeNode {
     return res;
   }
 
+  public static ColumnMetaData lookupColumn(final SubQueryTreeNode root, final String name) {
+    for (var child : root.children.values()) {
+      var column = child.lookupColumn(name);
+      if (column != null) {
+        return column;
+      }
+    }
+    return null;
+  }
+
   public static ColumnMetaData lookupColumn(
       final SubQueryTreeNode root, final String alias, final String name) {
     var child = root.getChild(alias);

@@ -1,5 +1,6 @@
 package com.gllue.command.handler.query.dml.select;
 
+import com.gllue.metadata.model.ColumnMetaData;
 import com.gllue.metadata.model.TableMetaData;
 import java.util.HashMap;
 import java.util.Map;
@@ -109,5 +110,22 @@ public final class TableScope {
       }
     }
     return false;
+  }
+
+  public ColumnMetaData findColumnInScope(final String schema, final String column) {
+    if (databaseTableMap == null) {
+      return null;
+    }
+
+    var tableMap = databaseTableMap.get(schema);
+    if (tableMap != null) {
+      for (var table : tableMap.values()) {
+        var columnMetaData = table.getColumn(column);
+        if (columnMetaData != null) {
+          return columnMetaData;
+        }
+      }
+    }
+    return null;
   }
 }

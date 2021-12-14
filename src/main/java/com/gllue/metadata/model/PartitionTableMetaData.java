@@ -22,7 +22,12 @@ public class PartitionTableMetaData extends TableMetaData {
       final TableMetaData primaryTable,
       final TableMetaData[] extensionTables) {
     super(
-        identity, name, TableType.PARTITION, mergeColumns(primaryTable, extensionTables), version);
+        identity,
+        name,
+        TableType.PARTITION,
+        mergeColumns(primaryTable, extensionTables),
+        version,
+        false);
     this.primaryTable = primaryTable;
     this.extensionTables = extensionTables;
   }

@@ -26,7 +26,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select *, t3.* from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -48,7 +48,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select *, t3.* from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -89,7 +89,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -156,7 +156,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` `t` "
             + "inner join `table1` `t1` on `t`.`id` = `t1`.`id` "
@@ -227,7 +227,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table1`\n"
             + "inner join (\n"
@@ -273,7 +273,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var databasesMetaData =
         prepareMultiDatabasesMetaData(datasource, database, table1, table2, table3);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -334,7 +334,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var databasesMetaData =
         prepareMultiDatabasesMetaData(datasource, database, table1, table2, table3);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -393,7 +393,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -428,7 +428,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -452,7 +452,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -494,7 +494,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
     var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, encryptKey, factory);
+    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
     var query =
         "select * from (\n"
             + "    (\n"

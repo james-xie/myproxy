@@ -9,6 +9,7 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
+import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.AssertUtils;
 import com.gllue.cluster.ClusterState;
@@ -21,6 +22,7 @@ import com.gllue.metadata.model.ColumnMetaData;
 import com.gllue.metadata.model.ColumnType;
 import com.gllue.metadata.model.DatabaseMetaData;
 import com.gllue.metadata.model.MultiDatabasesMetaData;
+import com.gllue.metadata.model.PartitionTableMetaData;
 import com.gllue.metadata.model.TableMetaData;
 import com.gllue.metadata.model.TableType;
 import com.gllue.sql.parser.SQLCommentAttributeKey;
@@ -58,6 +60,50 @@ public abstract class BaseQueryHandlerTest {
       builder.addColumn(
           new ColumnMetaData.Builder().setName(columnName).setType(ColumnType.VARCHAR).build());
     }
+    return builder.build();
+  }
+
+  protected PartitionTableMetaData preparePartitionTable(String tableName) {
+    var primaryTable =
+        new TableMetaData.Builder()
+            .setName(tableName)
+            .setIdentity(RandomUtils.randomShortUUID())
+            .setType(TableType.PRIMARY)
+            .addColumn(new ColumnMetaData.Builder().setName("id").setType(ColumnType.INT).build())
+            .addColumn(
+                new ColumnMetaData.Builder().setName("col1").setType(ColumnType.ENCRYPT).build())
+            .addColumn(
+                new ColumnMetaData.Builder().setName("col3").setType(ColumnType.VARCHAR).build())
+            .addColumn(
+                new ColumnMetaData.Builder()
+                    .setName(TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN)
+                    .setType(ColumnType.INT)
+                    .setBuiltin(true)
+                    .build())
+            .build();
+    var extensionTable =
+        new TableMetaData.Builder()
+            .setName("ext_table_1")
+            .setIdentity(RandomUtils.randomShortUUID())
+            .setType(TableType.EXTENSION)
+            .addColumn(
+                new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build())
+            .addColumn(
+                new ColumnMetaData.Builder().setName("col4").setType(ColumnType.VARCHAR).build())
+            .addColumn(
+                new ColumnMetaData.Builder()
+                    .setName(TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN)
+                    .setType(ColumnType.INT)
+                    .setBuiltin(true)
+                    .build())
+            .build();
+
+    var builder =
+        new PartitionTableMetaData.Builder()
+            .setName(tableName)
+            .setIdentity(RandomUtils.randomShortUUID())
+            .setPrimaryTable(primaryTable)
+            .addExtensionTable(extensionTable);
     return builder.build();
   }
 
@@ -159,6 +205,10 @@ public abstract class BaseQueryHandlerTest {
 
   protected SQLDeleteStatement parseDeleteQuery(final String query) {
     return (SQLDeleteStatement) sqlParser.parse(query);
+  }
+
+  protected SQLUpdateStatement parseUpdateQuery(final String query) {
+    return (SQLUpdateStatement) sqlParser.parse(query);
   }
 
   protected void assertSQLEquals(final SQLStatement expected, final SQLStatement actual) {

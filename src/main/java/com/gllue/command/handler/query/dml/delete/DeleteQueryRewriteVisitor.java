@@ -1,6 +1,6 @@
 package com.gllue.command.handler.query.dml.delete;
 
-import static com.gllue.command.handler.query.TablePartitionHelper.QUOTED_EXTENSION_TABLE_ID_COLUMN;
+import static com.gllue.command.handler.query.TablePartitionHelper.constructSubQueryToFilter;
 import static com.gllue.command.handler.query.TablePartitionHelper.newTableJoinCondition;
 import static com.gllue.common.util.SQLStatementUtils.quoteName;
 import static com.gllue.common.util.SQLStatementUtils.unquoteName;
@@ -13,23 +13,14 @@ import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
-import com.alibaba.druid.sql.ast.statement.SQLSelect;
-import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
-import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
 import com.gllue.command.handler.query.dml.select.TableScopeFactory;
-import com.gllue.metadata.model.TableMetaData;
-import com.gllue.metadata.model.TableType;
 import java.util.ArrayList;
 
 public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
-  private static final String SUB_QUERY_ALIAS = "$_sub_query";
-  private static final String QUOTED_SUB_QUERY_ALIAS = String.format("`%s`", SUB_QUERY_ALIAS);
-
   private boolean shouldTransform = false;
   private SQLTableSource originTableSource;
 
@@ -54,7 +45,7 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       x.setTableSource(rewriteTableSourceForPartitionTable(tableSource));
     }
 
-    if (isQueryChanged()) {
+    if (joinedExtensionTables) {
       shouldTransform = true;
       shouldVisitProperty = true;
       originTableSource = tableSource;
@@ -101,22 +92,6 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     x.setTableSource(generateCommaJoinedTableSource(tableSource));
   }
 
-  private SQLTableSource constructSubQueryToFilterDelete(
-      SQLTableSource tableSource,
-      SQLExpr owner,
-      SQLExpr where,
-      SQLOrderBy orderBy,
-      SQLLimit limit) {
-    var select = new MySqlSelectQueryBlock();
-    var selectColumn = new SQLPropertyExpr(owner, QUOTED_EXTENSION_TABLE_ID_COLUMN);
-    select.getSelectList().add(new SQLSelectItem(selectColumn));
-    select.setFrom(tableSource);
-    select.setWhere(where);
-    select.setOrderBy(orderBy);
-    select.setLimit(limit);
-    return new SQLSubqueryTableSource(new SQLSelect(select));
-  }
-
   private void transformSingleTableDeleteToMultiTableDelete(
       MySqlDeleteStatement x, SQLOrderBy orderBy, SQLLimit limit, SQLTableSource tableSource) {
     if (!(originTableSource instanceof SQLExprTableSource)) {
@@ -134,11 +109,10 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     var where = x.getWhere();
     x.setWhere(null);
     var filterSubQuery =
-        constructSubQueryToFilterDelete(tableSource, tableSourceAlias, where, orderBy, limit);
-    filterSubQuery.setAlias(QUOTED_SUB_QUERY_ALIAS);
+        constructSubQueryToFilter(tableSource, tableSourceAlias, where, orderBy, limit);
 
     var condition =
-        newTableJoinCondition(tableSourceAlias, new SQLIdentifierExpr(QUOTED_SUB_QUERY_ALIAS));
+        newTableJoinCondition(tableSourceAlias, new SQLIdentifierExpr(filterSubQuery.getAlias()));
     x.setFrom(new SQLJoinTableSource(tableSource, JoinType.INNER_JOIN, filterSubQuery, condition));
   }
 

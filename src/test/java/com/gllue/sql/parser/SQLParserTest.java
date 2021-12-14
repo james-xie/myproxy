@@ -159,6 +159,27 @@ public class SQLParserTest {
   public void testParseUpdate() {
     var parser = newParser();
     var stmt = parser.parse("update configvalue1 set value = 0 where name = 'company_site';");
+    var stmt1 =
+        parser.parse(
+            "update candidate t1\n"
+                + "inner join candidateexperience t2 on t1.id = t2.candidate_id\n"
+                + "set t1.dateAdded = now()");
+    var stmt2 =
+        parser.parse(
+            "update candidate t1\n"
+                + "set t1.dateAdded = now()\n"
+                + "order by t1.id desc \n"
+                + "limit 1;");
+    var stmt3 =
+        parser.parse(
+            "UPDATE items,\n"
+                + "       (SELECT id FROM items\n"
+                + "        WHERE id IN\n"
+                + "            (SELECT id FROM items\n"
+                + "             WHERE retail / wholesale >= 1.3 AND quantity < 100))\n"
+                + "        AS discounted\n"
+                + "SET items.retail = items.retail * 0.9\n"
+                + "WHERE items.id = discounted.id;");
     printStatement(stmt);
   }
 

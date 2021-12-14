@@ -8,6 +8,8 @@ import static com.gllue.common.util.SQLStatementUtils.quoteName;
 
 import com.alibaba.druid.DbType;
 import com.alibaba.druid.sql.ast.SQLExpr;
+import com.alibaba.druid.sql.ast.SQLLimit;
+import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
@@ -18,10 +20,14 @@ import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
+import com.alibaba.druid.sql.ast.statement.SQLSelect;
+import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.gllue.metadata.model.ColumnType;
 import com.gllue.metadata.model.PartitionTableMetaData;
 import java.util.List;
@@ -39,6 +45,9 @@ public class TablePartitionHelper {
   public static final ColumnType ID_COLUMN_TYPE = ColumnType.BIGINT;
   public static final String PRIMARY_KEY_COMMENT = "Primary key of the extension table.";
   private static final String JOIN_TABLE_ALIAS_PREFIX = "$_ext_";
+
+  private static final String SUB_QUERY_ALIAS = "$_sub_query";
+  private static final String QUOTED_SUB_QUERY_ALIAS = String.format("`%s`", SUB_QUERY_ALIAS);
 
   public static final Set<String> AVAILABLE_TABLE_OPTION_KEYS =
       Set.of(
@@ -106,5 +115,23 @@ public class TablePartitionHelper {
     var left = new SQLPropertyExpr(primaryTableAlias, QUOTED_EXTENSION_TABLE_ID_COLUMN);
     var right = new SQLPropertyExpr(extensionTableAlias, QUOTED_EXTENSION_TABLE_ID_COLUMN);
     return new SQLBinaryOpExpr(left, SQLBinaryOperator.Equality, right, DbType.mysql);
+  }
+
+  public static SQLTableSource constructSubQueryToFilter(
+      SQLTableSource tableSource,
+      SQLExpr owner,
+      SQLExpr where,
+      SQLOrderBy orderBy,
+      SQLLimit limit) {
+    var select = new MySqlSelectQueryBlock();
+    var selectColumn = new SQLPropertyExpr(owner, QUOTED_EXTENSION_TABLE_ID_COLUMN);
+    select.getSelectList().add(new SQLSelectItem(selectColumn));
+    select.setFrom(tableSource);
+    select.setWhere(where);
+    select.setOrderBy(orderBy);
+    select.setLimit(limit);
+    var subQuery = new SQLSubqueryTableSource(new SQLSelect(select));
+    subQuery.setAlias(QUOTED_SUB_QUERY_ALIAS);
+    return subQuery;
   }
 }

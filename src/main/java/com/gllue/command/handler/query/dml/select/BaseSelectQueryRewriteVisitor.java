@@ -5,6 +5,7 @@ import static com.gllue.command.handler.query.TablePartitionHelper.QUOTED_EXTENS
 import static com.gllue.common.util.SQLStatementUtils.getAliasOrTableName;
 import static com.gllue.common.util.SQLStatementUtils.getSchema;
 import static com.gllue.common.util.SQLStatementUtils.listTableSources;
+import static com.gllue.common.util.SQLStatementUtils.newExprTableSource;
 import static com.gllue.common.util.SQLStatementUtils.newSQLSelectItems;
 import static com.gllue.common.util.SQLStatementUtils.quoteName;
 import static com.gllue.common.util.SQLStatementUtils.unquoteName;
@@ -27,7 +28,6 @@ import com.alibaba.druid.sql.ast.statement.SQLUnionQueryTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.gllue.command.handler.query.BadSQLException;
-import com.gllue.command.handler.query.NoEncryptKeyException;
 import com.gllue.common.exception.BadColumnException;
 import com.gllue.common.exception.ColumnExistsException;
 import com.gllue.common.exception.NoDatabaseException;
@@ -41,7 +41,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Stack;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -54,12 +53,12 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
 
   protected TableScope scope;
   protected boolean shouldVisitProperty = false;
+  protected boolean joinedExtensionTables = false;
 
   @Getter private boolean queryChanged = false;
 
   private boolean inheritScope = true;
   private int aliasIndex = 0;
-
 
   public boolean visit(SQLSubqueryTableSource x) {
     inheritScope = false;
@@ -72,12 +71,11 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
   }
 
   public boolean visit(SQLExprTableSource x) {
-    // disable visit property.
+    // disable visit table source property.
     return false;
   }
 
   public void endVisit(SQLSubqueryTableSource x) {}
-
 
   public boolean visit(MySqlSelectQueryBlock x) {
     newScope(x.getFrom());
@@ -295,11 +293,10 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     SQLTableSource left = tableSource;
     for (var extTable : extensionTables) {
       var alias = generateTableAlias();
+      aliases[i++] = alias;
       var quoteAlias = quoteName(alias);
-      aliases[i++] = quoteAlias;
       var aliasExpr = new SQLIdentifierExpr(quoteAlias);
-      var extTableName = quoteName(extTable.getName());
-      var right = new SQLExprTableSource(new SQLIdentifierExpr(extTableName), quoteAlias);
+      var right = newExprTableSource(schema, extTable.getName(), quoteAlias);
       var condition = newTableJoinCondition(primaryTableAlias, aliasExpr);
       left = new SQLJoinTableSource(left, JoinType.LEFT_OUTER_JOIN, right, condition);
       scope.addTable(schema, alias, extTable);
@@ -308,6 +305,7 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     var aliasOrTableName = getAliasOrTableName(tableSource);
     scope.addExtensionTableAlias(schema, aliasOrTableName, aliases);
 
+    joinedExtensionTables = true;
     setQueryChanged();
     return left;
   }
@@ -316,10 +314,6 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     if (tableSource instanceof SQLExprTableSource) {
       var source = (SQLExprTableSource) tableSource;
       var schema = getSchema(source);
-      if (schema == null) {
-        ensureDefaultDatabase();
-        schema = defaultDatabase;
-      }
       var aliasOrTableName = getAliasOrTableName(source);
       var table = scope.getTable(schema, aliasOrTableName);
       if (table != null && table.getType() == TableType.PARTITION) {
@@ -457,12 +451,18 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
   }
 
-  /** Replace the encrypt column property to the AES_DECRYPT() accessor. */
-  protected SQLExpr rewritePropertyOwnerForEncryptColumn(
-      String encryptKey, SQLPropertyExpr property) {
-    var columnExpr = property.toString();
-    var encryptExpr = String.format("AES_DECRYPT(%s, '%s')", columnExpr, encryptKey);
-    return new SQLIdentifierExpr(encryptExpr);
+  /** Wrap the column expression with AES_DECRYPT() function. */
+  protected SQLExpr decryptColumn(String encryptKey, SQLExpr columnExpr) {
+    var columnStr = columnExpr.toString();
+    var decryptStr = String.format("AES_DECRYPT(%s, '%s')", columnStr, encryptKey);
+    return new SQLIdentifierExpr(decryptStr);
+  }
+
+  /** Wrap the column expression with DES_DECRYPT() function. */
+  protected SQLExpr encryptColumn(String encryptKey, SQLExpr columnExpr) {
+    var columnStr = columnExpr.toString();
+    var encryptStr = String.format("AES_ENCRYPT(%s, '%s')", columnStr, encryptKey);
+    return new SQLIdentifierExpr(encryptStr);
   }
 
   private void rewritePropertyOwnerForPartitionTable(
@@ -478,7 +478,7 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
 
     var aliases = scope.getExtensionTableAliases(schema, tableName);
-    var alias = aliases[ordinalValue - 1];
+    var alias = quoteName(aliases[ordinalValue - 1]);
     if (property.getOwner() instanceof SQLPropertyExpr) {
       ((SQLPropertyExpr) property.getOwner()).setName(alias);
     } else {
@@ -506,9 +506,51 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return unquoteName(table);
   }
 
+  protected String getSchema(final SQLExprTableSource tableSource) {
+    var schema = SQLStatementUtils.getSchema(tableSource);
+    if (schema == null) {
+      ensureDefaultDatabase();
+      schema = defaultDatabase;
+    }
+    return schema;
+  }
+
+  protected String getTableName(final SQLExprTableSource tableSource) {
+    var tableName = SQLStatementUtils.getTableName(tableSource);
+    if (tableName == null) {
+      throw new BadSQLException("Bad table source expression.");
+    }
+    return tableName;
+  }
+
   private void ensureDefaultDatabase() {
     if (defaultDatabase == null) {
       throw new NoDatabaseException();
     }
+  }
+
+  protected ColumnMetaData findColumnInScopeOrSubQuery(
+      TableScope scope, SubQueryTreeNode root, SQLExpr column) {
+    ColumnMetaData columnMetaData = null;
+    if (column instanceof SQLPropertyExpr) {
+      var property = (SQLPropertyExpr) column;
+      var schema = getSchemaOwner(property);
+      var tableOrAlias = getTableOwner(property);
+      var columnName = unquoteName(property.getName());
+
+      var table = scope.getTable(schema, tableOrAlias);
+      if (table != null) {
+        columnMetaData = table.getColumn(columnName);
+      } else {
+        columnMetaData = SubQueryTreeNode.lookupColumn(root, tableOrAlias, columnName);
+      }
+    } else if (column instanceof SQLIdentifierExpr) {
+      var columnName = unquoteName(((SQLIdentifierExpr) column).getSimpleName());
+      columnMetaData = scope.findColumnInScope(defaultDatabase, columnName);
+      if (columnMetaData == null) {
+        columnMetaData = SubQueryTreeNode.lookupColumn(root, columnName);
+      }
+    }
+    return columnMetaData;
   }
 }

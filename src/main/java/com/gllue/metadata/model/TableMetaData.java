@@ -27,6 +27,16 @@ public class TableMetaData extends AbstractMetaData {
       final TableType type,
       final ColumnMetaData[] columns,
       final int version) {
+    this(identity, name, type, columns, version, true);
+  }
+
+  public TableMetaData(
+      final String identity,
+      final String name,
+      final TableType type,
+      final ColumnMetaData[] columns,
+      final int version,
+      final boolean bindColumns) {
     super(identity, version);
 
     Preconditions.checkArgument(
@@ -38,6 +48,10 @@ public class TableMetaData extends AbstractMetaData {
     this.type = type;
     this.columns = columns;
     this.columnMap = buildColumnMap(columns);
+
+    if (bindColumns) {
+      setTableToColumns(columns);
+    }
   }
 
   private Map<String, ColumnMetaData> buildColumnMap(final ColumnMetaData[] columns) {
@@ -50,6 +64,12 @@ public class TableMetaData extends AbstractMetaData {
       }
     }
     return map;
+  }
+
+  private void setTableToColumns(ColumnMetaData[] columns) {
+    for (var column : columns) {
+      column.setTable(this);
+    }
   }
 
   public boolean hasColumn(final String name) {
@@ -70,7 +90,7 @@ public class TableMetaData extends AbstractMetaData {
 
   public List<String> getColumnNames() {
     var names = new ArrayList<String>();
-    for (var column: columns) {
+    for (var column : columns) {
       names.add(column.getName());
     }
     return names;

@@ -6,11 +6,13 @@ import com.gllue.metadata.AbstractMetaData;
 import com.gllue.metadata.AbstractMetaDataBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
+import java.lang.ref.WeakReference;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 
 public class ColumnMetaData extends AbstractMetaData {
+  private WeakReference<TableMetaData> table;
   @Getter private final String name;
   @Getter private final ColumnType type;
   @Getter private final boolean nullable;
@@ -43,6 +45,21 @@ public class ColumnMetaData extends AbstractMetaData {
     this.nullable = nullable;
     this.defaultValue = defaultValue;
     this.builtin = builtin;
+  }
+
+  public void setTable(final TableMetaData table) {
+    if (this.table != null) {
+      throw new IllegalStateException("Cannot override table property in column.");
+    }
+    this.table = new WeakReference<>(table);
+  }
+
+  public TableMetaData getTable() {
+    var table = this.table == null ? null : this.table.get();
+    if (table == null) {
+      throw new IllegalStateException("Table in column cannot be null.");
+    }
+    return table;
   }
 
   public void writeTo(final StreamOutput output) {

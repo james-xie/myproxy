@@ -24,7 +24,7 @@ public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   private int subQueryTableSourceDepth = 0;
 
   public SelectQueryRewriteVisitor(
-      String defaultDatabase, String encryptKey, TableScopeFactory tableScopeFactory) {
+      String defaultDatabase, TableScopeFactory tableScopeFactory, String encryptKey) {
     super(defaultDatabase, tableScopeFactory);
     this.encryptKey = encryptKey;
   }
@@ -33,7 +33,7 @@ public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   public boolean visit(SQLSubqueryTableSource x) {
     super.visit(x);
     subQueryTableSourceDepth++;
-    subQueryAlias = x.getAlias();
+    subQueryAlias = unquoteName(x.getAlias());
     return true;
   }
 
@@ -108,8 +108,8 @@ public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
           if (encryptKey == null) {
             throw new NoEncryptKeyException();
           }
-
-          item.setExpr(rewritePropertyOwnerForEncryptColumn(encryptKey, propertyExpr));
+          
+          item.setExpr(decryptColumn(encryptKey, propertyExpr));
           setQueryChanged();
         }
       }

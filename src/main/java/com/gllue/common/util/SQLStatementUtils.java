@@ -24,21 +24,22 @@ import com.alibaba.druid.sql.ast.statement.SQLNotNullConstraint;
 import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
+import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUniqueConstraint;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
-import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlOutputVisitor;
-import com.alibaba.druid.sql.visitor.SQLASTOutputVisitor;
 import com.gllue.constant.ServerConstants;
 import com.gllue.metadata.model.ColumnType;
 import com.google.common.base.Preconditions;
-import com.google.common.base.Predicate;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -308,6 +309,12 @@ public class SQLStatementUtils {
             "Unknown type for SQLPropertyExpr owner. [%s]", owner.getClass().getSimpleName()));
   }
 
+  /**
+   * Get table owner from the column property expression.
+   *
+   * @param propertyExpr property expression for the column
+   * @return a string of table owner
+   */
   public static String getTableOwner(final SQLPropertyExpr propertyExpr) {
     var expr = propertyExpr.getOwner();
     if (expr instanceof SQLIdentifierExpr) {
@@ -319,6 +326,12 @@ public class SQLStatementUtils {
     return null;
   }
 
+  /**
+   * Get schema owner from the column property expression.
+   *
+   * @param propertyExpr property expression for the column
+   * @return a string of schema owner
+   */
   public static String getSchemaOwner(final SQLPropertyExpr propertyExpr) {
     var expr = propertyExpr.getOwner();
     if (expr instanceof SQLPropertyExpr) {
@@ -334,6 +347,12 @@ public class SQLStatementUtils {
     return null;
   }
 
+  /**
+   * Get schema from the table source.
+   *
+   * @param tableSource table source in the sql statement.
+   * @return a string of the schema name.
+   */
   public static String getSchema(final SQLExprTableSource tableSource) {
     var schema = tableSource.getSchema();
     if (schema != null) {
@@ -342,6 +361,12 @@ public class SQLStatementUtils {
     return schema;
   }
 
+  /**
+   * Get table name from the table source.
+   *
+   * @param tableSource table source in the sql statement.
+   * @return a string of the table name.
+   */
   public static String getTableName(final SQLExprTableSource tableSource) {
     var tableName = tableSource.getTableName();
     if (tableName != null) {
@@ -358,26 +383,38 @@ public class SQLStatementUtils {
     return getTableName(tableSource);
   }
 
-  private static void doListTableSources(
-      final SQLTableSource tableSource,
-      Predicate<SQLTableSource> predicate,
-      List<SQLTableSource> tableSources) {
+  public static void iterateSources(
+      final SQLTableSource tableSource, Consumer<SQLTableSource> consumer) {
     if (tableSource instanceof SQLJoinTableSource) {
       var source = (SQLJoinTableSource) tableSource;
-      doListTableSources(source.getLeft(), predicate, tableSources);
-      doListTableSources(source.getRight(), predicate, tableSources);
+      iterateSources(source.getLeft(), consumer);
+      iterateSources(source.getRight(), consumer);
     } else {
-      if (predicate.apply(tableSource)) {
-        tableSources.add(tableSource);
-      }
+      consumer.accept(tableSource);
     }
   }
 
   public static List<SQLTableSource> listTableSources(
       final SQLTableSource tableSource, Predicate<SQLTableSource> predicate) {
     var tableSources = new ArrayList<SQLTableSource>();
-    doListTableSources(tableSource, predicate, tableSources);
+    iterateSources(
+        tableSource,
+        (x) -> {
+          if (predicate.test(x)) {
+            tableSources.add(x);
+          }
+        });
     return tableSources;
+  }
+
+  public static boolean anySubQueryExists(final SQLTableSource tableSource) {
+    var exists = new AtomicBoolean();
+    iterateSources(tableSource, (x) -> {
+      if (x instanceof SQLSubqueryTableSource) {
+        exists.set(true);
+      }
+    });
+    return exists.get();
   }
 
   public static List<SQLSelectItem> newSQLSelectItems(
@@ -385,5 +422,16 @@ public class SQLStatementUtils {
     return columnNames.stream()
         .map(x -> new SQLSelectItem(new SQLPropertyExpr(owner, quoteName(x))))
         .collect(Collectors.toList());
+  }
+
+  public static SQLExprTableSource newExprTableSource(
+      final String schema, final String tableName, final String alias) {
+    SQLExpr expr;
+    if (schema == null) {
+      expr = new SQLIdentifierExpr(quoteName(tableName));
+    } else {
+      expr = new SQLPropertyExpr(quoteName(schema), quoteName(tableName));
+    }
+    return new SQLExprTableSource(expr, quoteName(alias));
   }
 }

@@ -16,33 +16,33 @@ import lombok.RequiredArgsConstructor;
 @Getter
 public enum ServerErrorCode implements SQLErrorCode {
 
-  ER_LOST_BACKEND_CONNECTION(10001, "Lost backend connection."),
+  ER_LOST_BACKEND_CONNECTION(50001, "Lost backend connection."),
 
-  ER_TOO_MANY_BACKEND_CONNECTION(10002, "Too many backend connections. [%s]"),
+  ER_TOO_MANY_BACKEND_CONNECTION(50002, "Too many backend connections. [%s]"),
 
-  ER_TOO_MANY_EXECUTION_TASK(10010, "Too many execution tasks."),
+  ER_TOO_MANY_EXECUTION_TASK(50010, "Too many execution tasks."),
 
 
-  ER_ILLEGAL_ARGUMENT(10100, "Illegal argument. [%s]"),
+  ER_ILLEGAL_ARGUMENT(50100, "Illegal argument. [%s]"),
 
-  ER_BAD_CONFIGURATION(10101, "Bad configuration."),
+  ER_BAD_CONFIGURATION(50101, "Bad configuration."),
 
-  ER_BAD_SQL(10102, "Bad SQL. [%s]"),
+  ER_BAD_SQL(50102, "Bad SQL. [%s]"),
 
-  ER_MISSING_COMMENT_ATTRIBUTE(10103, "Missing comment attribute. [%s]"),
+  ER_MISSING_COMMENT_ATTRIBUTE(50103, "Missing comment attribute. [%s]"),
 
-  ER_BAD_COMMENT_ATTRIBUTE(10104, "Bad comment attribute. [key=%s, value=%s]"),
+  ER_BAD_COMMENT_ATTRIBUTE(50104, "Bad comment attribute. [key=%s, value=%s]"),
 
-  ER_NO_ENCRYPT_KEY(10105, "No encrypt key."),
+  ER_NO_ENCRYPT_KEY(50105, "No encrypt key."),
 
-  ER_SERVER_ERROR(10000, "Server error. [%s]");
+  ER_SERVER_ERROR(50000, "Server error. [%s]");
 
   private final int errorCode;
 
   private final String errorMessage;
 
   ServerErrorCode(final int errorCode, final String errorMessage) {
-    Preconditions.checkArgument(errorCode >= 10000 && errorCode < 100000);
+    Preconditions.checkArgument(errorCode >= 50000 && errorCode < 52000);
 
     this.errorCode = errorCode;
     this.errorMessage = errorMessage;
