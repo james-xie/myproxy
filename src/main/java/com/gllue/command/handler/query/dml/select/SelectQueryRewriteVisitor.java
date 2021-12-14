@@ -33,6 +33,9 @@ public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   public boolean visit(SQLSubqueryTableSource x) {
     super.visit(x);
     subQueryTableSourceDepth++;
+    if (x.getAlias() == null) {
+      throw new NoTableAliasException();
+    }
     subQueryAlias = unquoteName(x.getAlias());
     return true;
   }

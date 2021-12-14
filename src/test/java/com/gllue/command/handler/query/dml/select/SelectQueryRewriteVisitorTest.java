@@ -173,7 +173,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "INNER JOIN `table1` `t1` ON `t`.`id` = `t1`.`id`\n"
             + "INNER JOIN ("
             + "`table2` `t2` "
-            + "LEFT JOIN `ext_table_1` `$ext_0` ON `t2`.`$_ext_id` = `$ext_0`.`$_ext_id`"
+            + "LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `t2`.`$_ext_id` = `$ext_0`.`$_ext_id`"
             + ") ON `t`.`id` = `$ext_0`.`col2`\n"
             + "INNER JOIN `table3` `t3` ON `t`.`id` = `t3`.`id`\n"
             + "WHERE `t`.`id` = 1\n"
@@ -244,7 +244,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "INNER JOIN (\n"
             + "   SELECT `table2`.`id`, `table2`.`col1`, `$ext_0`.`col2`\n"
             + "   FROM `table2`\n"
-            + "   LEFT JOIN `ext_table_1` `$ext_0` ON `table2`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "   LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table2`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + ") t2 ON table1.id = t2.col2\n"
             + "WHERE t2.id = 1 AND t2.col1 = '1234' AND table1.col1 = 'abc'",
         stmt);

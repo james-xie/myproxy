@@ -24,6 +24,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.NoEncryptKeyException;
 import com.gllue.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
+import com.gllue.command.handler.query.dml.select.NoTableAliasException;
 import com.gllue.command.handler.query.dml.select.SubQueryTreeNode;
 import com.gllue.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.metadata.model.ColumnMetaData;
@@ -88,6 +89,9 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   @Override
   public boolean visit(SQLSubqueryTableSource x) {
     var res = super.visit(x);
+    if (x.getAlias() == null) {
+      throw new NoTableAliasException();
+    }
     subQueryAlias = unquoteName(x.getAlias());
     return res;
   }

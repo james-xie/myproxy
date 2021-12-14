@@ -171,7 +171,16 @@ public class TableMetaData extends AbstractMetaData {
       if (options == CopyOptions.COPY_CHILDREN) {
         this.columns = new ArrayList<>(metadata.getNumberOfColumns());
         for (int i = 0; i < metadata.getNumberOfColumns(); i++) {
-          this.columns.add(metadata.getColumn(i));
+          var column = metadata.getColumn(i);
+          var builder =
+              new ColumnMetaData.Builder()
+                  .setName(column.getName())
+                  .setType(column.getType())
+                  .setVersion(column.getVersion())
+                  .setNullable(column.isNullable())
+                  .setDefaultValue(column.getDefaultValue())
+                  .setBuiltin(column.isBuiltin());
+          this.columns.add(builder.build());
         }
       }
     }

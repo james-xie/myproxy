@@ -54,7 +54,7 @@ public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     assertSQLEquals(
         "DELETE `table1`, `$ext_0`\n"
             + "FROM `table1`\n"
-            + "LEFT JOIN `ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "WHERE table1.id = 1\n"
             + "AND `$ext_0`.col2 = '1234'",
         stmt);
@@ -74,11 +74,11 @@ public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     assertSQLEquals(
         "DELETE `t1`, `$ext_0`\n"
             + "FROM `table1` `t1`\n"
-            + "  LEFT JOIN `ext_table_1` `$ext_0` ON `t1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `t1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "  INNER JOIN (\n"
             + "    SELECT `t1`.`$_ext_id`\n"
             + "    FROM `table1` `t1`\n"
-            + "      LEFT JOIN `ext_table_1` `$ext_0` ON `t1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "      LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `t1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "    WHERE `t1`.id = 1\n"
             + "      AND `$ext_0`.col2 = '1234'\n"
             + "    ORDER BY id DESC\n"
@@ -104,7 +104,7 @@ public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     assertSQLEquals(
         "DELETE `table1`, `table2`, `$ext_0`\n"
             + "FROM `table1`\n"
-            + "  LEFT JOIN `ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "  INNER JOIN `table2` ON `table1`.id = `table2`.id\n"
             + "WHERE table1.id = 1\n"
             + "  AND `$ext_0`.col2 = '1234'",
@@ -127,7 +127,7 @@ public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     assertSQLEquals(
         "DELETE FROM `db`.`table1`, `db`.`table2`, `$ext_0`\n"
             + "USING `db`.`table1`\n"
-            + "  LEFT JOIN `ext_table_1` `$ext_0` ON `db`.`table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `db`.`table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "  INNER JOIN `db`.`table2` ON `db`.`$ext_0`.`col2` = `db`.`table2`.id\n"
             + "WHERE `db`.table1.id = 1\n"
             + "  AND `db`.`$ext_0`.col2 = '1234'",
