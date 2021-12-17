@@ -2,8 +2,10 @@ package com.gllue.command.handler.query.dml.select;
 
 import com.gllue.metadata.model.ColumnMetaData;
 import com.gllue.metadata.model.TableMetaData;
+import com.gllue.metadata.model.TableType;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -112,20 +114,39 @@ public final class TableScope {
     return false;
   }
 
+  private void findColumnInScope0(
+      TableScope scope, String schema, String column, AtomicReference<ColumnMetaData> result) {
+    if (scope.databaseTableMap == null) {
+      return;
+    }
+
+    var tableMap = scope.databaseTableMap.get(schema);
+    if (tableMap != null) {
+      for (var table : tableMap.values()) {
+        if (table.getType() == TableType.EXTENSION || table.getType() == TableType.PRIMARY) {
+          continue;
+        }
+
+        var columnMetaData = table.getColumn(column);
+        if (columnMetaData != null) {
+          if (!result.compareAndSet(null, columnMetaData)) {
+            throw new AmbiguousColumnException(column, "sql");
+          }
+        }
+      }
+    }
+    if (scope.inherit && scope.parent != null) {
+      findColumnInScope0(scope.parent, schema, column, result);
+    }
+  }
+
   public ColumnMetaData findColumnInScope(final String schema, final String column) {
     if (databaseTableMap == null) {
       return null;
     }
 
-    var tableMap = databaseTableMap.get(schema);
-    if (tableMap != null) {
-      for (var table : tableMap.values()) {
-        var columnMetaData = table.getColumn(column);
-        if (columnMetaData != null) {
-          return columnMetaData;
-        }
-      }
-    }
-    return null;
+    var result = new AtomicReference<ColumnMetaData>();
+    findColumnInScope0(this, schema, column, result);
+    return result.get();
   }
 }

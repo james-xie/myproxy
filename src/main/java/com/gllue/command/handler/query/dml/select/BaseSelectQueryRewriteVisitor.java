@@ -3,8 +3,6 @@ package com.gllue.command.handler.query.dml.select;
 import static com.gllue.command.handler.query.TablePartitionHelper.EXTENSION_TABLE_ID_COLUMN;
 import static com.gllue.command.handler.query.TablePartitionHelper.QUOTED_EXTENSION_TABLE_ID_COLUMN;
 import static com.gllue.common.util.SQLStatementUtils.getAliasOrTableName;
-import static com.gllue.common.util.SQLStatementUtils.getSchema;
-import static com.gllue.common.util.SQLStatementUtils.listTableSources;
 import static com.gllue.common.util.SQLStatementUtils.newExprTableSource;
 import static com.gllue.common.util.SQLStatementUtils.newSQLSelectItems;
 import static com.gllue.common.util.SQLStatementUtils.quoteName;
@@ -29,18 +27,20 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.common.exception.BadColumnException;
-import com.gllue.common.exception.ColumnExistsException;
 import com.gllue.common.exception.NoDatabaseException;
 import com.gllue.common.util.SQLStatementUtils;
 import com.gllue.metadata.model.ColumnMetaData;
-import com.gllue.metadata.model.ColumnType;
 import com.gllue.metadata.model.PartitionTableMetaData;
 import com.gllue.metadata.model.TableType;
+import com.gllue.metadata.model.TemporaryColumnMetaData;
+import com.gllue.metadata.model.TemporaryTableMetaData;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.Stack;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
@@ -52,63 +52,119 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
   private final TableScopeFactory tableScopeFactory;
 
   protected TableScope scope;
-  protected boolean shouldVisitProperty = false;
+  protected boolean shouldRewriteQuery = false;
   protected boolean joinedExtensionTables = false;
+  private Map<SQLExprTableSource, List<PreparedJoinExtensionTable>> preparedJoinExtensionTableMap;
+  private final List<MySqlSelectQueryBlock> selectQueryBlocks = new ArrayList<>();
 
   @Getter private boolean queryChanged = false;
 
   private boolean inheritScope = true;
   private int aliasIndex = 0;
+  private Set<String> affectedExtensionTables = null;
+  private Stack<String> subQueryStack;
 
+  @RequiredArgsConstructor
+  static class PreparedJoinExtensionTable {
+    final String tableName;
+    final SQLTableSource tableSource;
+    final SQLExpr joinCondition;
+  }
+
+  @Override
   public boolean visit(SQLSubqueryTableSource x) {
+    if (x.getAlias() == null) {
+      throw new NoTableAliasException();
+    }
     inheritScope = false;
+
+    if (subQueryStack == null) {
+      subQueryStack = new Stack<>();
+    }
+    subQueryStack.push(unquoteName(x.getAlias()));
     return true;
   }
 
+  @Override
+  public void endVisit(SQLSubqueryTableSource x) {
+    subQueryStack.pop();
+  }
+
+  @Override
   public boolean visit(SQLUnionQueryTableSource x) {
     inheritScope = false;
     return true;
   }
 
+  @Override
   public boolean visit(SQLExprTableSource x) {
     // disable visit table source property.
     return false;
   }
 
-  public void endVisit(SQLSubqueryTableSource x) {}
-
+  @Override
   public boolean visit(MySqlSelectQueryBlock x) {
     newScope(x.getFrom());
     rewriteSelectQuery(x);
     return true;
   }
 
+  @Override
   public void endVisit(MySqlSelectQueryBlock x) {
+    TemporaryTableMetaData temporaryTable = null;
+    if (subQueryStack != null && !subQueryStack.empty() && scope.anyTablesInScope()) {
+      var subQueryAlias = subQueryStack.peek();
+      temporaryTable = resolveSubQuerySelectColumns(subQueryAlias, x.getSelectList());
+    }
+
     exitScope();
+
+    if (temporaryTable != null) {
+      scope.addTable(defaultDatabase, temporaryTable.getName(), temporaryTable);
+    }
   }
 
+  @Override
+  public boolean visit(SQLIdentifierExpr x) {
+    if (!shouldRewriteQuery) {
+      return false;
+    }
+
+    var columnName = unquoteName(x.getSimpleName());
+    var column = scope.findColumnInScope(defaultDatabase, columnName);
+    if (column != null) {
+      checkForAffectedExtensionTables(column);
+    }
+    return false;
+  }
+
+  @Override
   public boolean visit(SQLPropertyExpr x) {
-    if (!shouldVisitProperty) {
+    if (!shouldRewriteQuery) {
       return false;
     }
 
     var schema = getSchemaOwner(x);
-    var tableName = getTableOwner(x);
-    var table = scope.getTable(schema, tableName);
-    if (table == null) {
-      return false;
-    }
-
-    var column = unquoteName(x.getName());
-    if (EXTENSION_TABLE_ID_COLUMN.equals(column)) {
-      return false;
-    } else if (!table.hasColumn(column)) {
-      throw new BadColumnException(tableName, column);
-    }
-
-    if (table.getType() == TableType.PARTITION) {
-      rewritePropertyOwnerForPartitionTable(
-          x, (PartitionTableMetaData) table, schema, tableName, column);
+    var tableOrAlias = getTableOwner(x);
+    var table = scope.getTable(schema, tableOrAlias);
+    var columnName = unquoteName(x.getName());
+    if (table != null) {
+      if (table.getType() == TableType.TEMPORARY) {
+        var column = table.getColumn(columnName);
+        if (column != null) {
+          checkForAffectedExtensionTables(column);
+        }
+      } else {
+        if (EXTENSION_TABLE_ID_COLUMN.equals(columnName)) {
+          return false;
+        } else if (!table.hasColumn(columnName)) {
+          throw new BadColumnException(tableOrAlias, columnName);
+        }
+        if (table.getType() == TableType.PARTITION) {
+          rewritePropertyOwnerForPartitionTable(
+              x, (PartitionTableMetaData) table, schema, tableOrAlias, columnName);
+        }
+      }
     }
     return false;
   }
@@ -128,17 +184,21 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
   }
 
   protected void rewriteSelectQuery(MySqlSelectQueryBlock x) {
-    shouldVisitProperty = scope.anyTablesInScope();
+    if (!shouldRewriteQuery) {
+      shouldRewriteQuery = scope.anyTablesInScope();
+    }
 
     var tableAliases = new ArrayList<Object>();
     var hasNestedQuery = collectTableAliases(x.getFrom(), tableAliases);
-    if (hasNestedQuery || shouldVisitProperty) {
-      rewriteSelectAllColumnExpr(x.getSelectList(), tableAliases);
+    if (hasNestedQuery) {
+      shouldRewriteQuery = true;
     }
 
-    if (shouldVisitProperty) {
+    if (shouldRewriteQuery) {
+      rewriteSelectAllColumnExpr(x.getSelectList(), tableAliases);
       rewriteSingleTableSelectAllColumnExpr(x.getSelectList());
-      x.setFrom(rewriteTableSourceForPartitionTable(x.getFrom()));
+      prepareJoinExtensionTables(x.getFrom());
+      selectQueryBlocks.add(x);
     }
   }
 
@@ -232,7 +292,7 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return newItems;
   }
 
-  private void rewriteSingleTableSelectAllColumnExpr(List<SQLSelectItem> items) {
+  protected void rewriteSingleTableSelectAllColumnExpr(List<SQLSelectItem> items) {
     Map<Integer, SQLPropertyExpr> properties = new HashMap<>();
 
     int i = 0;
@@ -270,14 +330,10 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return new SQLBinaryOpExpr(left, SQLBinaryOperator.Equality, right, DbType.mysql);
   }
 
-  /**
-   * Convert the partition table source object to the join table source object. it just joins the
-   * primary table and extension tables.
-   */
-  private SQLTableSource joinExtensionTables(
+  private boolean prepareJoinExtensionTables(
       String schema, SQLExprTableSource tableSource, PartitionTableMetaData table) {
     if (table.getNumberOfExtensionTables() == 0) {
-      return tableSource;
+      return false;
     }
 
     SQLExpr primaryTableAlias;
@@ -290,165 +346,173 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     int i = 0;
     var extensionTables = table.getExtensionTables();
     var aliases = new String[extensionTables.length];
-    SQLTableSource left = tableSource;
     for (var extTable : extensionTables) {
       var alias = generateTableAlias();
       aliases[i++] = alias;
+      scope.addTable(schema, alias, extTable);
+
       var quoteAlias = quoteName(alias);
       var aliasExpr = new SQLIdentifierExpr(quoteAlias);
-      var right = newExprTableSource(schema, extTable.getName(), quoteAlias);
-      var condition = newTableJoinCondition(primaryTableAlias, aliasExpr);
-      left = new SQLJoinTableSource(left, JoinType.LEFT_OUTER_JOIN, right, condition);
-      scope.addTable(schema, alias, extTable);
+      addPreparedJoinExtensionTable(
+          tableSource,
+          new PreparedJoinExtensionTable(
+              extTable.getName(),
+              newExprTableSource(schema, extTable.getName(), quoteAlias),
+              newTableJoinCondition(primaryTableAlias, aliasExpr)));
     }
 
     var aliasOrTableName = getAliasOrTableName(tableSource);
     scope.addExtensionTableAlias(schema, aliasOrTableName, aliases);
+    return true;
+  }
 
-    joinedExtensionTables = true;
-    setQueryChanged();
+  private void addPreparedJoinExtensionTable(
+      SQLExprTableSource tableSource, PreparedJoinExtensionTable table) {
+    if (preparedJoinExtensionTableMap == null) {
+      preparedJoinExtensionTableMap = new HashMap<>();
+    }
+    preparedJoinExtensionTableMap.computeIfAbsent(tableSource, k -> new ArrayList<>()).add(table);
+  }
+
+  /**
+   * Convert the partition table source object to the join table source object. it just joins the
+   * primary table and extension tables.
+   */
+  private SQLTableSource joinExtensionTables(
+      SQLExprTableSource tableSource,
+      List<PreparedJoinExtensionTable> preparedJoinTables,
+      boolean joinAll) {
+    SQLTableSource left = tableSource;
+    for (var joinTable : preparedJoinTables) {
+      if (joinAll
+          || (affectedExtensionTables != null
+              && affectedExtensionTables.contains(joinTable.tableName))) {
+        var right = joinTable.tableSource;
+        var condition = joinTable.joinCondition;
+        left = new SQLJoinTableSource(left, JoinType.LEFT_OUTER_JOIN, right, condition);
+      }
+    }
+
+    if (left != tableSource) {
+      joinedExtensionTables = true;
+      setQueryChanged();
+    }
     return left;
   }
 
-  protected SQLTableSource rewriteTableSourceForPartitionTable(SQLTableSource tableSource) {
+  protected boolean prepareJoinExtensionTables(SQLTableSource tableSource) {
+    var hasExtensionTable = false;
     if (tableSource instanceof SQLExprTableSource) {
       var source = (SQLExprTableSource) tableSource;
       var schema = getSchema(source);
       var aliasOrTableName = getAliasOrTableName(source);
       var table = scope.getTable(schema, aliasOrTableName);
       if (table != null && table.getType() == TableType.PARTITION) {
-        return joinExtensionTables(schema, source, (PartitionTableMetaData) table);
+        return prepareJoinExtensionTables(schema, source, (PartitionTableMetaData) table);
       }
     } else if (tableSource instanceof SQLJoinTableSource) {
       var source = (SQLJoinTableSource) tableSource;
-      source.setLeft(rewriteTableSourceForPartitionTable(source.getLeft()));
-      source.setRight(rewriteTableSourceForPartitionTable(source.getRight()));
+      hasExtensionTable = prepareJoinExtensionTables(source.getLeft());
+      hasExtensionTable |= prepareJoinExtensionTables(source.getRight());
+    }
+    return hasExtensionTable;
+  }
+
+  protected SQLTableSource joinExtensionTables(SQLTableSource tableSource) {
+    return joinExtensionTables(tableSource, false);
+  }
+
+  protected SQLTableSource joinExtensionTables(SQLTableSource tableSource, boolean joinAll) {
+    if (preparedJoinExtensionTableMap == null) {
+      return tableSource;
+    }
+
+    if (tableSource instanceof SQLExprTableSource) {
+      var source = (SQLExprTableSource) tableSource;
+      if (preparedJoinExtensionTableMap.containsKey(source)) {
+        return joinExtensionTables(source, preparedJoinExtensionTableMap.get(source), joinAll);
+      }
+    } else if (tableSource instanceof SQLJoinTableSource) {
+      var source = (SQLJoinTableSource) tableSource;
+      source.setLeft(joinExtensionTables(source.getLeft(), joinAll));
+      source.setRight(joinExtensionTables(source.getRight(), joinAll));
     }
     return tableSource;
   }
 
-  private List<String> resolveSubQuerySelectColumns(
-      SubQueryTreeNode treeNode, SQLSubqueryTableSource tableSource) {
-    if (treeNode == null) {
-      return null;
+  protected void joinExtensionTablesForSelectQueryBlocks() {
+    if (preparedJoinExtensionTableMap != null) {
+      for (var queryBlock : selectQueryBlocks) {
+        queryBlock.setFrom(joinExtensionTables(queryBlock.getFrom()));
+      }
     }
+  }
 
-    var queryBlock = tableSource.getSelect().getFirstQueryBlock();
-    var selectList = queryBlock.getSelectList();
-    tryPromoteColumnsInSubQuery(treeNode, queryBlock.getFrom(), selectList);
-
-    var scope = treeNode.getTableScope();
-    var columnNames = new ArrayList<String>();
-    var hasAllColumnExpr = false;
-    for (var item : selectList) {
+  private TemporaryTableMetaData resolveSubQuerySelectColumns(
+      String tableAlias, List<SQLSelectItem> items) {
+    var shouldReplaceItems = false;
+    var newItems = new ArrayList<SQLSelectItem>();
+    var builder = new TemporaryTableMetaData.Builder().setName(tableAlias);
+    for (var item : items) {
       var alias = item.getAlias();
       var expr = item.getExpr();
+
+      String schema = defaultDatabase;
+      String tableOrAlias = null;
+      String columnName = null;
       if (expr instanceof SQLPropertyExpr) {
-        var propertyExpr = (SQLPropertyExpr) expr;
-        var schema = getSchemaOwner(propertyExpr);
-        var tableOrAlias = getTableOwner(propertyExpr);
-        var name = propertyExpr.getName();
-        if (ALL_COLUMN_EXPR.equals(name)) {
-          hasAllColumnExpr = true;
-        }
+        var property = (SQLPropertyExpr) expr;
+        schema = getSchemaOwner(property);
+        tableOrAlias = getTableOwner(property);
+        columnName = unquoteName(property.getName());
 
-        var table = scope.getTable(schema, tableOrAlias);
-        if (table != null) {
-          var column = table.getColumn(unquoteName(name));
-          // Only add encrypted columns to the subQuery tree node.
-          if (column.getType() == ColumnType.ENCRYPT) {
-            var nameOrAlias = alias == null ? column.getName() : unquoteName(alias);
-            treeNode.addColumn(nameOrAlias, column);
+        if (ALL_COLUMN_EXPR.equals(columnName)) {
+          var table = scope.getTable(schema, tableOrAlias);
+          if (table == null) {
+            throw new BadSQLException("Cannot resolve '*' in the sub-query select.");
           }
-        } else if (alias != null) {
-          var child = treeNode.getChild(tableOrAlias);
-          var column = child != null ? child.lookupColumn(name) : null;
-          if (column != null) {
-            treeNode.addColumn(unquoteName(alias), column);
+          var columnNames = table.getColumnNames();
+          newItems.addAll(newSQLSelectItems(property.getOwner(), columnNames));
+          for (var colName : columnNames) {
+            builder.addColumnName(colName);
           }
-        }
+          for (int colIndex = 0; colIndex < table.getNumberOfColumns(); colIndex++) {
+            builder.addColumn(table.getColumn(colIndex));
+          }
 
-        columnNames.add(alias != null ? alias : name);
-      } else {
-        columnNames.add(alias != null ? alias : expr.toString());
-      }
-    }
-
-    if (hasAllColumnExpr) {
-      return null;
-    }
-
-    ensureNoDuplicateColumn(columnNames);
-    return columnNames;
-  }
-
-  private void ensureNoDuplicateColumn(List<String> columnNames) {
-    var columnNameSet = new HashSet<String>();
-    for (var column : columnNames) {
-      if (columnNameSet.contains(column)) {
-        throw new ColumnExistsException(column);
-      }
-      columnNameSet.add(column);
-    }
-  }
-
-  /**
-   * Try to promote columns in the subQuery to the outer select statement. For example: before
-   * promotion: select * from ( select col1, col2 from table1 ) t after promotion: select t.col1,
-   * t.col2 from ( select col1, col2 from table1 ) t
-   */
-  protected void tryPromoteColumnsInSubQuery(
-      SubQueryTreeNode treeNode, SQLTableSource tableSource, List<SQLSelectItem> items) {
-    var subQuerySources = listTableSources(tableSource, (x) -> x instanceof SQLSubqueryTableSource);
-    if (subQuerySources.isEmpty()) {
-      return;
-    }
-
-    var aliasMap = new HashMap<String, SQLSubqueryTableSource>();
-    var subQueryColumnMap = new HashMap<String, List<String>>();
-    for (var source : subQuerySources) {
-      var subQuerySource = (SQLSubqueryTableSource) source;
-      var alias = subQuerySource.getAlias();
-      if (alias == null) {
-        throw new NoTableAliasException();
-      }
-      alias = unquoteName(alias);
-      aliasMap.put(alias, subQuerySource);
-      subQueryColumnMap.put(
-          alias, resolveSubQuerySelectColumns(treeNode.getChild(alias), subQuerySource));
-    }
-
-    boolean promoted = false;
-    var newItems = new ArrayList<SQLSelectItem>();
-    for (var item : items) {
-      var expr = item.getExpr();
-      if (expr instanceof SQLPropertyExpr) {
-        var propertyExpr = (SQLPropertyExpr) expr;
-        var alias = getTableOwner(propertyExpr);
-        if (!ALL_COLUMN_EXPR.equals(propertyExpr.getName()) || !aliasMap.containsKey(alias)) {
-          newItems.add(item);
+          shouldReplaceItems = true;
           continue;
         }
-
-        var subQueryColumns = subQueryColumnMap.get(alias);
-        if (subQueryColumns == null) {
-          promoted = false;
-          break;
-        }
-
-        promoted = true;
-        var owner = new SQLIdentifierExpr(alias);
-        newItems.addAll(newSQLSelectItems(owner, subQueryColumns));
-      } else {
-        newItems.add(item);
+      } else if (expr instanceof SQLIdentifierExpr) {
+        columnName = unquoteName(((SQLIdentifierExpr) expr).getSimpleName());
       }
+
+      var nameOrAlias = alias != null ? alias : columnName;
+      if (nameOrAlias != null) {
+        builder.addColumnName(nameOrAlias);
+      } else {
+        builder.addColumnName(expr.toString());
+      }
+
+      if (columnName != null) {
+        var column = findColumnInScope(scope, schema, tableOrAlias, columnName);
+        if (column != null) {
+          builder.addColumn(nameOrAlias, column);
+        }
+      }
+
+      newItems.add(item);
     }
 
-    if (promoted) {
+    if (shouldReplaceItems) {
       items.clear();
       items.addAll(newItems);
       setQueryChanged();
     }
+    if (builder.anyColumnExists()) {
+      return builder.build();
+    }
+    return null;
   }
 
   /** Wrap the column expression with AES_DECRYPT() function. */
@@ -478,13 +542,14 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
 
     var aliases = scope.getExtensionTableAliases(schema, tableName);
-    var alias = quoteName(aliases[ordinalValue - 1]);
+    var quotedAlias = quoteName(aliases[ordinalValue - 1]);
     if (property.getOwner() instanceof SQLPropertyExpr) {
-      ((SQLPropertyExpr) property.getOwner()).setName(alias);
+      ((SQLPropertyExpr) property.getOwner()).setName(quotedAlias);
     } else {
-      property.setOwner(alias);
+      property.setOwner(quotedAlias);
     }
     setQueryChanged();
+    addAffectedExtensionTables(table.getTableByOrdinalValue(ordinalValue).getName());
   }
 
   protected String getSchemaOwner(SQLPropertyExpr expr) {
@@ -529,28 +594,51 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     }
   }
 
-  protected ColumnMetaData findColumnInScopeOrSubQuery(
-      TableScope scope, SubQueryTreeNode root, SQLExpr column) {
-    ColumnMetaData columnMetaData = null;
-    if (column instanceof SQLPropertyExpr) {
-      var property = (SQLPropertyExpr) column;
+  protected ColumnMetaData findColumnInScope(
+      TableScope scope, String schema, String tableOrAlias, String columnName) {
+    ColumnMetaData column = null;
+    if (tableOrAlias != null) {
+      var table = scope.getTable(schema, tableOrAlias);
+      if (table != null) {
+        column = table.getColumn(columnName);
+      }
+    } else {
+      column = scope.findColumnInScope(schema, columnName);
+    }
+    return column;
+  }
+
+  protected ColumnMetaData findColumnInScope(
+      TableScope scope, SQLExpr columnExpr) {
+    ColumnMetaData column = null;
+    if (columnExpr instanceof SQLPropertyExpr) {
+      var property = (SQLPropertyExpr) columnExpr;
       var schema = getSchemaOwner(property);
       var tableOrAlias = getTableOwner(property);
       var columnName = unquoteName(property.getName());
-
-      var table = scope.getTable(schema, tableOrAlias);
-      if (table != null) {
-        columnMetaData = table.getColumn(columnName);
-      } else {
-        columnMetaData = SubQueryTreeNode.lookupColumn(root, tableOrAlias, columnName);
-      }
-    } else if (column instanceof SQLIdentifierExpr) {
-      var columnName = unquoteName(((SQLIdentifierExpr) column).getSimpleName());
-      columnMetaData = scope.findColumnInScope(defaultDatabase, columnName);
-      if (columnMetaData == null) {
-        columnMetaData = SubQueryTreeNode.lookupColumn(root, columnName);
-      }
+      column = findColumnInScope(scope, schema, tableOrAlias, columnName);
+    } else if (columnExpr instanceof SQLIdentifierExpr) {
+      var columnName = unquoteName(((SQLIdentifierExpr) columnExpr).getSimpleName());
+      column = findColumnInScope(scope, defaultDatabase, null, columnName);
     }
-    return columnMetaData;
+    return column;
+  }
+
+  private void addAffectedExtensionTables(String tableName) {
+    if (affectedExtensionTables == null) {
+      affectedExtensionTables = new HashSet<>();
+    }
+    affectedExtensionTables.add(tableName);
+  }
+
+  private void checkForAffectedExtensionTables(ColumnMetaData column) {
+    var table = column.getTable();
+    if (column instanceof TemporaryColumnMetaData) {
+      var tmpColumn = (TemporaryColumnMetaData) column;
+      table = tmpColumn.getOriginTable();
+    }
+    if (table.getType() == TableType.EXTENSION) {
+      addAffectedExtensionTables(table.getName());
+    }
   }
 }

@@ -43,7 +43,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "UPDATE `db`.`table1`\n"
-            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `db`.`table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `db`.`table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "SET `db`.table1.col1 = `$ext_0`.col2, "
             + "     table1.col3 = AES_DECRYPT(`db`.`$ext_0`.col2, '123'), "
             + "     `$ext_0`.col2 = AES_ENCRYPT(`$ext_0`.col4, '123'), "
@@ -69,7 +69,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "UPDATE `table1`\n"
-            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "SET col2 = AES_ENCRYPT(col3, '123'), col4 = '1234', `db`.`table1`.`$_ext_id` = `db`.`table1`.`$_ext_id`\n"
             + "WHERE id = 1\n"
             + "  AND col2 = '1234'",
@@ -95,11 +95,11 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "UPDATE `table1`\n"
-            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "  INNER JOIN (\n"
             + "    SELECT `table1`.`$_ext_id`\n"
             + "    FROM `table1`\n"
-            + "      LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "      LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "    WHERE id = 1\n"
             + "      AND col2 = '1234'\n"
             + "    ORDER BY id DESC\n"
@@ -128,7 +128,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "UPDATE `table1`\n"
-            + "  LEFT JOIN `db`.`ext_table_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "  LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "  INNER JOIN `table2` ON `$ext_0`.col2 = `table2`.id\n"
             + "SET `table1`.col1 = AES_ENCRYPT(table2.name, '123'), `table1`.col3 = '456', `table2`.name = 'abc'\n"
             + "WHERE table1.id = 1\n"
@@ -165,7 +165,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "    FROM (\n"
             + "      SELECT table3.`id`, table3.`col1`, table3.`col3`, `$ext_0`.`col2`, `$ext_0`.`col4`\n"
             + "      FROM table3\n"
-            + "        LEFT JOIN `db`.`ext_table_1` `$ext_0` ON table3.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
+            + "        LEFT JOIN `db`.`table3_ext_1` `$ext_0` ON table3.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "    ) t\n"
             + "  ) `table3`\n"
             + "  ON table1.id = table3.id\n"

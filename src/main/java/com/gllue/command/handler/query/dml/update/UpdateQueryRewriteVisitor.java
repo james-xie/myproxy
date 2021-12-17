@@ -6,26 +6,19 @@ import static com.gllue.command.handler.query.TablePartitionHelper.newTableJoinC
 import static com.gllue.common.util.SQLStatementUtils.anySubQueryExists;
 import static com.gllue.common.util.SQLStatementUtils.listTableSources;
 import static com.gllue.common.util.SQLStatementUtils.quoteName;
-import static com.gllue.common.util.SQLStatementUtils.unquoteName;
 
 import com.alibaba.druid.sql.ast.SQLExpr;
-import com.alibaba.druid.sql.ast.SQLLimit;
-import com.alibaba.druid.sql.ast.SQLOrderBy;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
-import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.gllue.command.handler.query.BadSQLException;
 import com.gllue.command.handler.query.NoEncryptKeyException;
 import com.gllue.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
-import com.gllue.command.handler.query.dml.select.NoTableAliasException;
-import com.gllue.command.handler.query.dml.select.SubQueryTreeNode;
 import com.gllue.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.metadata.model.ColumnMetaData;
 import com.gllue.metadata.model.ColumnType;
@@ -34,7 +27,6 @@ import com.gllue.metadata.model.TableType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Stack;
 import java.util.stream.Collectors;
 
 public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
@@ -43,9 +35,6 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   private boolean shouldTransform = false;
   private SQLTableSource originTableSource;
 
-  private SubQueryTreeNode subQueryTreeRoot = null;
-  private Stack<SubQueryTreeNode> subQueryTreeNodeStack;
-  private String subQueryAlias = null;
 
   public UpdateQueryRewriteVisitor(
       String defaultDatabase, TableScopeFactory tableScopeFactory, String encryptKey) {
@@ -57,25 +46,24 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   public boolean visit(MySqlUpdateStatement x) {
     var tableSource = x.getTableSource();
     newScope(tableSource);
-    x.setTableSource(rewriteTableSourceForPartitionTable(tableSource));
-
-    if (joinedExtensionTables) {
-      shouldVisitProperty = true;
+    var hasExtensionTable = prepareJoinExtensionTables(tableSource);
+    if (hasExtensionTable) {
+      shouldRewriteQuery = true;
       originTableSource = tableSource;
     }
+
     if (scope.anyTablesInScope() || anySubQueryExists(tableSource)) {
       shouldTransform = true;
       originTableSource = tableSource;
     }
-
-    subQueryTreeRoot = new SubQueryTreeNode(null, scope);
-    subQueryTreeNodeStack = new Stack<>();
-    subQueryTreeNodeStack.push(subQueryTreeRoot);
     return true;
   }
 
   @Override
   public void endVisit(MySqlUpdateStatement x) {
+    joinExtensionTablesForSelectQueryBlocks();
+    x.setTableSource(joinExtensionTables(x.getTableSource()));
+
     if (shouldTransform) {
       if (originTableSource instanceof SQLJoinTableSource) {
         rewriteMultiTableUpdate(x);
@@ -84,32 +72,6 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
         rewriteSingleTableUpdate(x);
       }
     }
-  }
-
-  @Override
-  public boolean visit(SQLSubqueryTableSource x) {
-    var res = super.visit(x);
-    if (x.getAlias() == null) {
-      throw new NoTableAliasException();
-    }
-    subQueryAlias = unquoteName(x.getAlias());
-    return res;
-  }
-
-  @Override
-  public boolean visit(MySqlSelectQueryBlock x) {
-    var res = super.visit(x);
-
-    assert subQueryAlias != null;
-    var treeNode = new SubQueryTreeNode(subQueryAlias, scope);
-    subQueryTreeNodeStack.peek().addChild(treeNode);
-    subQueryTreeNodeStack.push(treeNode);
-    return res;
-  }
-
-  public void endVisit(MySqlSelectQueryBlock x) {
-    subQueryTreeNodeStack.pop();
-    super.endVisit(x);
   }
 
   private void transformSingleTableUpdateToJoinSubQueryUpdate(
@@ -132,7 +94,8 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
 
     var condition =
         newTableJoinCondition(tableSourceAlias, new SQLIdentifierExpr(filterSubQuery.getAlias()));
-    x.setTableSource(new SQLJoinTableSource(tableSource, JoinType.INNER_JOIN, filterSubQuery, condition));
+    x.setTableSource(
+        new SQLJoinTableSource(tableSource, JoinType.INNER_JOIN, filterSubQuery, condition));
   }
 
   private boolean isEncryptColumn(ColumnMetaData column) {
@@ -205,8 +168,8 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     for (var item : items) {
       var columnExpr = item.getColumn();
       var valueExpr = item.getValue();
-      var column = findColumnInScopeOrSubQuery(scope, subQueryTreeRoot, columnExpr);
-      var value = findColumnInScopeOrSubQuery(scope, subQueryTreeRoot, valueExpr);
+      var column = findColumnInScope(scope, columnExpr);
+      var value = findColumnInScope(scope, valueExpr);
       if (isEncryptColumn(column) && !isEncryptColumn(value)) {
         ensureEncryptKeyExists();
         item.setValue(encryptColumn(encryptKey, valueExpr));
@@ -245,7 +208,6 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     if (x.getFrom() != null || x.getLimit() != null) {
       throw new BadSQLException("Multiple table update does not support orderBy/limit clause.");
     }
-    tryPromoteColumnsInSubQuery(subQueryTreeRoot, x.getTableSource(), List.of());
     rewriteSingleTableUpdate(x);
   }
 }

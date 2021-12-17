@@ -224,7 +224,7 @@ public class SQLParserTest {
                     + "inner join db.d t5 on t1.id = t5.fk_id "
                     + "where t1.name = 'company_site' and t2.value in ( "
                     + "   select value from configvalue "
-                    + ") and t2.id in (1,2,3,4,5)"
+                    + ") and t2.id in (1,2,3,4,5) "
                     + "group by t1.id "
                     + "order by t1.id desc;");
     //    printStatement(stmt);

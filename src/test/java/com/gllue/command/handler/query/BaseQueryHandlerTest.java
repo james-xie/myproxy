@@ -83,7 +83,7 @@ public abstract class BaseQueryHandlerTest {
             .build();
     var extensionTable =
         new TableMetaData.Builder()
-            .setName("ext_table_1")
+            .setName(tableName + "_ext_1")
             .setIdentity(RandomUtils.randomShortUUID())
             .setType(TableType.EXTENSION)
             .addColumn(

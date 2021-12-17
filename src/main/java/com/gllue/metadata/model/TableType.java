@@ -10,7 +10,9 @@ public enum TableType {
   EXTENSION(2),
 
   PARTITION(3),
-  STANDARD(4);
+  STANDARD(4),
+
+  TEMPORARY(5);
 
   private final int id;
 

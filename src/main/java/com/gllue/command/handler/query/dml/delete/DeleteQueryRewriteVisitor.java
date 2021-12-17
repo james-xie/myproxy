@@ -33,21 +33,17 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     SQLTableSource tableSource;
     if (x.getUsing() != null) {
       tableSource = x.getUsing();
-      newScope(tableSource);
-      x.setUsing(rewriteTableSourceForPartitionTable(tableSource));
     } else if (x.getFrom() != null) {
       tableSource = x.getFrom();
-      newScope(tableSource);
-      x.setFrom(rewriteTableSourceForPartitionTable(tableSource));
     } else {
       tableSource = x.getTableSource();
-      newScope(tableSource);
-      x.setTableSource(rewriteTableSourceForPartitionTable(tableSource));
     }
 
-    if (joinedExtensionTables) {
+    newScope(tableSource);
+    var hasExtensionTable = prepareJoinExtensionTables(tableSource);
+    if (hasExtensionTable) {
       shouldTransform = true;
-      shouldVisitProperty = true;
+      shouldRewriteQuery = true;
       originTableSource = tableSource;
     }
     return true;
@@ -55,6 +51,15 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
 
   @Override
   public void endVisit(MySqlDeleteStatement x) {
+    joinExtensionTablesForSelectQueryBlocks();
+    if (x.getUsing() != null) {
+      x.setUsing(joinExtensionTables(x.getUsing(), true));
+    } else if (x.getFrom() != null) {
+      x.setFrom(joinExtensionTables(x.getFrom(), true));
+    } else {
+      x.setTableSource(joinExtensionTables(x.getTableSource(), true));
+    }
+
     if (shouldTransform) {
       if (x.getUsing() != null || x.getFrom() != null) {
         rewriteMultiTableDelete(x);
