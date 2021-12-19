@@ -144,7 +144,32 @@ public class SQLParserTest {
             "insert into configvalue "
                 + "(type, name, value) "
                 + "values "
-                + "('', \"myname\", \"myvalue\");");
+                + "(null, \"myname\", \"myvalue\");");
+    var stmt1 =
+        parser.parse(
+            "INSERT INTO t1 (a,b,c) VALUES (1,2,3),(4,5,6)\n"
+                + "  ON DUPLICATE KEY UPDATE c=VALUES(a)+VALUES(b);");
+    var stmt2 =
+        parser.parse(
+            "INSERT INTO t1 SET a=1,b=2,c=3\n"
+                + "  ON DUPLICATE KEY UPDATE c = 10;");
+    var stmt3 =
+        parser.parse(
+            "INSERT INTO t1 (a, b)\n"
+                + "SELECT * FROM\n"
+                + "  (SELECT c, d FROM t2\n"
+                + "   UNION\n"
+                + "   SELECT e, f FROM t3) AS dt\n"
+                + "ON DUPLICATE KEY UPDATE b = b + c;");
+    var stmt4 =
+        parser.parse(
+            "INSERT INTO t1\n"
+                + "SELECT * FROM\n"
+                + "  (SELECT c, d FROM t2\n"
+                + "   UNION\n"
+                + "   SELECT e, f FROM t3) AS dt\n"
+                + "ON DUPLICATE KEY UPDATE b = b + c;");
+
     printStatement(stmt);
   }
 

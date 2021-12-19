@@ -3,6 +3,7 @@ package com.gllue.command.handler.query.dml.select;
 import static com.gllue.common.util.SQLStatementUtils.quoteName;
 import static com.gllue.common.util.SQLStatementUtils.unquoteName;
 
+import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
@@ -52,28 +53,32 @@ public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   private void rewriteEncryptColumnInSelectItems(List<SQLSelectItem> items) {
     for (var item : items) {
       var expr = item.getExpr();
+
+      ColumnMetaData column = null;
       if (expr instanceof SQLPropertyExpr) {
         var propertyExpr = (SQLPropertyExpr) expr;
         var schema = getSchemaOwner(propertyExpr);
         var tableOrAlias = getTableOwner(propertyExpr);
-        var name = unquoteName(propertyExpr.getName());
+        var columnName = unquoteName(propertyExpr.getName());
         var table = scope.getTable(schema, tableOrAlias);
-
-        ColumnMetaData column = null;
         if (table != null) {
-          column = table.getColumn(name);
+          column = table.getColumn(columnName);
         }
-        if (column != null && column.getType() == ColumnType.ENCRYPT) {
-          if (encryptKey == null) {
-            throw new NoEncryptKeyException();
-          }
-          
-          item.setExpr(decryptColumn(encryptKey, propertyExpr));
-          if (item.getAlias() == null) {
-            item.setAlias(quoteName(name));
-          }
-          setQueryChanged();
+      } else if (expr instanceof SQLIdentifierExpr) {
+        var columnName = unquoteName(((SQLIdentifierExpr) expr).getSimpleName());
+        column = scope.findColumnInScope(defaultDatabase, columnName);
+      }
+
+      if (column != null && column.getType() == ColumnType.ENCRYPT) {
+        if (encryptKey == null) {
+          throw new NoEncryptKeyException();
         }
+
+        item.setExpr(decryptColumn(encryptKey, expr));
+        if (item.getAlias() == null) {
+          item.setAlias(quoteName(column.getName()));
+        }
+        setQueryChanged();
       }
     }
   }

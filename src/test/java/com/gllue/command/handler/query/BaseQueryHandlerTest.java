@@ -8,6 +8,7 @@ import static org.mockito.Mockito.doAnswer;
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
+import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
@@ -209,6 +210,10 @@ public abstract class BaseQueryHandlerTest {
 
   protected SQLUpdateStatement parseUpdateQuery(final String query) {
     return (SQLUpdateStatement) sqlParser.parse(query);
+  }
+
+  protected SQLInsertStatement parseInsertQuery(final String query) {
+    return (SQLInsertStatement) sqlParser.parse(query);
   }
 
   protected void assertSQLEquals(final SQLStatement expected, final SQLStatement actual) {

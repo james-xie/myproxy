@@ -44,6 +44,8 @@ public enum MySQLServerErrorCode implements SQLErrorCode {
 
   ER_NO_SUCH_THREAD(1094, "HY000", "Unknown thread id: %lu"),
 
+  ER_WRONG_VALUE_COUNT_ON_ROW(1136, "21S01", "Column count doesn't match value count at row %ld"),
+
   ER_NET_READ_ERROR(1158, "08S01", "Got an error reading communication packets"),
 
   ER_DERIVED_MUST_HAVE_ALIAS(1248, "42000", "Every derived table must have its own alias"),

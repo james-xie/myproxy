@@ -515,16 +515,16 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
     return null;
   }
 
-  /** Wrap the column expression with AES_DECRYPT() function. */
-  protected SQLExpr decryptColumn(String encryptKey, SQLExpr columnExpr) {
-    var columnStr = columnExpr.toString();
+  /** Wrap the expression with AES_DECRYPT() function. */
+  protected SQLExpr decryptColumn(String encryptKey, SQLExpr expr) {
+    var columnStr = expr.toString();
     var decryptStr = String.format("AES_DECRYPT(%s, '%s')", columnStr, encryptKey);
     return new SQLIdentifierExpr(decryptStr);
   }
 
-  /** Wrap the column expression with DES_DECRYPT() function. */
-  protected SQLExpr encryptColumn(String encryptKey, SQLExpr columnExpr) {
-    var columnStr = columnExpr.toString();
+  /** Wrap the expression with DES_DECRYPT() function. */
+  protected SQLExpr encryptColumn(String encryptKey, SQLExpr expr) {
+    var columnStr = expr.toString();
     var encryptStr = String.format("AES_ENCRYPT(%s, '%s')", columnStr, encryptKey);
     return new SQLIdentifierExpr(encryptStr);
   }

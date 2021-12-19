@@ -103,6 +103,16 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "AND t2.col2 = '456'",
         stmt);
     assertTrue(rewriter.isQueryChanged());
+
+    rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
+    query = "select col1 as t_col1, col2 from `table2` where col1 = '123' or col2 = 'abc'";
+    stmt = parseSelectQuery(query);
+    stmt.accept(rewriter);
+    assertSQLEquals(
+        "SELECT col1 as t_col1, AES_DECRYPT(col2, 'key') AS `col2` from `table2` \n"
+            + "where col1 = '123' or col2 = 'abc'",
+        stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
