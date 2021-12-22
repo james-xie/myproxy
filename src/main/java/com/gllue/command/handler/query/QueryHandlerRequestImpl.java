@@ -8,8 +8,7 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class QueryHandlerRequestImpl implements QueryHandlerRequest {
-  private final int frontendConnectionId;
-  private final int backendConnectionId;
+  private final int connectionId;
   private final String datasource;
   private final String database;
   private final String query;
@@ -18,13 +17,8 @@ public class QueryHandlerRequestImpl implements QueryHandlerRequest {
   private Map<SQLCommentAttributeKey, Object> attributes;
 
   @Override
-  public int getFrontendConnectionId() {
-    return frontendConnectionId;
-  }
-
-  @Override
-  public int getBackendConnectionId() {
-    return backendConnectionId;
+  public int getConnectionId() {
+    return connectionId;
   }
 
   @Override

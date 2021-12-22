@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -32,8 +33,8 @@ public class DatabaseMetaData extends AbstractMetaData {
 
     this.datasource = datasource;
     this.name = name;
-    this.tableNameMap = new HashMap<>(tables.length);
-    this.tableIdMap = new HashMap<>(tables.length);
+    this.tableNameMap = new ConcurrentHashMap<>(tables.length);
+    this.tableIdMap = new ConcurrentHashMap<>(tables.length);
 
     for (TableMetaData table : tables) {
       var old = tableIdMap.put(table.getIdentity(), table);

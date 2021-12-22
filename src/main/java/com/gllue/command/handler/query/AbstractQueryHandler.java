@@ -6,7 +6,9 @@ import com.gllue.command.handler.HandlerResult;
 import com.gllue.command.result.CommandResult;
 import com.gllue.common.Callback;
 import com.gllue.common.Promise;
+import com.gllue.common.exception.NoDatabaseException;
 import com.gllue.config.Configurations;
+import com.gllue.metadata.command.CreateDatabaseCommand;
 import com.gllue.metadata.command.context.CommandExecutionContext;
 import com.gllue.metadata.command.context.MultiDatabasesCommandContext;
 import com.gllue.metadata.model.MultiDatabasesMetaData;
@@ -16,7 +18,6 @@ import com.gllue.transport.core.service.TransportService;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 public abstract class AbstractQueryHandler<Result extends HandlerResult>
     implements CommandHandler<QueryHandlerRequest, Result> {
@@ -63,7 +64,7 @@ public abstract class AbstractQueryHandler<Result extends HandlerResult>
             queryBuilder.append("` ");
             queryBuilder.append(lockType.name());
           }
-          transportService.submitQueryToBackendDatabase(connectionId, queryBuilder.toString(), cb);
+          submitQueryToBackendDatabase(connectionId, queryBuilder.toString(), cb);
         };
 
     BiFunction<T, Throwable, Promise<T>> unlockTables =
@@ -83,12 +84,48 @@ public abstract class AbstractQueryHandler<Result extends HandlerResult>
                         cb.onFailure(exception);
                       }
                     };
-                transportService.submitQueryToBackendDatabase(connectionId, query, callback);
+                submitQueryToBackendDatabase(connectionId, query, callback);
               });
         };
 
     return new Promise<CommandResult>(lockTable)
         .thenAsync((v) -> operation.apply(v).doFinallyAsync(unlockTables));
+  }
+
+  /**
+   * Check whether the database metadata has been created. if not exists, create a new database metadata.
+   *
+   * @param request handler request
+   * @return true if the database already exists.
+   */
+  protected boolean ensureDatabaseExists(QueryHandlerRequest request) {
+    var databaseName = request.getDatabase();
+    if (databaseName != null) {
+      var datasource = request.getDatasource();
+      var database = clusterState.getMetaData().getDatabase(datasource, databaseName);
+      if (database == null) {
+        var command = new CreateDatabaseCommand(datasource, databaseName);
+        command.execute(newCommandExecutionContext());
+        return false;
+      }
+    } else {
+      throw new NoDatabaseException();
+    }
+    return true;
+  }
+
+  protected void submitQueryToBackendDatabase(
+      int connectionId, String query, Callback<CommandResult> callback) {
+    transportService.submitQueryToBackendDatabase(connectionId, query, callback);
+  }
+
+  protected void submitQueryAndDirectTransferResult(
+      int connectionId, String query, Callback<CommandResult> callback) {
+    transportService.submitQueryAndDirectTransferResult(connectionId, query, callback);
+  }
+
+  protected Promise<CommandResult> submitQueryToBackendDatabase(int connectionId, String query) {
+    return transportService.submitQueryToBackendDatabase(connectionId, query);
   }
 
   @Override

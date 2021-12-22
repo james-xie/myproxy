@@ -16,6 +16,8 @@ public class DropDatabaseCommand extends AbstractMetaDataCommand<MultiDatabasesM
     var database = metadata.getDatabase(datasource, name);
     Preconditions.checkArgument(database != null, "Unknown database name. [%s]", name);
 
+    metadata.removeDatabase(datasource, name);
+
     var path = getPersistPathForMetaData(context, database);
     deleteMetaData(context, path);
   }

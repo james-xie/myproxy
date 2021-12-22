@@ -29,7 +29,10 @@ public class DropColumnCommand extends AbstractMetaDataCommand<MultiDatabasesMet
     builder.setNextVersion(table.getVersion());
     builder.removeColumn(name);
 
+    var newTable = builder.build();
+    database.addTable(newTable, true);
+
     var path = getPersistPathForMetaData(context, database, table);
-    saveMetaData(context, path, builder.build());
+    saveMetaData(context, path, newTable);
   }
 }

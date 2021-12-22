@@ -21,6 +21,8 @@ public class DropTableCommand extends AbstractMetaDataCommand<MultiDatabasesMeta
     var table = database.getTable(name);
     Preconditions.checkArgument(table != null, "Unknown table name. [%s]", name);
 
+    database.removeTable(name);
+
     var path = getPersistPathForMetaData(context, database, table);
     deleteMetaData(context, path);
   }

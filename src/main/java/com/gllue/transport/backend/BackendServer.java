@@ -43,6 +43,11 @@ public class BackendServer implements Initializer {
   private Configurations configurations;
 
   @Override
+  public String name() {
+    return "backend server";
+  }
+
+  @Override
   public void initialize(final ServerContext context) {
     configurations = context.getConfigurations();
     eventLoopGroup = createEventLoopGroup();

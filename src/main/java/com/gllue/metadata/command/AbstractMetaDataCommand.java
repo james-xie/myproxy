@@ -7,7 +7,9 @@ import com.gllue.metadata.MetaData;
 import com.gllue.metadata.command.context.CommandExecutionContext;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public abstract class AbstractMetaDataCommand<T extends MetaData> implements MetaDataCommand<T> {
   String getPersistPathForMetaData(
       final CommandExecutionContext<T> context, MetaData... metaDataArray) {
@@ -24,6 +26,9 @@ public abstract class AbstractMetaDataCommand<T extends MetaData> implements Met
     var stream = new ByteArrayStreamOutput();
     var repository = context.getRepository();
     metaData.writeTo(stream);
+    if (log.isDebugEnabled()) {
+      log.debug("Persist meta data for path [{}].", path);
+    }
     repository.save(path, stream.getTrimmedByteArray());
   }
 

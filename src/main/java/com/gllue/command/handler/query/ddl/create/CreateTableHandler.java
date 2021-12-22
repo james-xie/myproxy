@@ -11,6 +11,7 @@ import com.gllue.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.common.Callback;
 import com.gllue.common.Promise;
 import com.gllue.common.exception.BadDatabaseException;
+import com.gllue.common.exception.NoDatabaseException;
 import com.gllue.common.exception.TableExistsException;
 import com.gllue.config.Configurations;
 import com.gllue.metadata.command.MetaDataCommand;
@@ -41,6 +42,8 @@ public class CreateTableHandler extends AbstractDDLHandler {
 
   @Override
   public void execute(QueryHandlerRequest request, Callback<DefaultHandlerResult> callback) {
+    ensureDatabaseExists(request);
+
     var stmt = (MySqlCreateTableStatement) request.getStatement();
     var attributes = request.getCommentsAttributes();
     var encryptProcessor = new EncryptColumnProcessor();
@@ -54,13 +57,14 @@ public class CreateTableHandler extends AbstractDDLHandler {
     }
 
     var datasource = request.getDatasource();
-    var database = request.getDatabase();
+    var databaseName = request.getDatabase();
     var tableName = unquoteName(stmt.getTableName());
-    var databaseMetaData = clusterState.getMetaData().getDatabase(datasource, database);
-    if (databaseMetaData == null) {
-      throw new BadDatabaseException(database);
+    var database = clusterState.getMetaData().getDatabase(datasource, databaseName);
+    if (database == null) {
+      throw new BadDatabaseException(databaseName);
     }
-    if (databaseMetaData.hasTable(tableName)) {
+
+    if (database.hasTable(tableName)) {
       // Table already exists.
       if (!stmt.isIfNotExists()) {
         throw new TableExistsException(tableName);
@@ -73,7 +77,7 @@ public class CreateTableHandler extends AbstractDDLHandler {
 
     MetaDataCommand<MultiDatabasesMetaData> createTableCommand =
         buildCreateTableCommand(
-            datasource, database, tableName, stmtList, tablePartitionProcessor.isPrepared());
+            datasource, databaseName, tableName, stmtList, tablePartitionProcessor.isPrepared());
 
     stmtList = encryptProcessor.processStatement(stmtList);
 

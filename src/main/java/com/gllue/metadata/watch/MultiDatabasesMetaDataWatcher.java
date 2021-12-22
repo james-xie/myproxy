@@ -33,7 +33,7 @@ public class MultiDatabasesMetaDataWatcher {
     } else if (items.size() == 2) {
       watchForTableMetaDataChanged(
           items.get(0), items.get(1), event.getType(), (byte[]) event.getValue());
-    } else {
+    } else if (items.size() > 2) {
       throw new IllegalStateException(
           String.format("Got an invalid data change event. [path:%s]", path));
     }

@@ -2,15 +2,14 @@ package com.gllue.transport.frontend;
 
 import com.gllue.bootstrap.ServerContext;
 import com.gllue.common.Initializer;
-import com.gllue.common.concurrent.ThreadPool;
 import com.gllue.config.Configurations;
 import com.gllue.config.Configurations.Type;
 import com.gllue.config.TransportConfigPropertyKey;
-import com.gllue.transport.core.service.TransportService;
 import com.gllue.transport.core.netty.MySQLPayloadCodecHandler;
+import com.gllue.transport.core.service.TransportService;
 import com.gllue.transport.frontend.command.CommandExecutionEngine;
-import com.gllue.transport.frontend.netty.auth.MySQLNativePasswordAuthenticationHandler;
 import com.gllue.transport.frontend.netty.FrontendChannelInboundHandler;
+import com.gllue.transport.frontend.netty.auth.MySQLNativePasswordAuthenticationHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
@@ -47,6 +46,11 @@ public final class FrontendServer implements Initializer {
   }
 
   @Override
+  public String name() {
+    return "frontend server";
+  }
+
+  @Override
   public void initialize(final ServerContext context) {
     configurations = context.getConfigurations();
     eventLoopGroup = createEventLoopGroup();
@@ -77,20 +81,21 @@ public final class FrontendServer implements Initializer {
   @RequiredArgsConstructor
   static class ServerChannelInitializer extends ChannelInitializer<SocketChannel> {
 
-    private final ThreadPool threadPool;
     private final TransportService transportService;
+    private final CommandExecutionEngine commandExecutionEngine;
 
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
       var authHandler = new MySQLNativePasswordAuthenticationHandler();
-      var engine = new CommandExecutionEngine(threadPool, transportService);
       if (log.isTraceEnabled()) {
         ch.pipeline().addLast(new LoggingHandler(LogLevel.INFO));
       }
 
       ch.pipeline().addLast(new MySQLPayloadCodecHandler());
       ch.pipeline()
-          .addLast(new FrontendChannelInboundHandler(authHandler, engine, transportService));
+          .addLast(
+              new FrontendChannelInboundHandler(
+                  authHandler, commandExecutionEngine, transportService));
     }
   }
 
@@ -106,6 +111,16 @@ public final class FrontendServer implements Initializer {
     return Epoll.isAvailable() ? EpollServerSocketChannel.class : NioServerSocketChannel.class;
   }
 
+  private CommandExecutionEngine newCommandExecutionEngine(ServerContext context) {
+    return new CommandExecutionEngine(
+        context.getThreadPool(),
+        context.getTransportService(),
+        context.getPersistRepository(),
+        context.getConfigurations(),
+        context.getClusterState(),
+        context.getSqlParser());
+  }
+
   private void configServerBootstrap(final ServerBootstrap bootstrap, final ServerContext context) {
     int backlog =
         configurations.getValue(Type.TRANSPORT, TransportConfigPropertyKey.FRONTEND_BACKLOG);
@@ -118,7 +133,8 @@ public final class FrontendServer implements Initializer {
     var writeBufferWaterMark =
         new WriteBufferWaterMark(write_buffer_low_water_mark, write_buffer_high_water_mark);
     var childHandler =
-        new ServerChannelInitializer(context.getThreadPool(), context.getTransportService());
+        new ServerChannelInitializer(
+            context.getTransportService(), newCommandExecutionEngine(context));
 
     bootstrap
         .option(ChannelOption.SO_BACKLOG, backlog)

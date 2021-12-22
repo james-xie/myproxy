@@ -230,9 +230,7 @@ public abstract class BaseQueryHandlerTest {
 
   protected QueryHandlerRequest newQueryHandlerRequest(
       final String query, final Map<SQLCommentAttributeKey, Object> attributes) {
-    var request =
-        new QueryHandlerRequestImpl(
-            FRONTEND_CONNECTION_ID, BACKEND_CONNECTION_ID, DATASOURCE, DATABASE, query);
+    var request = new QueryHandlerRequestImpl(FRONTEND_CONNECTION_ID, DATASOURCE, DATABASE, query);
     request.setCommentsAttributes(attributes);
     request.setStatement(sqlParser.parse(query));
     return request;

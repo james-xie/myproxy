@@ -1,21 +1,30 @@
 package com.gllue.transport.frontend.command;
 
+import com.gllue.cluster.ClusterState;
+import com.gllue.command.handler.HandlerExecutor;
+import com.gllue.command.handler.HandlerResult;
+import com.gllue.command.handler.query.ConcreteQueryHandler;
+import com.gllue.command.handler.query.DefaultHandlerResult;
+import com.gllue.command.handler.query.QueryHandlerRequest;
+import com.gllue.command.handler.query.QueryHandlerRequestImpl;
 import com.gllue.command.result.CommandResult;
 import com.gllue.common.Callback;
 import com.gllue.common.concurrent.AbstractRunnable;
 import com.gllue.common.concurrent.PlainFuture;
 import com.gllue.common.concurrent.ThreadPool;
 import com.gllue.common.concurrent.ThreadPool.Name;
+import com.gllue.config.Configurations;
+import com.gllue.repository.PersistRepository;
+import com.gllue.sql.parser.SQLParser;
 import com.gllue.transport.backend.command.DefaultCommandResultReader;
 import com.gllue.transport.backend.command.DirectTransferCommandResultReader;
 import com.gllue.transport.backend.command.DirectTransferFieldListResultReader;
-import com.gllue.transport.backend.command.DirectTransferQueryResultReader;
 import com.gllue.transport.backend.connection.BackendConnection;
 import com.gllue.transport.core.service.TransportService;
 import com.gllue.transport.exception.ExceptionResolver;
 import com.gllue.transport.exception.MySQLServerErrorCode;
-import com.gllue.transport.exception.ServerErrorCode;
 import com.gllue.transport.exception.SQLErrorCode;
+import com.gllue.transport.exception.ServerErrorCode;
 import com.gllue.transport.exception.UnsupportedCommandException;
 import com.gllue.transport.frontend.connection.FrontendConnection;
 import com.gllue.transport.protocol.packet.command.CommandPacket;
@@ -35,10 +44,27 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@RequiredArgsConstructor
 public class CommandExecutionEngine {
   private final ThreadPool threadPool;
   private final TransportService transportService;
+  private final HandlerExecutor handlerExecutor;
+
+  private final ConcreteQueryHandler concreteQueryHandler;
+
+  public CommandExecutionEngine(
+      final ThreadPool threadPool,
+      final TransportService transportService,
+      final PersistRepository repository,
+      final Configurations configurations,
+      final ClusterState clusterState,
+      final SQLParser sqlParser) {
+    this.threadPool = threadPool;
+    this.transportService = transportService;
+    this.handlerExecutor = new HandlerExecutor(threadPool);
+    this.concreteQueryHandler =
+        new ConcreteQueryHandler(
+            repository, configurations, clusterState, transportService, sqlParser);
+  }
 
   @RequiredArgsConstructor
   private class CommandRunner extends AbstractRunnable {
@@ -87,8 +113,7 @@ public class CommandExecutionEngine {
       final CommandPacket packet,
       final BackendConnection backendConnection) {
     if (backendConnection.isClosed()) {
-      frontendConnection.writeAndFlush(
-          new ErrPacket(ServerErrorCode.ER_LOST_BACKEND_CONNECTION));
+      frontendConnection.writeAndFlush(new ErrPacket(ServerErrorCode.ER_LOST_BACKEND_CONNECTION));
       frontendConnection.close();
       return;
     }
@@ -207,6 +232,21 @@ public class CommandExecutionEngine {
                 }));
   }
 
+  private QueryHandlerRequest buildHandlerRequest(
+      final FrontendConnection frontendConnection, final QueryCommandPacket packet) {
+    return new QueryHandlerRequestImpl(
+        frontendConnection.connectionId(),
+        frontendConnection.getDataSourceName(),
+        frontendConnection.currentDatabase(),
+        packet.getQuery());
+  }
+
+  private void writeHandlerResult(FrontendConnection connection, HandlerResult result) {
+    if (result instanceof DefaultHandlerResult) {
+      writeOk(connection);
+    }
+  }
+
   /** Execute text-based query immediately. */
   private void query(
       final FrontendConnection frontendConnection,
@@ -216,7 +256,24 @@ public class CommandExecutionEngine {
       log.debug("Executing query command: " + packet.getQuery());
     }
 
-    backendConnection.sendCommand(packet, new DirectTransferQueryResultReader(frontendConnection));
+    handlerExecutor.execute(
+        concreteQueryHandler,
+        buildHandlerRequest(frontendConnection, packet),
+        new Callback<HandlerResult>() {
+          @Override
+          public void onSuccess(HandlerResult result) {
+            if (!result.isDirectTransferred()) {
+              writeHandlerResult(frontendConnection, result);
+            }
+          }
+
+          @Override
+          public void onFailure(Throwable e) {
+            var packet = ExceptionResolver.resolve(e);
+            frontendConnection.writeAndFlush(
+                packet, PlainFuture.newFuture(frontendConnection::close));
+          }
+        });
   }
 
   /** Get the column definitions of a table. */

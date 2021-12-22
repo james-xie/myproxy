@@ -1,6 +1,5 @@
 package com.gllue.transport.core.service;
 
-import com.gllue.command.handler.query.QueryHandlerRequest;
 import com.gllue.command.result.CommandResult;
 import com.gllue.command.result.query.QueryRowsConsumerPipeline;
 import com.gllue.common.Callback;
@@ -8,8 +7,7 @@ import com.gllue.common.Promise;
 import com.gllue.common.concurrent.ExtensibleFuture;
 import com.gllue.common.concurrent.ThreadPool;
 import com.gllue.transport.backend.command.BufferedQueryResultReader;
-import com.gllue.transport.backend.command.DefaultQueryResultReader;
-import com.gllue.transport.backend.command.DirectTransferCommandResultReader;
+import com.gllue.transport.backend.command.DirectTransferQueryResultReader;
 import com.gllue.transport.backend.command.PipelineSupportedQueryResultReader;
 import com.gllue.transport.backend.connection.BackendConnection;
 import com.gllue.transport.backend.datasource.BackendDataSource;
@@ -17,7 +15,6 @@ import com.gllue.transport.backend.datasource.DataSourceManager;
 import com.gllue.transport.frontend.connection.FrontendConnection;
 import com.gllue.transport.frontend.connection.FrontendConnectionManager;
 import com.gllue.transport.protocol.packet.command.QueryCommandPacket;
-import com.gllue.transport.protocol.packet.query.text.TextResultSetRowPacket;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,19 +28,16 @@ public class TransportService implements FrontendConnectionManager {
 
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
 
-  private final Map<Integer, BackendConnection> backendConnectionMap;
-
   public TransportService(final List<BackendDataSource> dataSources) {
     backendDataSourceManager = new DataSourceManager<>(dataSources);
     frontendConnectionMap = new ConcurrentHashMap<>();
-    backendConnectionMap = new ConcurrentHashMap<>();
   }
 
   public void registerFrontendConnection(final FrontendConnection connection) {
     var old = frontendConnectionMap.putIfAbsent(connection.connectionId(), connection);
     if (old != null) {
       throw new IllegalArgumentException(
-          String.format("Connection already exists. [%s]", connection.connectionId()));
+          String.format("Frontend connection already exists. [%s]", connection.connectionId()));
     }
   }
 
@@ -60,15 +54,6 @@ public class TransportService implements FrontendConnectionManager {
 
   public FrontendConnection getFrontendConnection(final int connectionId) {
     var connection = frontendConnectionMap.get(connectionId);
-    if (connection == null) {
-      throw new IllegalArgumentException(
-          String.format("Invalid connectionId argument. [%s]", connectionId));
-    }
-    return connection;
-  }
-
-  public BackendConnection getBackendConnection(final int connectionId) {
-    var connection = backendConnectionMap.get(connectionId);
     if (connection == null) {
       throw new IllegalArgumentException(
           String.format("Invalid connectionId argument. [%s]", connectionId));
@@ -106,14 +91,24 @@ public class TransportService implements FrontendConnectionManager {
     return future;
   }
 
+  public void submitQueryAndDirectTransferResult(
+      final int connectionId, final String query, final Callback<CommandResult> callback) {
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    backendConnection.sendCommand(
+        new QueryCommandPacket(query),
+        new DirectTransferQueryResultReader(frontendConnection).addCallback(callback));
+  }
+
   public void submitQueryToBackendDatabase(
-      int connectionId, String query, Callback<CommandResult> callback) {
-    var connection = getBackendConnection(connectionId);
+      final int connectionId, final String query, final Callback<CommandResult> callback) {
+    var connection = getFrontendConnection(connectionId).getBackendConnection();
     connection.sendCommand(
         new QueryCommandPacket(query), new BufferedQueryResultReader().addCallback(callback));
   }
 
-  public Promise<CommandResult> submitQueryToBackendDatabase(int connectionId, String query) {
+  public Promise<CommandResult> submitQueryToBackendDatabase(
+      final int connectionId, final String query) {
     return new Promise<>(
         (cb) -> {
           submitQueryToBackendDatabase(connectionId, query, cb);
@@ -122,7 +117,7 @@ public class TransportService implements FrontendConnectionManager {
 
   public void submitQueryToBackendDatabase(
       int connectionId, String query, QueryRowsConsumerPipeline pipeline) {
-    var connection = getBackendConnection(connectionId);
+    var connection = getFrontendConnection(connectionId).getBackendConnection();
     connection.sendCommand(
         new QueryCommandPacket(query), new PipelineSupportedQueryResultReader(pipeline));
   }

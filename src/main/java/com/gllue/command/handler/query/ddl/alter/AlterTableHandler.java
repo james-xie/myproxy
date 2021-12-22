@@ -63,10 +63,13 @@ public class AlterTableHandler extends AbstractDDLHandler {
 
   @Override
   public void execute(QueryHandlerRequest request, Callback<DefaultHandlerResult> callback) {
+    ensureDatabaseExists(request);
+
     var stmt = (SQLAlterTableStatement) request.getStatement();
     var datasource = request.getDatasource();
     var database = request.getDatabase();
     var tableName = unquoteName(stmt.getTableName());
+
     var databaseMetaData = clusterState.getMetaData().getDatabase(datasource, database);
     if (databaseMetaData == null) {
       throw new BadDatabaseException(database);
@@ -112,15 +115,13 @@ public class AlterTableHandler extends AbstractDDLHandler {
       if (updateSql == null) {
         return Promise.emptyPromise();
       }
-      return transportService.submitQueryToBackendDatabase(
-          request.getBackendConnectionId(), updateSql);
+      return submitQueryToBackendDatabase(request.getConnectionId(), updateSql);
     }
 
     private Promise<CommandResult> renameTemporaryEncryptColumn() {
       var tableName = tableMetaData.getName();
       var alterSql = encryptColumnProcessor.generateAlterSqlToRenameTemporaryColumn(tableName);
-      return transportService.submitQueryToBackendDatabase(
-          request.getBackendConnectionId(), alterSql);
+      return submitQueryToBackendDatabase(request.getConnectionId(), alterSql);
     }
 
     private Promise<CommandResult> execute() {
@@ -132,8 +133,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
         alterTablePromise = Promise.emptyPromise();
       } else {
         alterTablePromise =
-            transportService.submitQueryToBackendDatabase(
-                request.getBackendConnectionId(), toSQLString(newStmt));
+            submitQueryToBackendDatabase(request.getConnectionId(), toSQLString(newStmt));
       }
 
       if (!encryptColumnProcessor.shouldDoEncryptOrDecrypt()) {
@@ -310,7 +310,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
         };
 
     // lock table
-    lockTables(request.getBackendConnectionId(), operation, LockType.WRITE, tableName)
+    lockTables(request.getConnectionId(), operation, LockType.WRITE, tableName)
         .then(
             (v) -> {
               callback.onSuccess(DefaultHandlerResult.getInstance());
@@ -338,7 +338,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
         };
 
     // lock table
-    lockTables(request.getBackendConnectionId(), operation, LockType.WRITE, tableName)
+    lockTables(request.getConnectionId(), operation, LockType.WRITE, tableName)
         .then(
             (v) -> {
               callback.onSuccess(DefaultHandlerResult.getInstance());
@@ -404,7 +404,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
         };
 
     // lock table
-    lockTables(request.getBackendConnectionId(), operation, LockType.WRITE, table.getTableNames())
+    lockTables(request.getConnectionId(), operation, LockType.WRITE, table.getTableNames())
         .then(
             (v) -> {
               callback.onSuccess(DefaultHandlerResult.getInstance());

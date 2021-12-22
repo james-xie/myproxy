@@ -5,7 +5,9 @@ import com.gllue.metadata.model.DatabaseMetaData;
 import com.gllue.metadata.model.MultiDatabasesMetaData;
 import com.google.common.base.Preconditions;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class CreateDatabaseCommand extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
   private final String datasource;
@@ -22,6 +24,9 @@ public class CreateDatabaseCommand extends AbstractMetaDataCommand<MultiDatabase
     builder.setName(name);
     var database = builder.build();
     var path = getPersistPathForMetaData(context, database);
+    metadata.addDatabase(database, false);
     saveMetaData(context, path, database);
+
+    log.info("Create database. [{}]", name);
   }
 }

@@ -25,8 +25,8 @@ public class AddColumnCommand extends AbstractMetaDataCommand<MultiDatabasesMeta
     var database = metadata.getDatabase(datasource, databaseName);
     Preconditions.checkArgument(database != null, "Unknown database name. [%s]", databaseName);
 
-    var table = database.getTable(tableName);
-    Preconditions.checkArgument(table != null, "Unknown table name. [%s]", tableName);
+    var table = database.getTable(this.tableName);
+    Preconditions.checkArgument(table != null, "Unknown table name. [%s]", this.tableName);
     Preconditions.checkArgument(!table.hasColumn(name), "Column already exists. [%s]", name);
 
     var builder = new TableMetaData.Builder();
@@ -38,6 +38,8 @@ public class AddColumnCommand extends AbstractMetaDataCommand<MultiDatabasesMeta
     builder.addColumn(colBuilder.build());
 
     var path = getPersistPathForMetaData(context, database, table);
-    saveMetaData(context, path, builder.build());
+    var newTable = builder.build();
+    database.addTable(builder.build(), true);
+    saveMetaData(context, path, newTable);
   }
 }

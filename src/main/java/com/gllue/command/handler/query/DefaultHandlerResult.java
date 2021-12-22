@@ -8,4 +8,9 @@ public class DefaultHandlerResult implements HandlerResult {
   public static DefaultHandlerResult getInstance() {
     return INSTANCE;
   }
+
+  @Override
+  public boolean isDirectTransferred() {
+    return false;
+  }
 }

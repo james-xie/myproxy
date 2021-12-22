@@ -1,41 +1,65 @@
 package com.gllue.bootstrap;
 
+import com.gllue.cluster.ClusterState;
 import com.gllue.common.concurrent.ThreadPool;
-import com.gllue.common.util.NetworkUtils;
 import com.gllue.config.ConfigurationException;
 import com.gllue.config.Configurations;
-import com.gllue.config.Configurations.Type;
 import com.gllue.config.GenericConfigProperties;
-import com.gllue.config.GenericConfigPropertyKey;
 import com.gllue.config.TransportConfigProperties;
-import com.gllue.transport.backend.connection.BackendConnectionFactory;
-import com.gllue.transport.backend.connection.ConnectionArguments;
-import com.gllue.transport.backend.datasource.BackendDataSource;
-import com.gllue.transport.backend.datasource.DataSourceConfig;
+import com.gllue.repository.PersistRepository;
+import com.gllue.sql.parser.SQLParser;
 import com.gllue.transport.core.service.TransportService;
+import com.google.common.base.Preconditions;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Properties;
-import java.util.Set;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 @Getter
 @RequiredArgsConstructor
 public final class ServerContext {
+  private final Properties properties;
   private final Configurations configurations;
-  private final ThreadPool threadPool;
-  private final TransportService transportService;
+  private final SQLParser sqlParser;
+
+  private ThreadPool threadPool;
+  private TransportService transportService;
+  private PersistRepository persistRepository;
+  private ClusterState clusterState;
+
+  public void setThreadPool(ThreadPool threadPool) {
+    Preconditions.checkArgument(threadPool != null);
+    Preconditions.checkState(this.threadPool == null);
+    this.threadPool = threadPool;
+  }
+
+  public void setTransportService(TransportService transportService) {
+    Preconditions.checkArgument(transportService != null);
+    Preconditions.checkState(this.transportService == null);
+    this.transportService = transportService;
+  }
+
+  public void setPersistRepository(PersistRepository persistRepository) {
+    Preconditions.checkArgument(persistRepository != null);
+    Preconditions.checkState(this.persistRepository == null);
+    this.persistRepository = persistRepository;
+  }
+
+  public void setClusterState(ClusterState clusterState) {
+    Preconditions.checkArgument(clusterState != null);
+    Preconditions.checkState(this.clusterState == null);
+    this.clusterState = clusterState;
+  }
 
   public static class Builder {
     private static final String PROPERTIES_FILE_NAME = "myproxy.properties";
 
+    private final Properties properties;
     private final Configurations configurations;
 
     public Builder() {
-      var properties = loadConfigurationProperties();
+      this.properties = loadConfigurationProperties();
       this.configurations =
           new Configurations(
               List.of(
@@ -62,49 +86,12 @@ public final class ServerContext {
       return properties;
     }
 
-    private ThreadPool newThreadPool() {
-      return new ThreadPool(this.configurations);
-    }
-
-    private List<BackendDataSource> preloadDataSources() {
-      List<String> dataSourceConfigs =
-          this.configurations.getValue(Type.GENERIC, GenericConfigPropertyKey.DATA_SOURCE_CONFIGS);
-      if (dataSourceConfigs.size() == 0) {
-        throw new ConfigurationException("Missing data source configuration.");
-      }
-
-      var backendConnectionFactory = new BackendConnectionFactory();
-      var parser = new DataSourceConfig.Parser();
-      Set<String> nameSet = new HashSet<>();
-      List<BackendDataSource> dataSources = new ArrayList<>();
-      for (var config : dataSourceConfigs) {
-        var configObject = parser.parse(config);
-        var name = configObject.getName();
-        if (nameSet.contains(name)) {
-          throw new ConfigurationException(
-              String.format("Data source name must be an unique string. [%s]", name));
-        }
-        nameSet.add(name);
-
-        var connectionArgs =
-            new ConnectionArguments(
-                configObject.getAddress(),
-                configObject.getUser(),
-                configObject.getPassword(),
-                configObject.getDatabase());
-
-        var dataSource = new BackendDataSource(name, 500, backendConnectionFactory, connectionArgs);
-        dataSources.add(dataSource);
-      }
-      return dataSources;
-    }
-
-    private TransportService newTransportService() {
-      return new TransportService(preloadDataSources());
+    private SQLParser newSQLParser() {
+      return new SQLParser(true);
     }
 
     public ServerContext build() {
-      return new ServerContext(configurations, newThreadPool(), newTransportService());
+      return new ServerContext(properties, configurations, newSQLParser());
     }
   }
 }

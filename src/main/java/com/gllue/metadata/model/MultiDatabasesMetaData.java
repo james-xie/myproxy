@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import lombok.experimental.Accessors;
 
 public class MultiDatabasesMetaData implements MetaData {
@@ -18,10 +19,11 @@ public class MultiDatabasesMetaData implements MetaData {
   private final Map<String, Map<String, DatabaseMetaData>> datasourceMap;
 
   public MultiDatabasesMetaData(final DatabaseMetaData[] databases) {
-    this.datasourceMap = new HashMap<>(databases.length);
+    this.datasourceMap = new ConcurrentHashMap<>(databases.length);
 
     for (DatabaseMetaData database : databases) {
-      var dbMap = datasourceMap.computeIfAbsent(database.getDatasource(), k -> new HashMap<>());
+      var dbMap =
+          datasourceMap.computeIfAbsent(database.getDatasource(), k -> new ConcurrentHashMap<>());
       var old = dbMap.put(database.getName(), database);
       if (old != null) {
         throw new IllegalArgumentException(
@@ -51,7 +53,8 @@ public class MultiDatabasesMetaData implements MetaData {
 
   public synchronized boolean addDatabase(
       final DatabaseMetaData database, final boolean autoUpdate) {
-    var dbMap = datasourceMap.computeIfAbsent(database.getDatasource(), k -> new HashMap<>());
+    var dbMap =
+        datasourceMap.computeIfAbsent(database.getDatasource(), k -> new ConcurrentHashMap<>());
     var previous = dbMap.putIfAbsent(database.getName(), database);
     if (previous != null) {
       if (!autoUpdate || previous.getVersion() >= database.getVersion()) {

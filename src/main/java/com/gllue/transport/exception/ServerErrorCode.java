@@ -50,6 +50,6 @@ public enum ServerErrorCode implements SQLErrorCode {
 
   @Override
   public String getSqlState() {
-    return "s" + errorCode;
+    return "s5000";
   }
 }

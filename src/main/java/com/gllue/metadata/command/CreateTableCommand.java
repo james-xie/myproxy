@@ -55,6 +55,7 @@ public class CreateTableCommand extends AbstractTableUpdateCommand {
         continue;
       }
 
+      database.addTable(table);
       saveMetaData(context, path, table);
     } while (false);
   }

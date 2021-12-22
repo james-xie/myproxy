@@ -17,16 +17,15 @@ import com.gllue.command.handler.query.ddl.alter.AlterTableHandler;
 import com.gllue.command.handler.query.ddl.create.CreateTableHandler;
 import com.gllue.command.handler.query.dml.select.SelectQueryHandler;
 import com.gllue.command.handler.query.dml.select.SelectQueryResult;
+import com.gllue.command.result.CommandResult;
 import com.gllue.common.Callback;
 import com.gllue.config.Configurations;
 import com.gllue.repository.PersistRepository;
 import com.gllue.sql.parser.SQLParser;
 import com.gllue.transport.core.service.TransportService;
 
-public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest, HandlerResult> {
+public class ConcreteQueryHandler extends AbstractQueryHandler<HandlerResult> {
   private static final String NAME = "Concrete Query Handler";
-
-  private final SQLParser sqlParser;
 
   private final AlterTableHandler alterTableHandler;
   private final CreateTableHandler createTableHandler;
@@ -38,7 +37,8 @@ public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest,
       final ClusterState clusterState,
       final TransportService transportService,
       final SQLParser sqlParser) {
-    this.sqlParser = sqlParser;
+    super(repository, configurations, clusterState, transportService, sqlParser);
+
     // Init query handlers.
     this.alterTableHandler =
         new AlterTableHandler(
@@ -72,6 +72,20 @@ public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest,
     handler.execute(request, callback);
   }
 
+  private Callback<CommandResult> directTransferResultCallback(Callback<HandlerResult> callback) {
+    return new Callback<CommandResult>() {
+      @Override
+      public void onSuccess(CommandResult result) {
+        callback.onSuccess(DirectTransferredResult.INSTANCE);
+      }
+
+      @Override
+      public void onFailure(Throwable e) {
+        callback.onSuccess(DirectTransferredResult.INSTANCE);
+      }
+    };
+  }
+
   private void dispatchQueryHandler(
       SQLStatement stmt, QueryHandlerRequest request, Callback<HandlerResult> callback) {
     if (stmt instanceof SQLSelectStatement) {
@@ -91,7 +105,8 @@ public class ConcreteQueryHandler implements CommandHandler<QueryHandlerRequest,
     } else if (stmt instanceof MySqlRenameTableStatement) {
 
     } else {
-      // todo: Unsupported SQL, direct transfer to backend server.
+      submitQueryAndDirectTransferResult(
+          request.getConnectionId(), request.getQuery(), directTransferResultCallback(callback));
     }
   }
 }

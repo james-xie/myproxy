@@ -12,6 +12,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class BackendConnectionFactory {
+
   private BackendServer backendServer() {
     return BackendServer.getInstance();
   }

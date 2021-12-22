@@ -11,6 +11,7 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
 import com.alibaba.druid.sql.ast.expr.SQLMethodInvokeExpr;
+import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableDropColumnItem;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableItem;
@@ -75,13 +76,10 @@ public class SQLStatementUtils {
 
   public static String columnDefaultExpr(final SQLColumnDefinition columnDef) {
     var defaultExpr = columnDef.getDefaultExpr();
-    if (defaultExpr == null) {
+    if (defaultExpr == null || defaultExpr instanceof SQLNullExpr) {
       return null;
     }
-    if (defaultExpr instanceof SQLCharExpr) {
-      return ((SQLCharExpr) defaultExpr).getText();
-    }
-    throw new IllegalArgumentException("Unknown type of the column defaultExpr.");
+    return defaultExpr.toString();
   }
 
   public static String visitColumn(final SQLSelectOrderByItem item) {
@@ -293,20 +291,6 @@ public class SQLStatementUtils {
     var newColumnDef = columnDef.clone();
     newColumnDef.getDataType().setName(ColumnType.VARBINARY.name());
     return newColumnDef;
-  }
-
-  public static boolean propertyOwnerIsDatabase(final SQLPropertyExpr expr) {
-    return expr.getOwner() instanceof SQLPropertyExpr;
-  }
-
-  public static String getPropertyOwner(final SQLPropertyExpr expr) {
-    var owner = expr.getOwner();
-    if (owner instanceof SQLName) {
-      return ((SQLName) owner).getSimpleName();
-    }
-    throw new IllegalArgumentException(
-        String.format(
-            "Unknown type for SQLPropertyExpr owner. [%s]", owner.getClass().getSimpleName()));
   }
 
   /**

@@ -35,7 +35,10 @@ public class RenameTableCommand extends AbstractMetaDataCommand<MultiDatabasesMe
     builder.setNextVersion(table.getVersion());
     builder.setName(newName);
 
+    var newTable = builder.build();
+    database.addTable(newTable, true);
+
     var path = getPersistPathForMetaData(context, database, table);
-    saveMetaData(context, path, builder.build());
+    saveMetaData(context, path, newTable);
   }
 }

@@ -17,9 +17,12 @@ public class MultiDatabasesMetaDataLoader {
 
   public MultiDatabasesMetaData load(final String basePath) {
     var builder = new MultiDatabasesMetaData.Builder();
-    var children = repository.getChildrenKeys(basePath);
-    for (var child : children) {
-      builder.addDatabase(buildDatabaseMetaData(basePath, child));
+    if (repository.exists(basePath)) {
+      var children = repository.getChildrenKeys(basePath);
+      for (var child : children) {
+        builder.addDatabase(buildDatabaseMetaData(basePath, child));
+      }
+
     }
     return builder.build();
   }

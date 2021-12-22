@@ -104,8 +104,8 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
 
   protected void submitQueryToBackendDatabase(
       QueryHandlerRequest request, String query, Callback<DefaultHandlerResult> callback) {
-    transportService.submitQueryToBackendDatabase(
-        request.getBackendConnectionId(),
+    submitQueryToBackendDatabase(
+        request.getConnectionId(),
         query,
         new Callback<>() {
           @Override
@@ -123,7 +123,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
   protected Promise<String> showCreateTable(QueryHandlerRequest request, String tableName) {
     return new Promise<>(
         (cb) -> {
-          var connectionId = request.getBackendConnectionId();
+          var connectionId = request.getConnectionId();
           var query = String.format("SHOW CREATE TABLE `%s`", tableName);
           Callback<CommandResult> callback =
               new Callback<CommandResult>() {
@@ -138,7 +138,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
                   cb.onFailure(e);
                 }
               };
-          transportService.submitQueryToBackendDatabase(connectionId, query, callback);
+          submitQueryToBackendDatabase(connectionId, query, callback);
         });
   }
 
@@ -165,8 +165,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
       var query = toSQLString(stmt);
       return new Promise<CommandResult>(
               (callback) -> {
-                transportService.submitQueryToBackendDatabase(
-                    request.getBackendConnectionId(), query, callback);
+                submitQueryToBackendDatabase(request.getConnectionId(), query, callback);
               })
           .doCatchAsync(
               (e) -> {
@@ -183,7 +182,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
 
   protected Promise<CommandResult> dropTable(QueryHandlerRequest request, final String tableName) {
     var query = String.format("DROP TABLE IF EXISTS `%s`", tableName);
-    return transportService.submitQueryToBackendDatabase(request.getBackendConnectionId(), query);
+    return submitQueryToBackendDatabase(request.getConnectionId(), query);
   }
 
   protected Promise<CommandResult> dropTableThenRetry(
@@ -191,8 +190,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
     return dropTable(request, tableName)
         .thenAsync(
             (v) -> {
-              return transportService.submitQueryToBackendDatabase(
-                  request.getBackendConnectionId(), queryForRetry);
+              return submitQueryToBackendDatabase(request.getConnectionId(), queryForRetry);
             },
             (e) -> {
               log.error("Failed to execute drop table query. [table={}]", tableName);
