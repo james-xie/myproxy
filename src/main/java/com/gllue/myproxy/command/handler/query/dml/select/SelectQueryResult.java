@@ -1,16 +1,18 @@
 package com.gllue.myproxy.command.handler.query.dml.select;
 
 import com.gllue.myproxy.command.handler.HandlerResult;
+import com.gllue.myproxy.command.result.query.QueryResult;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 
-@AllArgsConstructor
+@Getter
+@RequiredArgsConstructor
 public class SelectQueryResult implements HandlerResult {
-  public static final SelectQueryResult DIRECT_TRANSFERRED_RESULT = new SelectQueryResult(true);
+  public static final SelectQueryResult DIRECT_TRANSFERRED_RESULT =
+      new SelectQueryResult(true, 0, null);
 
-  private boolean directTransferred;
-
-  @Override
-  public boolean isDirectTransferred() {
-    return directTransferred;
-  }
+  private final boolean directTransferred;
+  private final long warnings;
+  private final QueryResult queryResult;
 }

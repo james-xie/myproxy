@@ -8,11 +8,17 @@ import lombok.Getter;
 /**
  * A COM_QUERY is used to send the server a text-based query that is executed immediately.
  *
- * @see <a href="https://dev.mysql.com/doc/internals/en/com-query.html#packet-COM_QUERY">COM_QUERY</a>
+ * @see <a
+ *     href="https://dev.mysql.com/doc/internals/en/com-query.html#packet-COM_QUERY">COM_QUERY</a>
  */
 public class QueryCommandPacket extends AbstractCommandPacket {
-  @Getter
-  private final String query;
+  public static final QueryCommandPacket BEGIN_COMMAND = new QueryCommandPacket("BEGIN");
+  public static final QueryCommandPacket COMMIT_COMMAND = new QueryCommandPacket("COMMIT");
+  public static final QueryCommandPacket ROLLBACK_COMMAND = new QueryCommandPacket("ROLLBACK");
+  public static final QueryCommandPacket ENABLE_AUTO_COMMIT_COMMAND = new QueryCommandPacket("SET AUTOCOMMIT = true");
+  public static final QueryCommandPacket DISABLE_AUTO_COMMIT_COMMAND = new QueryCommandPacket("SET AUTOCOMMIT = false");
+
+  @Getter private final String query;
 
   public QueryCommandPacket(final String query) {
     super(MySQLCommandPacketType.COM_QUERY);

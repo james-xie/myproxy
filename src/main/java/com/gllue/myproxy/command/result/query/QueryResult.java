@@ -1,7 +1,5 @@
 package com.gllue.myproxy.command.result.query;
 
-import io.netty.buffer.ByteBuf;
-
 public interface QueryResult {
   /**
    * Iterate next row.
@@ -25,20 +23,6 @@ public interface QueryResult {
    * @return string value
    */
   String getStringValue(int columnIndex);
-
-
-  /**
-   * Discards the read rows.
-   */
-  void discardReadRows();
-
-  /**
-   * Similar to {@link ByteBuf#discardReadBytes()} except that this method might discard
-   * some, all, or none of read rows depending on its internal implementation to reduce
-   * overall memory bandwidth consumption at the cost of potentially additional memory
-   * consumption.
-   */
-  void discardSomeReadRows();
 
   /**
    * Get the column definitions which is the meta data of the

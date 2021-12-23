@@ -11,19 +11,16 @@ import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
-import com.gllue.myproxy.command.handler.query.MissingCommentAttributeException;
+import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.metadata.model.ColumnType;
-import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 class EncryptColumnProcessor {
-
-  private final Map<SQLCommentAttributeKey, Object> attributes;
+  private final String encryptKey;
   final List<EncryptColumnInfo> encryptColumns = new ArrayList<>();
   final List<EncryptColumnInfo> decryptColumns = new ArrayList<>();
 
@@ -73,12 +70,12 @@ class EncryptColumnProcessor {
   }
 
   String getEncryptKey() {
-    return (String) attributes.get(SQLCommentAttributeKey.ENCRYPT_KEY);
+    return encryptKey;
   }
 
   void ensureEncryptKey() {
     if (shouldDoEncryptOrDecrypt() && getEncryptKey() == null) {
-      throw new MissingCommentAttributeException(SQLCommentAttributeKey.ENCRYPT_KEY);
+      throw new NoEncryptKeyException();
     }
   }
 

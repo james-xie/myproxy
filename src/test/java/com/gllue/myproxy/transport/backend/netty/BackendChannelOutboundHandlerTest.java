@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 
 import com.gllue.myproxy.common.util.RandomUtils;
+import com.gllue.myproxy.constant.ServerConstants;
 import com.gllue.myproxy.transport.BaseTransportTest;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionListener;
 import com.gllue.myproxy.transport.backend.connection.ConnectionArguments;
@@ -67,7 +68,7 @@ public class BackendChannelOutboundHandlerTest extends BaseTransportTest {
     // initial handshake phase.
     var initialHandshakePacket =
         new InitialHandshakePacketV10(
-            MySQLServerInfo.getServerVersion(),
+            ServerConstants.getServerVersion(),
             CONNECTION_ID,
             AUTH_PLUGIN_DATA,
             CLIENT_CAPABILITIES,
@@ -105,7 +106,7 @@ public class BackendChannelOutboundHandlerTest extends BaseTransportTest {
     // initial handshake phase.
     var initialHandshakePacket =
         new InitialHandshakePacketV10(
-            MySQLServerInfo.getServerVersion(),
+            ServerConstants.getServerVersion(),
             CONNECTION_ID,
             AUTH_PLUGIN_DATA,
             CLIENT_CAPABILITIES,
@@ -140,7 +141,7 @@ public class BackendChannelOutboundHandlerTest extends BaseTransportTest {
     // initial handshake phase.
     var initialHandshakePacket =
         new InitialHandshakePacketV10(
-            MySQLServerInfo.getServerVersion(),
+            ServerConstants.getServerVersion(),
             CONNECTION_ID,
             AUTH_PLUGIN_DATA,
             CLIENT_CAPABILITIES,

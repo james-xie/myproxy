@@ -16,6 +16,20 @@ public interface Connection {
 
   String currentDatabase();
 
+  void begin();
+
+  void commit();
+
+  void rollback();
+
+  void enableAutoCommit();
+
+  void disableAutoCommit();
+
+  boolean isAutoCommit();
+
+  boolean isTransactionOpened();
+
   void write(MySQLPacket packet);
 
   void writeAndFlush(MySQLPacket packet);

@@ -23,15 +23,17 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
   AlterTableStatementProcessor prepareProcessor(
       TableMetaData tableMetaData, Map<String, SQLColumnDefinition> columnsInDatabase) {
     var encryptKey = "123";
-    var encryptProcessor =
-        new EncryptColumnProcessor(Map.of(SQLCommentAttributeKey.ENCRYPT_KEY, encryptKey));
+    var encryptProcessor = new EncryptColumnProcessor(encryptKey);
     return new AlterTableStatementProcessor(tableMetaData, columnsInDatabase, encryptProcessor);
   }
 
   @Test
   public void testAlterTableAddColumn() {
     var table = prepareTable("table", "col1");
-    var columns = Map.of("col1", SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
+    var columns =
+        Map.of(
+            "col1",
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql =
         "ALTER TABLE `table` "
@@ -51,7 +53,10 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
   @Test(expected = ColumnExistsException.class)
   public void testAlterTableAddColumnWhenColumnInTable() {
     var table = prepareTable("table", "col1");
-    var columns = Map.of("col1", SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
+    var columns =
+        Map.of(
+            "col1",
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql = "ALTER TABLE `table` ADD COLUMN `col1` INT(11) NOT NULL";
     var stmt = parseAlterTableQuery(alterSql);
@@ -111,23 +116,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col1")
-            .setType(ColumnType.VARCHAR)
-            .setNullable(true)
-            .build());
+        new Builder().setName("col1").setType(ColumnType.VARCHAR).setNullable(true).build());
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col3")
-            .setType(ColumnType.ENCRYPT)
-            .setNullable(true)
-            .build());
+        new Builder().setName("col3").setType(ColumnType.ENCRYPT).setNullable(true).build());
     var table = builder.build();
 
     var columns =
@@ -164,13 +157,12 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     var table = builder.build();
-    var columns = Map.of("col2", SQLStatementUtils.newColumnDefinition("col2", ColumnType.INT, false, null, null));
+    var columns =
+        Map.of(
+            "col2",
+            SQLStatementUtils.newColumnDefinition("col2", ColumnType.INT, false, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql = "ALTER TABLE `table` MODIFY COLUMN `col1` ENCRYPT NOT NULL";
     var stmt = parseAlterTableQuery(alterSql);
@@ -187,23 +179,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col1")
-            .setType(ColumnType.VARCHAR)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col1").setType(ColumnType.VARCHAR).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col3")
-            .setType(ColumnType.ENCRYPT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col3").setType(ColumnType.ENCRYPT).setNullable(false).build());
     var table = builder.build();
     var columns =
         Map.of(
@@ -234,23 +214,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col1")
-            .setType(ColumnType.VARCHAR)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col1").setType(ColumnType.VARCHAR).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col3")
-            .setType(ColumnType.ENCRYPT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col3").setType(ColumnType.ENCRYPT).setNullable(false).build());
     var table = builder.build();
     var columns =
         Map.of(
@@ -286,23 +254,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col1")
-            .setType(ColumnType.VARCHAR)
-            .setNullable(true)
-            .build());
+        new Builder().setName("col1").setType(ColumnType.VARCHAR).setNullable(true).build());
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col3")
-            .setType(ColumnType.ENCRYPT)
-            .setNullable(true)
-            .build());
+        new Builder().setName("col3").setType(ColumnType.ENCRYPT).setNullable(true).build());
     var table = builder.build();
 
     var columns =
@@ -339,13 +295,12 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     var table = builder.build();
-    var columns = Map.of("col2", SQLStatementUtils.newColumnDefinition("col2", ColumnType.INT, false, null, null));
+    var columns =
+        Map.of(
+            "col2",
+            SQLStatementUtils.newColumnDefinition("col2", ColumnType.INT, false, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql = "ALTER TABLE `table` CHANGE COLUMN `col1` `col2` ENCRYPT NOT NULL";
     var stmt = parseAlterTableQuery(alterSql);
@@ -362,23 +317,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col1")
-            .setType(ColumnType.VARCHAR)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col1").setType(ColumnType.VARCHAR).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col3")
-            .setType(ColumnType.ENCRYPT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col3").setType(ColumnType.ENCRYPT).setNullable(false).build());
     var table = builder.build();
     var columns =
         Map.of(
@@ -409,23 +352,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
         .setVersion(1);
 
     builder.addColumn(
-        new Builder()
-            .setName("col1")
-            .setType(ColumnType.VARCHAR)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col1").setType(ColumnType.VARCHAR).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col2")
-            .setType(ColumnType.INT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col2").setType(ColumnType.INT).setNullable(false).build());
     builder.addColumn(
-        new Builder()
-            .setName("col3")
-            .setType(ColumnType.ENCRYPT)
-            .setNullable(false)
-            .build());
+        new Builder().setName("col3").setType(ColumnType.ENCRYPT).setNullable(false).build());
     var table = builder.build();
     var columns =
         Map.of(
@@ -455,8 +386,11 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
     var table = prepareTable("table", "col1", "col2");
     var columns =
         Map.of(
-            "col1", SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null),
-            "col2", SQLStatementUtils.newColumnDefinition("col2", ColumnType.VARCHAR, true, null, null));
+            "col1",
+                SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null),
+            "col2",
+                SQLStatementUtils.newColumnDefinition(
+                    "col2", ColumnType.VARCHAR, true, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql = "ALTER TABLE `table` DROP COLUMN `col1`, DROP COLUMN `col2`";
     var stmt = parseAlterTableQuery(alterSql);
@@ -467,7 +401,10 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
   @Test(expected = BadColumnException.class)
   public void testProcessDropColumnWhenColumnNotInTable() {
     var table = prepareTable("table", "col1");
-    var columns = Map.of("col1", SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
+    var columns =
+        Map.of(
+            "col1",
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql = "ALTER TABLE `table` DROP COLUMN `col2`";
     var stmt = parseAlterTableQuery(alterSql);
@@ -477,7 +414,10 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
   @Test
   public void testProcessDropColumnWhenColumnNotInDatabase() {
     var table = prepareTable("table", "col1", "col2");
-    var columns = Map.of("col1", SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
+    var columns =
+        Map.of(
+            "col1",
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.VARCHAR, true, null, null));
     var processor = prepareProcessor(table, columns);
     var alterSql = "ALTER TABLE `table` DROP COLUMN `col2`";
     var stmt = parseAlterTableQuery(alterSql);

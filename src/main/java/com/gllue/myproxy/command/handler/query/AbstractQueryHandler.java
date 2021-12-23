@@ -2,6 +2,7 @@ package com.gllue.myproxy.command.handler.query;
 
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.CommandHandler;
+import com.gllue.myproxy.command.handler.CommandHandlerException;
 import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
@@ -15,6 +16,8 @@ import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -93,7 +96,8 @@ public abstract class AbstractQueryHandler<Result extends HandlerResult>
   }
 
   /**
-   * Check whether the database metadata has been created. if not exists, create a new database metadata.
+   * Check whether the database metadata has been created. if not exists, create a new database
+   * metadata.
    *
    * @param request handler request
    * @return true if the database already exists.
@@ -114,6 +118,18 @@ public abstract class AbstractQueryHandler<Result extends HandlerResult>
     return true;
   }
 
+  protected Promise<Boolean> beginTransaction(int connectionId) {
+    return transportService.beginTransaction(connectionId);
+  }
+
+  protected Promise<Boolean> commitTransaction(int connectionId) {
+    return transportService.commitTransaction(connectionId);
+  }
+
+  protected Promise<Boolean> rollbackTransaction(int connectionId) {
+    return transportService.rollbackTransaction(connectionId);
+  }
+
   protected void submitQueryToBackendDatabase(
       int connectionId, String query, Callback<CommandResult> callback) {
     transportService.submitQueryToBackendDatabase(connectionId, query, callback);
@@ -126,6 +142,47 @@ public abstract class AbstractQueryHandler<Result extends HandlerResult>
 
   protected Promise<CommandResult> submitQueryToBackendDatabase(int connectionId, String query) {
     return transportService.submitQueryToBackendDatabase(connectionId, query);
+  }
+
+  private Promise<CommandResult> executeQueries(QueryHandlerRequest request, List<String> queries) {
+    var size = queries.size();
+    var index = new AtomicInteger(0);
+    var connectionId = request.getConnectionId();
+    return Promise.chain(
+        (result) -> {
+          var i = index.getAndIncrement();
+          if (i >= size) return null;
+          var query = queries.get(i);
+          return new Promise<>(
+              (callback) -> {
+                submitQueryToBackendDatabase(connectionId, query, callback);
+              });
+        });
+  }
+
+  protected <R, T> Function<R, T> throwWrappedException(Throwable e) {
+    return (v) -> {
+      if (e instanceof RuntimeException) {
+        throw (RuntimeException) e;
+      }
+
+      throw new CommandHandlerException(e);
+    };
+  }
+
+  protected Promise<CommandResult> executeQueriesAtomically(
+      QueryHandlerRequest request, List<String> queries) {
+    var sessionContext = request.getSessionContext();
+    if (sessionContext.isTransactionOpened()) {
+      return executeQueries(request, queries);
+    }
+
+    var connectionId = request.getConnectionId();
+    return beginTransaction(connectionId)
+        .thenAsync((v) -> executeQueries(request, queries))
+        .thenAsync(
+            (result) -> commitTransaction(connectionId).then((v) -> result),
+            (e) -> rollbackTransaction(connectionId).then(throwWrappedException(e)));
   }
 
   @Override

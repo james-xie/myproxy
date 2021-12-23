@@ -268,6 +268,8 @@ public class SQLParserTest {
                     + "WHERE `Year` BETWEEN 2000 AND 2001 and exists (select id from configvalue where id = `table1`.id)\n"
                     + "GROUP BY `Name`;");
 
+    var stmt4 = (SQLSelectStatement) parser.parse("select version();");
+
     //    var visitor = new SelectQueryInspectVisitor();
     //    stmt.accept(visitor);
 

@@ -13,6 +13,7 @@ import com.gllue.myproxy.transport.backend.netty.auth.NativePasswordPluginHandle
 import com.gllue.myproxy.transport.constant.MySQLAuthenticationMethod;
 import com.gllue.myproxy.transport.constant.MySQLCapabilityFlag;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
+import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
 import com.gllue.myproxy.transport.core.connection.ConnectionIdGenerator;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
@@ -61,6 +62,8 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
   private final BackendConnectionListener backendConnectionListener;
 
   private final AuthenticationData authData;
+
+  private int statusFlags;
 
   private ConnectionPhase connectionPhase = ConnectionPhase.HANDSHAKE;
 
@@ -170,6 +173,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
       return;
     }
 
+    statusFlags = initialHandshakePacket.getStatusFlags();
     authData.setAuthResponse(initialHandshakePacket.getAuthPluginData());
 
     byte[] authResponse;
@@ -319,6 +323,11 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
     assert connection == null;
     connectionPhase = ConnectionPhase.CONNECTED;
     connection = new BackendConnectionImpl(ID_GENERATOR.nextId(), ctx.channel());
+    if (MySQLStatusFlag.SERVER_STATUS_AUTOCOMMIT.isBitSet(statusFlags)) {
+      connection.enableAutoCommit();
+    } else {
+      connection.disableAutoCommit();
+    }
     connection.changeDatabase(authData.getDatabaseName());
     return backendConnectionListener.onConnected(connection);
   }

@@ -6,6 +6,11 @@ public class DirectTransferredResult implements HandlerResult {
   public static final DirectTransferredResult INSTANCE = new DirectTransferredResult();
 
   @Override
+  public long getWarnings() {
+    return 0;
+  }
+
+  @Override
   public boolean isDirectTransferred() {
     return true;
   }

@@ -110,7 +110,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
         new Callback<>() {
           @Override
           public void onSuccess(CommandResult result) {
-            callback.onSuccess(DefaultHandlerResult.getInstance());
+            callback.onSuccess(new DefaultHandlerResult(result.getWarnings()));
           }
 
           @Override

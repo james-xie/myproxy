@@ -1,5 +1,6 @@
 package com.gllue.myproxy.constant;
 
+import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 
@@ -24,4 +25,17 @@ public final class ServerConstants {
    * A symbol which is used to represent all columns.
    */
   public static final String ALL_COLUMN_EXPR = "*";
+
+  public static final String PROXY_VERSION = "5.7.0";
+
+  public static final String SERVER_VERSION_PATTERN = "%s [MySQL Proxy]";
+
+  /**
+   * Get current server version.
+   *
+   * @return server version
+   */
+  public static String getServerVersion() {
+    return String.format(SERVER_VERSION_PATTERN, PROXY_VERSION);
+  }
 }

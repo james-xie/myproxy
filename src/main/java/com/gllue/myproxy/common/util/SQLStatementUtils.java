@@ -418,4 +418,10 @@ public class SQLStatementUtils {
     }
     return new SQLExprTableSource(expr, quoteName(alias));
   }
+
+  public static SQLSelectItem newSelectVersionItem(String alias) {
+    Preconditions.checkArgument(alias != null, "alias cannot be null.");
+    var expr = new SQLCharExpr(ServerConstants.getServerVersion());
+    return new SQLSelectItem(expr, alias);
+  }
 }

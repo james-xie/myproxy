@@ -2,18 +2,20 @@ package com.gllue.myproxy.transport.backend.connection;
 
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.common.concurrent.SettableFuture;
-import com.gllue.myproxy.transport.backend.datasource.DataSource;
-import com.gllue.myproxy.transport.constant.MySQLCommandPacketType;
-import com.gllue.myproxy.transport.core.connection.Connection;
-import com.gllue.myproxy.transport.core.netty.NettyUtils;
-import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
-import com.gllue.myproxy.transport.protocol.packet.command.SimpleCommandPacket;
 import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
+import com.gllue.myproxy.transport.backend.datasource.DataSource;
+import com.gllue.myproxy.transport.constant.MySQLCommandPacketType;
 import com.gllue.myproxy.transport.core.connection.AbstractConnection;
+import com.gllue.myproxy.transport.core.connection.Connection;
+import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
+import com.gllue.myproxy.transport.protocol.packet.command.SimpleCommandPacket;
 import com.google.common.base.Preconditions;
+import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.channel.Channel;
 import java.lang.ref.WeakReference;
 import java.util.function.Consumer;
@@ -137,6 +139,26 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   public void sendCommand(CommandPacket packet, CommandResultReader reader) {
     setCommandResultReader(reader);
     writeAndFlush(packet);
+  }
+
+  @Override
+  public ListenableFuture<CommandResult> sendCommand(CommandPacket packet) {
+    var future = new PlainFuture<CommandResult>();
+    sendCommand(
+        packet,
+        DefaultCommandResultReader.newInstance(
+            new Callback<>() {
+              @Override
+              public void onSuccess(CommandResult result) {
+                future.set(result);
+              }
+
+              @Override
+              public void onFailure(Throwable e) {
+                future.setException(e);
+              }
+            }));
+    return future;
   }
 
   @Override

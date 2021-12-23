@@ -11,12 +11,14 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyCo
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
+import com.gllue.myproxy.command.handler.query.EncryptColumnHelper;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.exception.BadDatabaseException;
+import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.metadata.command.AbstractTableUpdateCommand;
 import com.gllue.myproxy.metadata.command.AbstractTableUpdateCommand.Column;
@@ -26,10 +28,9 @@ import com.gllue.myproxy.metadata.command.UpdateTableCommand;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
-import com.gllue.myproxy.common.util.SQLStatementUtils;
+import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;
-import com.gllue.myproxy.repository.PersistRepository;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -101,7 +102,8 @@ public class AlterTableHandler extends AbstractDDLHandler {
       this.request = request;
       this.tableMetaData = tableMetaData;
       this.statement = statement;
-      this.encryptColumnProcessor = new EncryptColumnProcessor(request.getCommentsAttributes());
+      this.encryptColumnProcessor =
+          new EncryptColumnProcessor(EncryptColumnHelper.getEncryptKey(request));
       this.alterTableProcessor =
           new AlterTableStatementProcessor(
               tableMetaData, columnsInDatabase, encryptColumnProcessor);
@@ -131,7 +133,8 @@ public class AlterTableHandler extends AbstractDDLHandler {
         alterTablePromise = Promise.emptyPromise();
       } else {
         alterTablePromise =
-            submitQueryToBackendDatabase(request.getConnectionId(), SQLStatementUtils.toSQLString(newStmt));
+            submitQueryToBackendDatabase(
+                request.getConnectionId(), SQLStatementUtils.toSQLString(newStmt));
       }
 
       if (!encryptColumnProcessor.shouldDoEncryptOrDecrypt()) {
@@ -152,9 +155,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
   }
 
   private String applyChangesToColumnsMap(
-      String tableName,
-      Map<String, Column> columnsMap,
-      SQLAlterTableStatement stmt) {
+      String tableName, Map<String, Column> columnsMap, SQLAlterTableStatement stmt) {
     for (var item : stmt.getItems()) {
       if (item instanceof SQLAlterTableAddColumn) {
         var columnDef = ((SQLAlterTableAddColumn) item).getColumns().get(0);
@@ -173,7 +174,8 @@ public class AlterTableHandler extends AbstractDDLHandler {
         var changeItem = (MySqlAlterTableChangeColumn) item;
         var columnDef = changeItem.getNewColumnDefinition();
         var columnInfo = buildCommandColumn(columnDef);
-        columnsMap.remove(SQLStatementUtils.unquoteName(changeItem.getColumnName().getSimpleName()));
+        columnsMap.remove(
+            SQLStatementUtils.unquoteName(changeItem.getColumnName().getSimpleName()));
         columnsMap.put(columnInfo.name, columnInfo);
       } else if (item instanceof SQLAlterTableDropColumnItem) {
         var sqlName = ((SQLAlterTableDropColumnItem) item).getColumns().get(0);
@@ -270,14 +272,17 @@ public class AlterTableHandler extends AbstractDDLHandler {
                       request.getDatasource(), request.getDatabase(), tableName, createTableStmt);
               command.execute(newCommandExecutionContext());
               return createTableStmt.getColumnDefinitions().stream()
-                  .collect(Collectors.toMap(x -> SQLStatementUtils.unquoteName(x.getColumnName()), x -> x));
+                  .collect(
+                      Collectors.toMap(
+                          x -> SQLStatementUtils.unquoteName(x.getColumnName()), x -> x));
             });
   }
 
   private void executeAlterTable(
       QueryHandlerRequest request, Callback<DefaultHandlerResult> callback, String tableName) {
     var stmt = (SQLAlterTableStatement) request.getStatement();
-    var encryptColumnProcessor = new EncryptColumnProcessor(request.getCommentsAttributes());
+    var encryptColumnProcessor =
+        new EncryptColumnProcessor(EncryptColumnHelper.getEncryptKey(request));
 
     var isAlterEncryptColumn = false;
     for (var item : stmt.getItems()) {

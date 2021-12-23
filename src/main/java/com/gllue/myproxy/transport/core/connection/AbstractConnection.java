@@ -25,6 +25,10 @@ public abstract class AbstractConnection implements Connection {
 
   private volatile boolean active = true;
 
+  private volatile boolean transactionOpened;
+
+  private volatile boolean autoCommit = true;
+
   public AbstractConnection(final int connectionId, final Channel channel) {
     this.connectionId = connectionId;
     this.channel = channel;
@@ -43,7 +47,6 @@ public abstract class AbstractConnection implements Connection {
 
   @Override
   public void changeDatabase(String database) {
-    Preconditions.checkArgument(!Strings.isNullOrEmpty(database));
     currentDatabase = database;
   }
 
@@ -55,6 +58,41 @@ public abstract class AbstractConnection implements Connection {
   @Override
   public int connectionId() {
     return connectionId;
+  }
+
+  @Override
+  public void begin() {
+    transactionOpened = true;
+  }
+
+  @Override
+  public void commit() {
+    transactionOpened = false;
+  }
+
+  @Override
+  public void rollback() {
+    transactionOpened = false;
+  }
+
+  @Override
+  public boolean isTransactionOpened() {
+    return transactionOpened || !autoCommit;
+  }
+
+  @Override
+  public void enableAutoCommit() {
+    autoCommit = true;
+  }
+
+  @Override
+  public void disableAutoCommit() {
+    autoCommit = false;
+  }
+
+  @Override
+  public boolean isAutoCommit() {
+    return autoCommit;
   }
 
   @Override
@@ -178,10 +216,13 @@ public abstract class AbstractConnection implements Connection {
     }
   }
 
+  protected void onClosed() {}
+
   @Override
   public void close() {
     active = false;
     NettyUtils.closeChannel(channel, false);
+    onClosed();
   }
 
   @Override
@@ -193,6 +234,7 @@ public abstract class AbstractConnection implements Connection {
   public void close(Consumer<Connection> onClosed) {
     active = false;
     NettyUtils.closeChannel(channel, (ignore) -> onClosed.accept(thisConnection()));
+    onClosed();
   }
 
   protected AbstractConnection thisConnection() {

@@ -79,6 +79,7 @@ public class MultiDatabasesMetaDataLoaderTest {
   }
 
   void mockRepository() {
+    when(repository.exists(BASE_PATH)).thenReturn(true);
     for (var entry : childrenKeysMap.entrySet()) {
       when(repository.getChildrenKeys(entry.getKey())).thenReturn(entry.getValue());
     }

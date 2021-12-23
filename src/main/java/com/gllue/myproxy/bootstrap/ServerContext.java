@@ -2,6 +2,7 @@ package com.gllue.myproxy.bootstrap;
 
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.ConfigurationException;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.GenericConfigProperties;
@@ -27,6 +28,7 @@ public final class ServerContext {
   private TransportService transportService;
   private PersistRepository persistRepository;
   private ClusterState clusterState;
+  private IdGenerator idGenerator;
 
   public void setThreadPool(ThreadPool threadPool) {
     Preconditions.checkArgument(threadPool != null);
@@ -50,6 +52,12 @@ public final class ServerContext {
     Preconditions.checkArgument(clusterState != null);
     Preconditions.checkState(this.clusterState == null);
     this.clusterState = clusterState;
+  }
+
+  public void setIdGenerator(IdGenerator idGenerator) {
+    Preconditions.checkArgument(idGenerator != null);
+    Preconditions.checkState(this.idGenerator == null);
+    this.idGenerator = idGenerator;
   }
 
   public static class Builder {

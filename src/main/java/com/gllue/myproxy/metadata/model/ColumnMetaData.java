@@ -49,7 +49,7 @@ public class ColumnMetaData extends AbstractMetaData {
 
   public void setTable(final TableMetaData table) {
     if (this.table != null) {
-      throw new IllegalStateException("Cannot override table property in column.");
+      throw new IllegalStateException("Cannot override table property.");
     }
     this.table = new WeakReference<>(table);
   }

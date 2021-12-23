@@ -2,13 +2,12 @@ package com.gllue.myproxy.command.result.query;
 
 import com.gllue.myproxy.transport.constant.MySQLColumnType;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
-import java.util.List;
 
-public class QueryResultMetaDataImpl implements QueryResultMetaData {
+public class ColumnDefQueryResultMetaData implements QueryResultMetaData {
   private final ColumnDefinition41Packet[] columnDefArray;
 
-  public QueryResultMetaDataImpl(final List<ColumnDefinition41Packet> columnDefList) {
-    this.columnDefArray = columnDefList.toArray(new ColumnDefinition41Packet[0]);
+  public ColumnDefQueryResultMetaData(final ColumnDefinition41Packet[] columnDefList) {
+    this.columnDefArray = columnDefList;
   }
 
   @Override

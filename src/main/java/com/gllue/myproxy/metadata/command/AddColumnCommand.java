@@ -39,7 +39,7 @@ public class AddColumnCommand extends AbstractMetaDataCommand<MultiDatabasesMeta
 
     var path = getPersistPathForMetaData(context, database, table);
     var newTable = builder.build();
-    database.addTable(builder.build(), true);
+    database.addTable(newTable, true);
     saveMetaData(context, path, newTable);
   }
 }

@@ -1,13 +1,20 @@
 package com.gllue.myproxy.transport.core.service;
 
+import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.BEGIN_COMMAND;
+import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.COMMIT_COMMAND;
+import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.ROLLBACK_COMMAND;
+
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.command.result.query.QueryRowsConsumerPipeline;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
+import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
+import com.gllue.myproxy.transport.exception.ExceptionResolver;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.gllue.myproxy.transport.backend.command.BufferedQueryResultReader;
 import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultReader;
@@ -46,7 +53,15 @@ public class TransportService implements FrontendConnectionManager {
     if (connection != null) {
       var backendConnection = connection.getBackendConnection();
       if (backendConnection != null) {
-        backendConnection.releaseOrClose();
+        // if the transaction is not committed before the connection is released, the transaction
+        // should be forced to rollback.
+        if (!backendConnection.isClosed() && backendConnection.isTransactionOpened()) {
+          backendConnection
+              .sendCommand(ROLLBACK_COMMAND)
+              .addListener(backendConnection::releaseOrClose, ThreadPool.DIRECT_EXECUTOR_SERVICE);
+        } else {
+          backendConnection.releaseOrClose();
+        }
       }
     }
     return connection;
@@ -89,6 +104,54 @@ public class TransportService implements FrontendConnectionManager {
         },
         ThreadPool.DIRECT_EXECUTOR_SERVICE);
     return future;
+  }
+
+  public Promise<Boolean> beginTransaction(final int connectionId) {
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    return new Promise<CommandResult>(
+            (cb) -> {
+              var reader = new BufferedQueryResultReader().addCallback(cb);
+              backendConnection.sendCommand(BEGIN_COMMAND, reader);
+            })
+        .then(
+            (result) -> {
+              backendConnection.begin();
+              frontendConnection.begin();
+              return true;
+            });
+  }
+
+  public Promise<Boolean> commitTransaction(final int connectionId) {
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    return new Promise<CommandResult>(
+            (cb) -> {
+              var reader = new BufferedQueryResultReader().addCallback(cb);
+              backendConnection.sendCommand(COMMIT_COMMAND, reader);
+            })
+        .then(
+            (result) -> {
+              backendConnection.commit();
+              frontendConnection.commit();
+              return true;
+            });
+  }
+
+  public Promise<Boolean> rollbackTransaction(final int connectionId) {
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    return new Promise<CommandResult>(
+            (cb) -> {
+              var reader = new BufferedQueryResultReader().addCallback(cb);
+              backendConnection.sendCommand(ROLLBACK_COMMAND, reader);
+            })
+        .then(
+            (result) -> {
+              backendConnection.rollback();
+              frontendConnection.rollback();
+              return true;
+            });
   }
 
   public void submitQueryAndDirectTransferResult(

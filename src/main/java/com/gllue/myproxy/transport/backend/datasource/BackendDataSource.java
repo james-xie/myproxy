@@ -93,6 +93,13 @@ public class BackendDataSource implements DataSource<BackendConnection> {
       future.addListener(
           () -> {
             if (future.isSuccess()) {
+              if (log.isDebugEnabled()) {
+                log.info(
+                    "A new backend connection has created. [database: {}, datasource: {}, connectionId: {}]",
+                    database,
+                    this.name,
+                    future.getValue().connectionId());
+              }
               future.getValue().assign();
             }
           },

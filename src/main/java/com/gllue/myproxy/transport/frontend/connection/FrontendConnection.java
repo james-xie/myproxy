@@ -9,4 +9,6 @@ public interface FrontendConnection extends Connection {
   void bindBackendConnection(BackendConnection backendConnection);
 
   BackendConnection getBackendConnection();
+
+  SessionContext getSessionContext();
 }

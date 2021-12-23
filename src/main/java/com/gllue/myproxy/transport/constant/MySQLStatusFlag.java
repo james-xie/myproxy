@@ -57,5 +57,9 @@ public enum MySQLStatusFlag {
     }
     throw new IllegalArgumentException(String.format("Illegal MySQL status flag value %d", value));
   }
+
+  public boolean isBitSet(int statusFlags) {
+    return (statusFlags & value) > 0;
+  }
 }
 

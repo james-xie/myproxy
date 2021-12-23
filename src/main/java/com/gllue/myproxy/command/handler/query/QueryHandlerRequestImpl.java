@@ -2,6 +2,7 @@ package com.gllue.myproxy.command.handler.query;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
+import com.gllue.myproxy.transport.frontend.connection.SessionContext;
 import com.google.common.base.Preconditions;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ public class QueryHandlerRequestImpl implements QueryHandlerRequest {
   private final String datasource;
   private final String database;
   private final String query;
+  private final SessionContext sessionContext;
 
   private SQLStatement statement;
   private Map<SQLCommentAttributeKey, Object> attributes;
@@ -60,5 +62,10 @@ public class QueryHandlerRequestImpl implements QueryHandlerRequest {
   public Map<SQLCommentAttributeKey, Object> getCommentsAttributes() {
     assert this.attributes != null;
     return this.attributes;
+  }
+
+  @Override
+  public SessionContext getSessionContext() {
+    return sessionContext;
   }
 }

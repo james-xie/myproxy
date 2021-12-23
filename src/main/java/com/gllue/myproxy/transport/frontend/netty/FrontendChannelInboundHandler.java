@@ -1,5 +1,6 @@
 package com.gllue.myproxy.transport.frontend.netty;
 
+import com.gllue.myproxy.constant.ServerConstants;
 import com.gllue.myproxy.transport.core.connection.ConnectionIdGenerator;
 import com.gllue.myproxy.transport.frontend.netty.auth.AuthenticationHandler;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchRequestPacket;
@@ -156,7 +157,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
     connectionId = ID_GENERATOR.nextId();
     var packet =
         new InitialHandshakePacketV10(
-            MySQLServerInfo.getServerVersion(),
+            ServerConstants.getServerVersion(),
             connectionId,
             authHandler.getAuthPluginData(),
             MySQLCapabilityFlag.handshakeServerCapabilityFlags(),

@@ -118,7 +118,8 @@ public final class FrontendServer implements Initializer {
         context.getPersistRepository(),
         context.getConfigurations(),
         context.getClusterState(),
-        context.getSqlParser());
+        context.getSqlParser(),
+        context.getIdGenerator());
   }
 
   private void configServerBootstrap(final ServerBootstrap bootstrap, final ServerContext context) {

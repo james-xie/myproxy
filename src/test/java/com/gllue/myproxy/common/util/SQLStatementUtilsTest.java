@@ -1,7 +1,5 @@
 package com.gllue.myproxy.common.util;
 
-import static com.gllue.myproxy.common.util.SQLStatementUtils.visitColumn;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -68,7 +66,7 @@ public class SQLStatementUtilsTest {
     columnDef.setName("c");
     assertNull(SQLStatementUtils.columnDefaultExpr(columnDef));
     columnDef.setDefaultExpr(new SQLCharExpr("1234"));
-    Assert.assertEquals("1234", SQLStatementUtils.columnDefaultExpr(columnDef));
+    Assert.assertEquals("'1234'", SQLStatementUtils.columnDefaultExpr(columnDef));
   }
 
   @Test
@@ -134,7 +132,7 @@ public class SQLStatementUtilsTest {
     assertEquals("`column`", columnDef.getColumnName());
     assertTrue(SQLStatementUtils.isDataTypeNameEquals(columnDef.getDataType(), ColumnType.CHAR));
     assertFalse(SQLStatementUtils.columnIsNullable(columnDef));
-    Assert.assertEquals("121", SQLStatementUtils.columnDefaultExpr(columnDef));
+    Assert.assertEquals("'121'", SQLStatementUtils.columnDefaultExpr(columnDef));
     assertEquals("'test'", columnDef.getComment().toString());
   }
 

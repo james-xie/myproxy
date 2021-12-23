@@ -14,16 +14,4 @@ public final class MySQLServerInfo {
 
   public static final int DEFAULT_CHARSET = MySQLCharsets.UTF8MB4_CHARSET_ID;
 
-  private static final String PROXY_VERSION = "8.0.0";
-
-  private static final String SERVER_VERSION_PATTERN = "%s [MySQL Proxy]";
-
-  /**
-   * Get current server version.
-   *
-   * @return server version
-   */
-  public static String getServerVersion() {
-    return String.format(SERVER_VERSION_PATTERN, PROXY_VERSION);
-  }
 }

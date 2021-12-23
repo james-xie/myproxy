@@ -1,6 +1,6 @@
 package com.gllue.myproxy.transport.backend.command;
 
-import com.gllue.myproxy.command.result.query.BufferedQueryResult;
+import com.gllue.myproxy.command.result.query.BufferedQueryResultImpl;
 import com.gllue.myproxy.command.result.query.QueryResult;
 import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
 import lombok.extern.slf4j.Slf4j;
@@ -12,18 +12,18 @@ public class BufferedQueryResultReader extends DefaultQueryResultReader {
   private final int bufferLowWaterMark;
   private final int bufferHighWaterMark;
 
-  private BufferedQueryResult queryResult;
+  private BufferedQueryResultImpl queryResult;
 
   public BufferedQueryResultReader() {
-    this(BufferedQueryResult.INITIAL_BUFFER_CAPACITY);
+    this(BufferedQueryResultImpl.INITIAL_BUFFER_CAPACITY);
   }
 
   public BufferedQueryResultReader(final int initCapacity) {
     this(
         initCapacity,
-        BufferedQueryResult.MAX_BUFFER_CAPACITY,
-        BufferedQueryResult.DEFAULT_BUFFER_LOW_WATER_MARK,
-        BufferedQueryResult.DEFAULT_BUFFER_HIGH_WATER_MARK);
+        BufferedQueryResultImpl.MAX_BUFFER_CAPACITY,
+        BufferedQueryResultImpl.DEFAULT_BUFFER_LOW_WATER_MARK,
+        BufferedQueryResultImpl.DEFAULT_BUFFER_HIGH_WATER_MARK);
   }
 
   public BufferedQueryResultReader(
@@ -40,7 +40,7 @@ public class BufferedQueryResultReader extends DefaultQueryResultReader {
   @Override
   protected void beforeReadRows() {
     queryResult =
-        new BufferedQueryResult(
+        new BufferedQueryResultImpl(
             queryResultMetaData,
             initCapacity,
             maxCapacity,

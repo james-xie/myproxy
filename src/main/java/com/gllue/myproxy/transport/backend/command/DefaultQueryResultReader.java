@@ -1,7 +1,7 @@
 package com.gllue.myproxy.transport.backend.command;
 
 import com.gllue.myproxy.command.result.query.QueryResultMetaData;
-import com.gllue.myproxy.command.result.query.QueryResultMetaDataImpl;
+import com.gllue.myproxy.command.result.query.ColumnDefQueryResultMetaData;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,7 +23,8 @@ public abstract class DefaultQueryResultReader extends AbstractQueryResultReader
 
   @Override
   protected void afterReadColumnDefinitions() {
-    queryResultMetaData = new QueryResultMetaDataImpl(columnDefList);
+    queryResultMetaData =
+        new ColumnDefQueryResultMetaData(columnDefList.toArray(new ColumnDefinition41Packet[0]));
     columnDefList = null;
   }
 

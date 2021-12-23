@@ -13,6 +13,7 @@ import com.gllue.myproxy.common.concurrent.AbstractRunnable;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
+import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
@@ -57,13 +58,14 @@ public class CommandExecutionEngine {
       final PersistRepository repository,
       final Configurations configurations,
       final ClusterState clusterState,
-      final SQLParser sqlParser) {
+      final SQLParser sqlParser,
+      final IdGenerator idGenerator) {
     this.threadPool = threadPool;
     this.transportService = transportService;
     this.handlerExecutor = new HandlerExecutor(threadPool);
     this.concreteQueryHandler =
         new ConcreteQueryHandler(
-            repository, configurations, clusterState, transportService, sqlParser);
+            repository, configurations, clusterState, transportService, sqlParser, idGenerator);
   }
 
   @RequiredArgsConstructor
@@ -77,7 +79,84 @@ public class CommandExecutionEngine {
       if (backendConnection == null) {
         backendConnection = transportService.assignBackendConnection(frontendConnection).get();
       }
-      internalExecute(frontendConnection, packet, backendConnection);
+      checkDatabase(backendConnection);
+    }
+
+    private void checkDatabase(BackendConnection backendConnection) {
+      var currentDatabase = frontendConnection.currentDatabase();
+      if (currentDatabase == null || currentDatabase.equals(backendConnection.currentDatabase())) {
+        checkAutoCommit(backendConnection);
+      } else {
+        changeDatabase(backendConnection, currentDatabase);
+      }
+    }
+
+    private void changeDatabase(final BackendConnection backendConnection, final String database) {
+      backendConnection.changeDatabase(null);
+      backendConnection.sendCommand(
+          new InitDBCommandPacket(database),
+          DefaultCommandResultReader.newInstance(
+              new Callback<>() {
+                @Override
+                public void onSuccess(CommandResult result) {
+                  log.info(
+                      "Backend connection [{}] database has been changed to '{}'",
+                      backendConnection.connectionId(),
+                      database);
+                  backendConnection.changeDatabase(database);
+                  checkAutoCommit(backendConnection);
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                  var packet = ExceptionResolver.resolve(e);
+                  frontendConnection.writeAndFlush(
+                      packet, PlainFuture.newFuture(frontendConnection::close));
+                }
+              }));
+    }
+
+    private void checkAutoCommit(BackendConnection backendConnection) {
+      if (frontendConnection.isAutoCommit() == backendConnection.isAutoCommit()) {
+        dispatchCommand(frontendConnection, packet, backendConnection);
+      } else {
+        changeAutoCommit(backendConnection);
+      }
+    }
+
+    private void changeAutoCommit(BackendConnection backendConnection) {
+      QueryCommandPacket command;
+      if (frontendConnection.isAutoCommit()) {
+        command = QueryCommandPacket.ENABLE_AUTO_COMMIT_COMMAND;
+      } else {
+        command = QueryCommandPacket.DISABLE_AUTO_COMMIT_COMMAND;
+      }
+      backendConnection.sendCommand(
+          command,
+          DefaultCommandResultReader.newInstance(
+              new Callback<>() {
+                @Override
+                public void onSuccess(CommandResult result) {
+                  log.info(
+                      "Backend connection [{}] AUTOCOMMIT={}",
+                      backendConnection.connectionId(),
+                      frontendConnection.isAutoCommit());
+
+                  if (frontendConnection.isAutoCommit()) {
+                    backendConnection.enableAutoCommit();
+                  } else {
+                    backendConnection.disableAutoCommit();
+                  }
+                  dispatchCommand(frontendConnection, packet, backendConnection);
+                }
+
+                @Override
+                public void onFailure(Throwable e) {
+                  var packet = ExceptionResolver.resolve(e);
+                  frontendConnection.writeAndFlush(
+                      packet, PlainFuture.newFuture(frontendConnection::close));
+                }
+              }));
     }
 
     @Override
@@ -118,36 +197,7 @@ public class CommandExecutionEngine {
       return;
     }
 
-    var currentDatabase = frontendConnection.currentDatabase();
-    if (currentDatabase == null || backendConnection.currentDatabase().equals(currentDatabase)) {
-      dispatchCommand(frontendConnection, packet, backendConnection);
-    } else {
-      changeDatabase(frontendConnection, packet, backendConnection, currentDatabase);
-    }
-  }
-
-  private void changeDatabase(
-      final FrontendConnection frontendConnection,
-      final CommandPacket packet,
-      final BackendConnection backendConnection,
-      final String database) {
-    backendConnection.sendCommand(
-        new InitDBCommandPacket(database),
-        DefaultCommandResultReader.newInstance(
-            new Callback<>() {
-              @Override
-              public void onSuccess(CommandResult result) {
-                backendConnection.changeDatabase(database);
-                dispatchCommand(frontendConnection, packet, backendConnection);
-              }
-
-              @Override
-              public void onFailure(Throwable e) {
-                var packet = ExceptionResolver.resolve(e);
-                frontendConnection.writeAndFlush(
-                    packet, PlainFuture.newFuture(frontendConnection::close));
-              }
-            }));
+    dispatchCommand(frontendConnection, packet, backendConnection);
   }
 
   private void dispatchCommand(
@@ -238,7 +288,8 @@ public class CommandExecutionEngine {
         frontendConnection.connectionId(),
         frontendConnection.getDataSourceName(),
         frontendConnection.currentDatabase(),
-        packet.getQuery());
+        packet.getQuery(),
+        frontendConnection.getSessionContext());
   }
 
   private void writeHandlerResult(FrontendConnection connection, HandlerResult result) {
@@ -270,8 +321,7 @@ public class CommandExecutionEngine {
           @Override
           public void onFailure(Throwable e) {
             var packet = ExceptionResolver.resolve(e);
-            frontendConnection.writeAndFlush(
-                packet, PlainFuture.newFuture(frontendConnection::close));
+            frontendConnection.writeAndFlush(packet);
           }
         });
   }

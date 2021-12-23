@@ -3,11 +3,13 @@ package com.gllue.myproxy.bootstrap;
 import com.gllue.myproxy.cluster.ClusterStateInitializer;
 import com.gllue.myproxy.common.Initializer;
 import com.gllue.myproxy.common.concurrent.ThreadPoolInitializer;
+import com.gllue.myproxy.common.generator.IdGeneratorInitializer;
 import com.gllue.myproxy.repository.zookeeper.ZookeeperInitializer;
 import com.gllue.myproxy.transport.core.service.TransportServiceInitializer;
 import com.gllue.myproxy.transport.frontend.FrontendServer;
 import com.gllue.myproxy.transport.backend.BackendServer;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.zookeeper.data.Id;
 
 @Slf4j
 public final class Bootstrap {
@@ -20,6 +22,7 @@ public final class Bootstrap {
         new TransportServiceInitializer(),
         new ThreadPoolInitializer(),
         new ClusterStateInitializer(),
+        new IdGeneratorInitializer(),
         backendServer,
         frontendServer,
       };
