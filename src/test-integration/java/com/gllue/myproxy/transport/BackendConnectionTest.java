@@ -17,6 +17,8 @@ import org.junit.Assert;
 import org.junit.Test;
 
 /**
+ *
+ *
  * <pre>
  * Prepare environment for mysql (8.0.25):
  *  CREATE DATABASE testdb;
@@ -28,12 +30,12 @@ import org.junit.Test;
  * </pre>
  */
 public class BackendConnectionTest extends BaseIntegrationTest {
+  static final String DATABASE = "testdb";
+
   public DataSource<BackendConnection> getDataSource(final String name) {
     var serverContext = getServerContext();
     var transportService = serverContext.getTransportService();
-    var dataSource = transportService
-        .getBackendDataSourceManager()
-        .getDataSource(name);
+    var dataSource = transportService.getBackendDataSourceManager().getDataSource(name);
     Assert.assertNotNull(dataSource);
     return dataSource;
   }
@@ -65,7 +67,7 @@ public class BackendConnectionTest extends BaseIntegrationTest {
         };
 
     // "native" user using "native-password" auth plugin.
-    var connArgsForNativeUser = getDataSource("s2").getConnectionArguments();
+    var connArgsForNativeUser = getDataSource("s2").getConnectionArguments(DATABASE);
     backendServer.connect(connArgsForNativeUser, listener);
     assertTrue(future.get(5, TimeUnit.SECONDS));
   }
@@ -97,7 +99,7 @@ public class BackendConnectionTest extends BaseIntegrationTest {
         };
 
     // "root" user using "caching-sha2" auth plugin.
-    var connArgsForRootUser = getDataSource("s1").getConnectionArguments();
+    var connArgsForRootUser = getDataSource("s1").getConnectionArguments(DATABASE);
     backendServer.connect(connArgsForRootUser, listener);
     assertTrue(future.get(5, TimeUnit.SECONDS));
   }

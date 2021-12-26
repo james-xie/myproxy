@@ -185,9 +185,16 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
       onFailure(ctx, e);
       return;
     }
+
+    var clientCapabilityFlags =
+        MySQLCapabilityFlag.handshakeClientCapabilityFlags(serverCapabilityFlags);
+    if (connectionArguments.getDatabase() == null) {
+      clientCapabilityFlags &= ~MySQLCapabilityFlag.CLIENT_CONNECT_WITH_DB.getValue();
+    }
+
     var handshakeResponsePacket =
         new HandshakeResponsePacket41(
-            MySQLCapabilityFlag.handshakeClientCapabilityFlags(serverCapabilityFlags),
+            clientCapabilityFlags,
             MySQLPacket.MAX_PACKET_SIZE,
             MySQLServerInfo.DEFAULT_CHARSET,
             connectionArguments.getUsername(),

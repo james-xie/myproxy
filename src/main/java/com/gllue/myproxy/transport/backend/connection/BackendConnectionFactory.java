@@ -18,7 +18,7 @@ public class BackendConnectionFactory {
   }
 
   public ExtensibleFuture<BackendConnection> newConnection(
-      final DataSource<BackendConnection> dataSource) {
+      final DataSource<BackendConnection> dataSource, final String database) {
     PlainFuture<BackendConnection> future = new PlainFuture<>();
 
     BackendConnectionListener backendConnectionListener =
@@ -59,7 +59,7 @@ public class BackendConnectionFactory {
         };
 
     backendServer()
-        .connect(dataSource.getConnectionArguments(), backendConnectionListener)
+        .connect(dataSource.getConnectionArguments(database), backendConnectionListener)
         .addListener(
             (f) -> {
               if (f.isCancelled()) {

@@ -49,6 +49,7 @@ import lombok.NoArgsConstructor;
 public class SQLStatementUtils {
 
   private static final String ENCRYPT_COLUMN_TYPE = ColumnType.ENCRYPT.name();
+  private static final String VARBINARY_COLUMN_TYPE = ColumnType.VARBINARY.name();
 
   public static String quoteName(final String name) {
     if (name.startsWith(ServerConstants.MYSQL_QUOTE_SYMBOL)
@@ -280,8 +281,16 @@ public class SQLStatementUtils {
     return ENCRYPT_COLUMN_TYPE.equals(dataType.getName().toUpperCase());
   }
 
+  public static boolean isVarbinaryColumnType(final SQLDataType dataType) {
+    return VARBINARY_COLUMN_TYPE.equals(dataType.getName().toUpperCase());
+  }
+
   public static boolean isEncryptColumn(final SQLColumnDefinition columnDef) {
     return isEncryptColumnType(columnDef.getDataType());
+  }
+
+  public static boolean isVarbinaryColumn(final SQLColumnDefinition columnDef) {
+    return isVarbinaryColumnType(columnDef.getDataType());
   }
 
   public static SQLColumnDefinition updateEncryptToVarbinary(final SQLColumnDefinition columnDef) {
@@ -290,6 +299,15 @@ public class SQLStatementUtils {
 
     var newColumnDef = columnDef.clone();
     newColumnDef.getDataType().setName(ColumnType.VARBINARY.name());
+    return newColumnDef;
+  }
+
+  public static SQLColumnDefinition updateVarbinaryToEncrypt(final SQLColumnDefinition columnDef) {
+    Preconditions.checkArgument(
+        isVarbinaryColumn(columnDef), "Illegal column type [%s].", columnDef.getDataType());
+
+    var newColumnDef = columnDef.clone();
+    newColumnDef.getDataType().setName(ColumnType.ENCRYPT.name());
     return newColumnDef;
   }
 
@@ -393,11 +411,13 @@ public class SQLStatementUtils {
 
   public static boolean anySubQueryExists(final SQLTableSource tableSource) {
     var exists = new AtomicBoolean();
-    iterateSources(tableSource, (x) -> {
-      if (x instanceof SQLSubqueryTableSource) {
-        exists.set(true);
-      }
-    });
+    iterateSources(
+        tableSource,
+        (x) -> {
+          if (x instanceof SQLSubqueryTableSource) {
+            exists.set(true);
+          }
+        });
     return exists.get();
   }
 

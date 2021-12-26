@@ -1,36 +1,52 @@
 package com.gllue.myproxy.sql.parser;
 
-import com.alibaba.druid.DbType;
-import com.alibaba.druid.sql.SQLUtils;
 import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.util.JdbcConstants;
 import java.util.List;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class SQLParser {
-  private static final DbType DB_TYPE = JdbcConstants.MYSQL;
 
-  private final boolean keepComments;
+  private final DruidSQLStatementParser druidParser;
+  private final ExtendedSQLStatementParser extendedParser;
+  private final CustomSQLStatementParser customParser;
 
   public SQLParser() {
     this(true);
   }
 
   public SQLParser(final boolean keepComments) {
-    this.keepComments = keepComments;
+    this.druidParser = new DruidSQLStatementParser(keepComments);
+    this.extendedParser = new ExtendedSQLStatementParser();
+    this.customParser = new CustomSQLStatementParser();
   }
 
-  public SQLStatement parse(final String sql) {
-    try {
-      return SQLUtils.parseSingleStatement(sql, DB_TYPE, keepComments);
-    } catch (Exception e) {
-      if (log.isTraceEnabled()) {
-        log.trace("Failed to parse sql. [sql:{}]", sql, e);
-      }
-      throw new SQLParseException(e.getMessage());
+  private SQLStatement tryToParseDruidUnsupportedStatement(String query) {
+    return extendedParser.parseStatement(query);
+  }
+
+  private SQLStatement tryToParseCustomStatement(String query) {
+    return customParser.parseStatement(query);
+  }
+
+  private SQLStatement parseStatement(String query) {
+    return druidParser.parseStatement(query);
+  }
+
+  public SQLStatement parse(final String query) {
+    if (log.isDebugEnabled()) {
+      log.debug("Parse query: " + query);
     }
+    var stmt = tryToParseDruidUnsupportedStatement(query);
+    if (stmt != null) {
+      return stmt;
+    }
+    stmt = tryToParseCustomStatement(query);
+    if (stmt != null) {
+      return stmt;
+    }
+    return parseStatement(query);
   }
 
   /**

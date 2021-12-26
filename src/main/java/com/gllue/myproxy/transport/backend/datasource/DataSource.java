@@ -24,5 +24,5 @@ public interface DataSource<T extends Connection> {
 
   void closeConnection(T connection);
 
-  ConnectionArguments getConnectionArguments();
+  ConnectionArguments getConnectionArguments(String database);
 }

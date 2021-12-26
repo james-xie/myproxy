@@ -14,11 +14,13 @@ Configuration:
     Logger:
       - name: org.apdplat
         level: WARN
-      - name: com.gllue
+      - name: com.gllue.myproxy
         level: INFO
-      - name: com.gllue.transport
-        level: INFO
-#      - name: com.gllue.transport.frontend.command
+      - name: com.gllue.myproxy.transport
+        level: DEBUG
+      - name: com.gllue.myproxy.sql
+        level: DEBUG
+#      - name: com.gllue.myproxy.transport.frontend.command
 #        level: INFO
-#      - name: com.gllue.transport.core.connection
+#      - name: com.gllue.myproxy.transport.core.connection
 #        level: DEBUG

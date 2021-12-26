@@ -22,6 +22,7 @@ import com.gllue.myproxy.transport.backend.command.PipelineSupportedQueryResultR
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionManager;
+import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -154,20 +155,49 @@ public class TransportService implements FrontendConnectionManager {
             });
   }
 
+  private Callback<CommandResult> wrappedCallback(
+      FrontendConnection connection, Callback<CommandResult> callback) {
+    return new Callback<>() {
+      @Override
+      public void onSuccess(CommandResult result) {
+        try {
+          callback.onSuccess(result);
+        } catch (Exception e) {
+          callback.onFailure(e);
+        }
+      }
+
+      @Override
+      public void onFailure(Throwable e) {
+        try {
+          callback.onFailure(e);
+        } catch (Exception exception) {
+          log.error(
+              "An exception has occurred during invoking the callback.onFailure method.",
+              exception);
+          connection.close();
+        }
+      }
+    };
+  }
+
   public void submitQueryAndDirectTransferResult(
       final int connectionId, final String query, final Callback<CommandResult> callback) {
     var frontendConnection = getFrontendConnection(connectionId);
     var backendConnection = frontendConnection.getBackendConnection();
+    var newCallback = wrappedCallback(frontendConnection, callback);
     backendConnection.sendCommand(
         new QueryCommandPacket(query),
-        new DirectTransferQueryResultReader(frontendConnection).addCallback(callback));
+        new DirectTransferQueryResultReader(frontendConnection).addCallback(newCallback));
   }
 
   public void submitQueryToBackendDatabase(
       final int connectionId, final String query, final Callback<CommandResult> callback) {
-    var connection = getFrontendConnection(connectionId).getBackendConnection();
-    connection.sendCommand(
-        new QueryCommandPacket(query), new BufferedQueryResultReader().addCallback(callback));
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    var newCallback = wrappedCallback(frontendConnection, callback);
+    backendConnection.sendCommand(
+        new QueryCommandPacket(query), new BufferedQueryResultReader().addCallback(newCallback));
   }
 
   public Promise<CommandResult> submitQueryToBackendDatabase(
@@ -176,12 +206,5 @@ public class TransportService implements FrontendConnectionManager {
         (cb) -> {
           submitQueryToBackendDatabase(connectionId, query, cb);
         });
-  }
-
-  public void submitQueryToBackendDatabase(
-      int connectionId, String query, QueryRowsConsumerPipeline pipeline) {
-    var connection = getFrontendConnection(connectionId).getBackendConnection();
-    connection.sendCommand(
-        new QueryCommandPacket(query), new PipelineSupportedQueryResultReader(pipeline));
   }
 }

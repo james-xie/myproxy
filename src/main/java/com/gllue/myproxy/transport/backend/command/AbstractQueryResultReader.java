@@ -134,7 +134,9 @@ public abstract class AbstractQueryResultReader extends AbstractCommandResultRea
 
   private void handleEofPacket(final EofPacket packet) {
     state = State.READ_COMPLETED;
-    onSuccess(new CommandResult(0, 0, packet.getStatusFlags(), packet.getWarnings(), null, null));
+    onSuccess(
+        new CommandResult(
+            0, 0, packet.getStatusFlags(), packet.getWarnings(), null, getQueryResult()));
   }
 
   protected QueryResult getQueryResult() {

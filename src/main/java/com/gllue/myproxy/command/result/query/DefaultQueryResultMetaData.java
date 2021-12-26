@@ -69,4 +69,9 @@ public class DefaultQueryResultMetaData implements QueryResultMetaData {
   public int getDecimals(int columnIndex) {
     return 0;
   }
+
+  @Override
+  public int getColumnFlags(int columnIndex) {
+    return 0;
+  }
 }

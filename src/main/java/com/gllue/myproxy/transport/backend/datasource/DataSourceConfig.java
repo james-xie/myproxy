@@ -16,13 +16,11 @@ public class DataSourceConfig {
   private final SocketAddress address;
   private final String user;
   private final String password;
-  private final String database;
 
   public static class Parser {
     private static final String KV_SEPARATOR = "=";
     private static final String KV_PAIR_SEPARATOR = ";";
-    private static final String[] REQUIRED_KEYS =
-        new String[] {"name", "host", "user", "password", "database"};
+    private static final String[] REQUIRED_KEYS = new String[] {"name", "host", "user", "password"};
 
     private Map<String, String> parseKeyValuePairs(final String config) {
       Map<String, String> kvs = new HashMap<>();
@@ -81,11 +79,7 @@ public class DataSourceConfig {
       var kvs = parseKeyValuePairs(config);
       ensureRequiredKeys(kvs);
       return new DataSourceConfig(
-          kvs.get("name"),
-          resolveSocketAddress(kvs),
-          kvs.get("user"),
-          kvs.get("password"),
-          kvs.get("database"));
+          kvs.get("name"), resolveSocketAddress(kvs), kvs.get("user"), kvs.get("password"));
     }
   }
 }

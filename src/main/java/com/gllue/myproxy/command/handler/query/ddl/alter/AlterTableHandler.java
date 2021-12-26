@@ -10,9 +10,10 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeCo
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.cluster.ClusterState;
-import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
+import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.EncryptColumnHelper;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
+import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
@@ -61,7 +62,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
   }
 
   @Override
-  public void execute(QueryHandlerRequest request, Callback<DefaultHandlerResult> callback) {
+  public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
     ensureDatabaseExists(request);
 
     var stmt = (SQLAlterTableStatement) request.getStatement();
@@ -279,7 +280,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
   }
 
   private void executeAlterTable(
-      QueryHandlerRequest request, Callback<DefaultHandlerResult> callback, String tableName) {
+      QueryHandlerRequest request, Callback<HandlerResult> callback, String tableName) {
     var stmt = (SQLAlterTableStatement) request.getStatement();
     var encryptColumnProcessor =
         new EncryptColumnProcessor(EncryptColumnHelper.getEncryptKey(request));
@@ -316,7 +317,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
     lockTables(request.getConnectionId(), operation, LockType.WRITE, tableName)
         .then(
             (v) -> {
-              callback.onSuccess(DefaultHandlerResult.getInstance());
+              callback.onSuccess(QueryHandlerResult.OK_RESULT);
               return true;
             },
             (e) -> {
@@ -326,7 +327,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
   }
 
   void executeAlterTableOnStandardTable(
-      QueryHandlerRequest request, Callback<DefaultHandlerResult> callback, TableMetaData table) {
+      QueryHandlerRequest request, Callback<HandlerResult> callback, TableMetaData table) {
     var tableName = table.getName();
     var stmt = (SQLAlterTableStatement) request.getStatement();
 
@@ -344,7 +345,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
     lockTables(request.getConnectionId(), operation, LockType.WRITE, tableName)
         .then(
             (v) -> {
-              callback.onSuccess(DefaultHandlerResult.getInstance());
+              callback.onSuccess(QueryHandlerResult.OK_RESULT);
               return true;
             },
             (e) -> {
@@ -374,9 +375,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
   }
 
   void executeAlterTableOnPartitionTable(
-      QueryHandlerRequest request,
-      Callback<DefaultHandlerResult> callback,
-      PartitionTableMetaData table) {
+      QueryHandlerRequest request, Callback<HandlerResult> callback, PartitionTableMetaData table) {
     var stmt = (SQLAlterTableStatement) request.getStatement();
 
     var tablePartitionProcessor =
@@ -410,7 +409,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
     lockTables(request.getConnectionId(), operation, LockType.WRITE, table.getTableNames())
         .then(
             (v) -> {
-              callback.onSuccess(DefaultHandlerResult.getInstance());
+              callback.onSuccess(QueryHandlerResult.OK_RESULT);
               return true;
             },
             (e) -> {

@@ -8,6 +8,7 @@ import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionFactory;
 import com.gllue.myproxy.transport.backend.connection.ConnectionArguments;
 import com.gllue.myproxy.transport.backend.BackendConnectionException;
+import java.net.SocketAddress;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
@@ -23,21 +24,29 @@ public class BackendDataSource implements DataSource<BackendConnection> {
 
   private final String name;
 
+  private final SocketAddress socketAddress;
+
+  private final String username;
+
+  private final String password;
+
   private final int maxCapacity;
 
   private final BackendConnectionFactory connectionFactory;
 
-  private final ConnectionArguments connectionArguments;
-
   public BackendDataSource(
       final String name,
+      final SocketAddress socketAddress,
+      final String username,
+      final String password,
       final int maxCapacity,
-      final BackendConnectionFactory connectionFactory,
-      final ConnectionArguments connectionArguments) {
+      final BackendConnectionFactory connectionFactory) {
     this.name = name;
+    this.socketAddress = socketAddress;
+    this.username = username;
+    this.password = password;
     this.maxCapacity = maxCapacity;
     this.connectionFactory = connectionFactory;
-    this.connectionArguments = connectionArguments;
   }
 
   @Override
@@ -89,7 +98,7 @@ public class BackendDataSource implements DataSource<BackendConnection> {
 
     ExtensibleFuture<BackendConnection> future;
     try {
-      future = connectionFactory.newConnection(this);
+      future = connectionFactory.newConnection(this, database);
       future.addListener(
           () -> {
             if (future.isSuccess()) {
@@ -133,7 +142,7 @@ public class BackendDataSource implements DataSource<BackendConnection> {
   }
 
   @Override
-  public ConnectionArguments getConnectionArguments() {
-    return connectionArguments;
+  public ConnectionArguments getConnectionArguments(String database) {
+    return new ConnectionArguments(socketAddress, username, password, database);
   }
 }

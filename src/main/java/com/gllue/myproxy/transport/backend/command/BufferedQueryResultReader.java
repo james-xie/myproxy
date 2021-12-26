@@ -1,37 +1,27 @@
 package com.gllue.myproxy.transport.backend.command;
 
-import com.gllue.myproxy.command.result.query.BufferedQueryResultImpl;
+import com.gllue.myproxy.command.result.query.MemoryBufferedQueryResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
 import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BufferedQueryResultReader extends DefaultQueryResultReader {
-  private final int initCapacity;
   private final int maxCapacity;
   private final int bufferLowWaterMark;
   private final int bufferHighWaterMark;
 
-  private BufferedQueryResultImpl queryResult;
+  private MemoryBufferedQueryResult queryResult;
 
   public BufferedQueryResultReader() {
-    this(BufferedQueryResultImpl.INITIAL_BUFFER_CAPACITY);
-  }
-
-  public BufferedQueryResultReader(final int initCapacity) {
     this(
-        initCapacity,
-        BufferedQueryResultImpl.MAX_BUFFER_CAPACITY,
-        BufferedQueryResultImpl.DEFAULT_BUFFER_LOW_WATER_MARK,
-        BufferedQueryResultImpl.DEFAULT_BUFFER_HIGH_WATER_MARK);
+        MemoryBufferedQueryResult.DEFAULT_MAX_CAPACITY_IN_BYTES,
+        MemoryBufferedQueryResult.DEFAULT_LOW_WATER_MARK_IN_BYTES,
+        MemoryBufferedQueryResult.DEFAULT_HIGH_WATER_MARK_IN_BYTES);
   }
 
   public BufferedQueryResultReader(
-      final int initCapacity,
-      final int maxCapacity,
-      final int bufferLowWaterMark,
-      final int bufferHighWaterMark) {
-    this.initCapacity = initCapacity;
+      final int maxCapacity, final int bufferLowWaterMark, final int bufferHighWaterMark) {
     this.maxCapacity = maxCapacity;
     this.bufferLowWaterMark = bufferLowWaterMark;
     this.bufferHighWaterMark = bufferHighWaterMark;
@@ -40,12 +30,12 @@ public class BufferedQueryResultReader extends DefaultQueryResultReader {
   @Override
   protected void beforeReadRows() {
     queryResult =
-        new BufferedQueryResultImpl(
+        new MemoryBufferedQueryResult(
             queryResultMetaData,
-            initCapacity,
             maxCapacity,
             bufferLowWaterMark,
-            bufferHighWaterMark);
+            bufferHighWaterMark,
+            MemoryBufferedQueryResult.THRESHOLD_OF_DISCARD_BUFFERED_QUERY_RESULT);
   }
 
   @Override
@@ -63,5 +53,11 @@ public class BufferedQueryResultReader extends DefaultQueryResultReader {
       queryResult.setWritabilityChangedListener(() -> getConnection().enableAutoRead());
       getConnection().disableAutoRead();
     }
+  }
+
+  @Override
+  protected void afterReadRows() {
+    queryResult.setDone();
+    super.afterReadRows();
   }
 }

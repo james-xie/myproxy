@@ -5,12 +5,13 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 
 import com.gllue.myproxy.common.concurrent.PlainFuture;
+import com.gllue.myproxy.transport.backend.BackendConnectionException;
+import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionFactory;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionImpl;
 import com.gllue.myproxy.transport.backend.connection.ConnectionArguments;
-import com.gllue.myproxy.transport.backend.connection.BackendConnection;
-import com.gllue.myproxy.transport.backend.BackendConnectionException;
 import io.netty.channel.embedded.EmbeddedChannel;
+import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -25,12 +26,11 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class BackendDataSourceTest {
   static final String DATA_SOURCE_NAME = "test data source";
+  static final SocketAddress SOCKET_ADDRESS = ConnectionArguments.DEFAULT_ADDRESS;
+  static final String USERNAME = "root";
+  static final String PASSWORD = "pass";
 
-  @Mock
-  BackendConnectionFactory factory;
-
-  @Mock
-  ConnectionArguments connectionArguments;
+  @Mock BackendConnectionFactory factory;
 
   @Test
   public void testConnectionAcquireAndRelease() {
@@ -39,7 +39,7 @@ public class BackendDataSourceTest {
 
     var future = new PlainFuture<BackendConnection>();
     future.set(prepareConnection(dataSource));
-    Mockito.when(factory.newConnection(any())).thenReturn(future);
+    Mockito.when(factory.newConnection(any(), any())).thenReturn(future);
 
     var connection = dataSource.acquireConnection("db1");
     assertTrue(connection.isAssigned());
@@ -63,7 +63,7 @@ public class BackendDataSourceTest {
 
     var future = new PlainFuture<BackendConnection>();
     future.set(prepareConnection(dataSource));
-    Mockito.when(factory.newConnection(any())).thenReturn(future);
+    Mockito.when(factory.newConnection(any(), any())).thenReturn(future);
 
     var connection = dataSource.acquireConnection("db1");
     dataSource.releaseConnection(connection);
@@ -77,7 +77,7 @@ public class BackendDataSourceTest {
 
     var future = new PlainFuture<BackendConnection>();
     future.set(prepareConnection(dataSource));
-    Mockito.when(factory.newConnection(any())).thenReturn(future);
+    Mockito.when(factory.newConnection(any(), any())).thenReturn(future);
 
     var connection = dataSource.acquireConnection("db1");
     connection.release();
@@ -93,7 +93,7 @@ public class BackendDataSourceTest {
 
     var future = new PlainFuture<BackendConnection>();
     future.set(prepareConnection(dataSource));
-    Mockito.when(factory.newConnection(any())).thenReturn(future);
+    Mockito.when(factory.newConnection(any(), any())).thenReturn(future);
 
     var connection = dataSource.acquireConnection("db1");
     connection.close();
@@ -108,7 +108,7 @@ public class BackendDataSourceTest {
 
     var future = new PlainFuture<BackendConnection>();
     future.set(prepareConnection(dataSource));
-    Mockito.when(factory.newConnection(any())).thenReturn(future);
+    Mockito.when(factory.newConnection(any(), any())).thenReturn(future);
 
     var connection = dataSource.acquireConnection("db1");
     connection.close();
@@ -123,7 +123,7 @@ public class BackendDataSourceTest {
     var dataSource = prepareDataSource(10);
     assertEquals(0, dataSource.acquiredConnections());
 
-    Mockito.when(factory.newConnection(any()))
+    Mockito.when(factory.newConnection(any(), any()))
         .thenAnswer(
             invocation -> {
               var future = new PlainFuture<BackendConnection>();
@@ -157,7 +157,7 @@ public class BackendDataSourceTest {
     var dataSource = prepareDataSource(maxCapacity);
     assertEquals(0, dataSource.acquiredConnections());
 
-    Mockito.when(factory.newConnection(any()))
+    Mockito.when(factory.newConnection(any(), any()))
         .thenAnswer(
             invocation -> {
               var future = new PlainFuture<BackendConnection>();
@@ -176,7 +176,7 @@ public class BackendDataSourceTest {
     var dataSource = prepareDataSource(maxCapacity);
     assertEquals(0, dataSource.acquiredConnections());
 
-    Mockito.when(factory.newConnection(any()))
+    Mockito.when(factory.newConnection(any(), any()))
         .thenAnswer(
             invocation -> {
               var future = new PlainFuture<BackendConnection>();
@@ -228,7 +228,8 @@ public class BackendDataSourceTest {
   }
 
   private BackendDataSource prepareDataSource(final int capacity) {
-    return new BackendDataSource(DATA_SOURCE_NAME, capacity, factory, connectionArguments);
+    return new BackendDataSource(
+        DATA_SOURCE_NAME, SOCKET_ADDRESS, USERNAME, PASSWORD, capacity, factory);
   }
 
   private BackendConnection prepareConnection(final BackendDataSource dataSource) {

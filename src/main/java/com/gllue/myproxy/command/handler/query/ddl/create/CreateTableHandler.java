@@ -4,8 +4,10 @@ import static com.gllue.myproxy.common.util.SQLStatementUtils.unquoteName;
 
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.cluster.ClusterState;
-import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
+import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
+import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
+import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
@@ -39,7 +41,7 @@ public class CreateTableHandler extends AbstractDDLHandler {
   }
 
   @Override
-  public void execute(QueryHandlerRequest request, Callback<DefaultHandlerResult> callback) {
+  public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
     ensureDatabaseExists(request);
 
     var stmt = (MySqlCreateTableStatement) request.getStatement();
@@ -67,7 +69,7 @@ public class CreateTableHandler extends AbstractDDLHandler {
       if (!stmt.isIfNotExists()) {
         throw new TableExistsException(tableName);
       }
-      callback.onSuccess(DefaultHandlerResult.getInstance());
+      callback.onSuccess(QueryHandlerResult.OK_RESULT);
       return;
     }
 
@@ -83,7 +85,7 @@ public class CreateTableHandler extends AbstractDDLHandler {
         .then(
             (v) -> {
               createTableCommand.execute(newCommandExecutionContext());
-              callback.onSuccess(DefaultHandlerResult.getInstance());
+              callback.onSuccess(new WrappedHandlerResult(v));
               return null;
             })
         .doCatch(

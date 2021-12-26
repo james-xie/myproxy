@@ -2,27 +2,26 @@ package com.gllue.myproxy.command.handler.query.dml.select;
 
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.gllue.myproxy.cluster.ClusterState;
+import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.EncryptColumnHelper;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
+import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.handler.query.dml.AbstractDMLHandler;
-import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.repository.PersistRepository;
-import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;
 
-public class SelectQueryHandler extends AbstractDMLHandler<SelectQueryResult> {
+public class SelectQueryHandler extends AbstractDMLHandler {
   private static final String NAME = "Select query handler";
 
   public SelectQueryHandler(
       PersistRepository repository,
       Configurations configurations,
       ClusterState clusterState,
-      TransportService transportService,
-      SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService, sqlParser);
+      TransportService transportService) {
+    super(repository, configurations, clusterState, transportService);
   }
 
   @Override
@@ -34,21 +33,6 @@ public class SelectQueryHandler extends AbstractDMLHandler<SelectQueryResult> {
     String encryptKey = EncryptColumnHelper.getEncryptKey(request);
     return new SelectQueryRewriteVisitor(
         request.getDatabase(), newScopeFactory(request), encryptKey);
-  }
-
-  private Callback<CommandResult> directTransferResultCallback(
-      Callback<SelectQueryResult> callback) {
-    return new Callback<>() {
-      @Override
-      public void onSuccess(CommandResult result) {
-        callback.onSuccess(SelectQueryResult.DIRECT_TRANSFERRED_RESULT);
-      }
-
-      @Override
-      public void onFailure(Throwable e) {
-        callback.onSuccess(SelectQueryResult.DIRECT_TRANSFERRED_RESULT);
-      }
-    };
   }
 
   private boolean isSimpleSelectQuery(SQLSelectStatement stmt) {
@@ -63,13 +47,12 @@ public class SelectQueryHandler extends AbstractDMLHandler<SelectQueryResult> {
   }
 
   private void handleSimpleSelectQuery(
-      QueryHandlerRequest request, Callback<SelectQueryResult> callback) {
-    submitQueryAndDirectTransferResult(
-        request.getConnectionId(), request.getQuery(), directTransferResultCallback(callback));
+      QueryHandlerRequest request, Callback<HandlerResult> callback) {
+    submitQueryAndDirectTransferResult(request.getConnectionId(), request.getQuery(), callback);
   }
 
   @Override
-  public void execute(QueryHandlerRequest request, Callback<SelectQueryResult> callback) {
+  public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
     var stmt = (SQLSelectStatement) request.getStatement();
 
     if (isSimpleSelectQuery(stmt)) {
@@ -82,13 +65,11 @@ public class SelectQueryHandler extends AbstractDMLHandler<SelectQueryResult> {
     var visitor = newQueryRewriteVisitor(request);
     stmt.accept(visitor);
     if (!visitor.isQueryChanged()) {
-      submitQueryAndDirectTransferResult(
-          request.getConnectionId(), request.getQuery(), directTransferResultCallback(callback));
+      submitQueryAndDirectTransferResult(request.getConnectionId(), request.getQuery(), callback);
       return;
     }
 
     var newSql = SQLStatementUtils.toSQLString(stmt);
-    submitQueryAndDirectTransferResult(
-        request.getConnectionId(), newSql, directTransferResultCallback(callback));
+    submitQueryAndDirectTransferResult(request.getConnectionId(), newSql, callback);
   }
 }

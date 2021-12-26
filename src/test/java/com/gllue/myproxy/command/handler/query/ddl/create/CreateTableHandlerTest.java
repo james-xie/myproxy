@@ -8,8 +8,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.gllue.myproxy.TestHelper;
+import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
-import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.FuturableCallback;
@@ -36,8 +36,7 @@ import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateTableHandlerTest extends BaseQueryHandlerTest {
-  @Mock
-  PersistRepository repository;
+  @Mock PersistRepository repository;
 
   public CreateTableHandler newHandler() {
     return new CreateTableHandler(
@@ -72,9 +71,9 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
 
     var future = new PlainFuture<>();
     var callback =
-        new Callback<DefaultHandlerResult>() {
+        new Callback<HandlerResult>() {
           @Override
-          public void onSuccess(DefaultHandlerResult result) {
+          public void onSuccess(HandlerResult result) {
             future.set(result);
           }
 
@@ -139,7 +138,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
             + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;";
 
     var request = newQueryHandlerRequest(query, attributes);
-    var callback = new FuturableCallback<DefaultHandlerResult>();
+    var callback = new FuturableCallback<HandlerResult>();
     var metaDataBytes = new AtomicReference<byte[]>();
     doAnswer(
             invocation -> {
@@ -232,7 +231,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
             + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;";
 
     var request = newQueryHandlerRequest(query, attributes);
-    var callback = new FuturableCallback<DefaultHandlerResult>();
+    var callback = new FuturableCallback<HandlerResult>();
     var metaDataBytes = new AtomicReference<byte[]>();
     doAnswer(
             invocation -> {
@@ -296,7 +295,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
             + ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;";
 
     var request = newQueryHandlerRequest(query, attributes);
-    var callback = new FuturableCallback<DefaultHandlerResult>();
+    var callback = new FuturableCallback<HandlerResult>();
     var handler = newHandler();
     handler.execute(request, callback);
 

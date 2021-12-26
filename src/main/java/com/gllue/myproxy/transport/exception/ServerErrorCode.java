@@ -30,6 +30,8 @@ public enum ServerErrorCode implements SQLErrorCode {
   ER_BAD_ENCRYPT_KEY(
       50106, "Bad encryption key [%s], correct encryption key format: '<database>:<encryptKey>'"),
 
+  ER_BUFFER_OUT_OF_MEMORY(50107, "Query result buffer out of memory. [size: %sKB]"),
+
   ER_SERVER_ERROR(50000, "Server error. [%s]");
 
   private final int errorCode;

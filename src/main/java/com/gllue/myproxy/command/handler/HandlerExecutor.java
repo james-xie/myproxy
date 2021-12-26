@@ -14,18 +14,17 @@ public class HandlerExecutor {
     this.threadPool = threadPool;
   }
 
-  public <Request extends HandlerRequest, Result extends HandlerResult> void execute(
-      CommandHandler<Request, Result> handler, Request request, Callback<Result> callback) {
+  public <Request extends HandlerRequest> void execute(
+      CommandHandler<Request> handler, Request request, Callback<HandlerResult> callback) {
     threadPool.executor(Name.COMMAND).submit(new HandlerRunner<>(handler, request, callback));
   }
 
   @Slf4j
   @RequiredArgsConstructor
-  static class HandlerRunner<Request extends HandlerRequest, Result extends HandlerResult>
-      extends AbstractRunnable {
-    private final CommandHandler<Request, Result> handler;
+  static class HandlerRunner<Request extends HandlerRequest> extends AbstractRunnable {
+    private final CommandHandler<Request> handler;
     private final Request request;
-    private final Callback<Result> callback;
+    private final Callback<HandlerResult> callback;
 
     @Override
     protected void doRun() throws Exception {

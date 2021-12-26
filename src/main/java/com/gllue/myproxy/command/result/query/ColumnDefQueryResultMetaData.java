@@ -54,4 +54,9 @@ public class ColumnDefQueryResultMetaData implements QueryResultMetaData {
   public int getDecimals(int columnIndex) {
     return columnDefArray[columnIndex].getDecimals();
   }
+
+  @Override
+  public int getColumnFlags(int columnIndex) {
+    return columnDefArray[columnIndex].getFlags();
+  }
 }

@@ -3,6 +3,12 @@ package com.gllue.myproxy.command.result.query;
 import io.netty.buffer.ByteBuf;
 
 public interface BufferedQueryResult extends QueryResult {
+
+  /**
+   * Mark the completion of reading the query result.
+   */
+  void setDone();
+
   /**
    * Discards the read rows.
    */

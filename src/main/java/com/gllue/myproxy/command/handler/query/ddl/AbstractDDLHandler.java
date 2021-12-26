@@ -10,9 +10,10 @@ import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.CommandHandlerException;
-import com.gllue.myproxy.command.handler.query.AbstractQueryHandler;
-import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
+import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
+import com.gllue.myproxy.command.handler.query.SchemaRelatedQueryHandler;
+import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
@@ -37,14 +38,17 @@ import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHandlerResult> {
+public abstract class AbstractDDLHandler extends SchemaRelatedQueryHandler {
+  protected final SQLParser sqlParser;
+
   protected AbstractDDLHandler(
       final PersistRepository repository,
       final Configurations configurations,
       final ClusterState clusterState,
       final TransportService transportService,
       final SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService, sqlParser);
+    super(repository, configurations, clusterState, transportService);
+    this.sqlParser = sqlParser;
   }
 
   protected AbstractTableUpdateCommand.Column buildCommandColumn(SQLColumnDefinition columnDef) {
@@ -103,21 +107,9 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
   }
 
   protected void submitQueryToBackendDatabase(
-      QueryHandlerRequest request, String query, Callback<DefaultHandlerResult> callback) {
+      QueryHandlerRequest request, String query, Callback<HandlerResult> callback) {
     submitQueryToBackendDatabase(
-        request.getConnectionId(),
-        query,
-        new Callback<>() {
-          @Override
-          public void onSuccess(CommandResult result) {
-            callback.onSuccess(new DefaultHandlerResult(result.getWarnings()));
-          }
-
-          @Override
-          public void onFailure(Throwable e) {
-            callback.onFailure(e);
-          }
-        });
+        request.getConnectionId(), query, WrappedHandlerResult.wrappedCallback(callback));
   }
 
   protected Promise<String> showCreateTable(QueryHandlerRequest request, String tableName) {
@@ -130,6 +122,7 @@ public abstract class AbstractDDLHandler extends AbstractQueryHandler<DefaultHan
                 @Override
                 public void onSuccess(CommandResult result) {
                   var queryResult = result.getQueryResult();
+                  queryResult.next();
                   cb.onSuccess(queryResult.getStringValue(1));
                 }
 

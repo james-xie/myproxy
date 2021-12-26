@@ -13,6 +13,7 @@ import lombok.Getter;
 public final class MySQLCharsets {
   public static final String UTF8MB4 = "utf8mb4";
   public static final String UTF8 = "utf8";
+  public static final int UTF8_CHARSET_ID = 33;
   public static final int UTF8MB4_CHARSET_ID = 45;
 
 

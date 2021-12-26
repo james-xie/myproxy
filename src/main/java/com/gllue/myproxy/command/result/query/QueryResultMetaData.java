@@ -78,4 +78,9 @@ public interface QueryResultMetaData {
    * @return decimals
    */
   int getDecimals(int columnIndex) ;
+
+  /**
+   * Get column flags.
+   */
+  int getColumnFlags(int columnIndex);
 }

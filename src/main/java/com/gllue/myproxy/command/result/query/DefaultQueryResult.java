@@ -7,14 +7,23 @@ import lombok.RequiredArgsConstructor;
 public class DefaultQueryResult implements QueryResult {
   private final QueryResultMetaData queryResultMetaData;
   private final String[][] rows;
-  private int rowIndex = 0;
+  private final int maxIndex;
+  private int rowIndex = -1;
+
+  public DefaultQueryResult(final QueryResultMetaData queryResultMetaData, final String[][] rows) {
+    this.queryResultMetaData = queryResultMetaData;
+    this.rows = rows;
+    this.maxIndex = rows.length - 1;
+  }
 
   @Override
   public boolean next() {
-    if (rowIndex >= rows.length) {
+    if (rowIndex >= maxIndex) {
       return false;
     }
-    return ++rowIndex < rows.length;
+
+    rowIndex++;
+    return true;
   }
 
   @Override
@@ -33,7 +42,5 @@ public class DefaultQueryResult implements QueryResult {
   }
 
   @Override
-  public void close() {
-
-  }
+  public void close() {}
 }

@@ -82,6 +82,10 @@ public class DatabaseMetaData extends AbstractMetaData {
     return tableNameMap.keySet();
   }
 
+  public Iterable<TableMetaData> getTables() {
+    return tableIdMap.values();
+  }
+
   public synchronized boolean addTable(final TableMetaData table, final boolean autoUpdate) {
     var previous = tableIdMap.putIfAbsent(table.getIdentity(), table);
     if (previous != null) {
@@ -127,8 +131,8 @@ public class DatabaseMetaData extends AbstractMetaData {
     }
 
     public Builder copyTables(DatabaseMetaData metadata) {
-      for (var tableName : metadata.getTableNames()) {
-        this.tables.add(metadata.getTable(tableName));
+      for (var table : metadata.getTables()) {
+        this.tables.add(table);
       }
       return this;
     }
@@ -147,8 +151,8 @@ public class DatabaseMetaData extends AbstractMetaData {
       this.datasource = metadata.getDatasource();
       if (options == CopyOptions.COPY_CHILDREN) {
         this.tables = new ArrayList<>(metadata.getNumberOfTables());
-        for (var tableName : metadata.getTableNames()) {
-          this.tables.add(metadata.getTable(tableName));
+        for (var table : metadata.getTables()) {
+          this.tables.add(table);
         }
       }
     }

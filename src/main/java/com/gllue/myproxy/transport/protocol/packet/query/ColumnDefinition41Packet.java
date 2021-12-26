@@ -16,6 +16,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public class ColumnDefinition41Packet implements MySQLPacket {
   private static final int LENGTH_OF_FIXED_LENGTH = 0x0c;
+  public static final String CATALOG = "def";
 
   private final String catalog;
   private final String schema;

@@ -5,31 +5,23 @@ import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLNullExpr;
 import com.alibaba.druid.sql.ast.statement.SQLAssignItem;
 import com.alibaba.druid.sql.ast.statement.SQLSetStatement;
-import com.gllue.myproxy.cluster.ClusterState;
+import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.AbstractQueryHandler;
 import com.gllue.myproxy.command.handler.query.BadEncryptKeyException;
-import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
-import com.gllue.myproxy.command.result.CommandResult;
+import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
+import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
-import com.gllue.myproxy.config.Configurations;
-import com.gllue.myproxy.repository.PersistRepository;
-import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import java.util.ArrayList;
 
-public class SetHandler extends AbstractQueryHandler<DefaultHandlerResult> {
+public class SetStatementHandler extends AbstractQueryHandler {
   private static final String NAME = "Set statement handler";
   private static final String ENCRYPT_KEY = "ENCRYPT_KEY";
 
-  public SetHandler(
-      PersistRepository repository,
-      Configurations configurations,
-      ClusterState clusterState,
-      TransportService transportService,
-      SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService, sqlParser);
+  public SetStatementHandler(TransportService transportService) {
+    super(transportService);
   }
 
   @Override
@@ -94,7 +86,7 @@ public class SetHandler extends AbstractQueryHandler<DefaultHandlerResult> {
   }
 
   @Override
-  public void execute(QueryHandlerRequest request, Callback<DefaultHandlerResult> callback) {
+  public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
     var stmt = (SQLSetStatement) request.getStatement();
     var newItems = new ArrayList<SQLAssignItem>();
     for (var item : stmt.getItems()) {
@@ -103,23 +95,13 @@ public class SetHandler extends AbstractQueryHandler<DefaultHandlerResult> {
       }
     }
     if (newItems.isEmpty()) {
-      callback.onSuccess(DefaultHandlerResult.getInstance());
+      callback.onSuccess(QueryHandlerResult.OK_RESULT);
       return;
     }
 
     submitQueryToBackendDatabase(
         request.getConnectionId(),
         request.getQuery(),
-        new Callback<>() {
-          @Override
-          public void onSuccess(CommandResult result) {
-            callback.onSuccess(new DefaultHandlerResult(result.getWarnings()));
-          }
-
-          @Override
-          public void onFailure(Throwable e) {
-            callback.onFailure(e);
-          }
-        });
+        WrappedHandlerResult.wrappedCallback(callback));
   }
 }

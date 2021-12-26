@@ -7,7 +7,6 @@ import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionFactory;
-import com.gllue.myproxy.transport.backend.connection.ConnectionArguments;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceConfig;
 import java.util.ArrayList;
@@ -37,14 +36,14 @@ public class TransportServiceInitializer implements Initializer {
       }
       nameSet.add(name);
 
-      var connectionArgs =
-          new ConnectionArguments(
+      var dataSource =
+          new BackendDataSource(
+              name,
               configObject.getAddress(),
               configObject.getUser(),
               configObject.getPassword(),
-              configObject.getDatabase());
-
-      var dataSource = new BackendDataSource(name, 500, backendConnectionFactory, connectionArgs);
+              500,
+              backendConnectionFactory);
       dataSources.add(dataSource);
     }
     return dataSources;

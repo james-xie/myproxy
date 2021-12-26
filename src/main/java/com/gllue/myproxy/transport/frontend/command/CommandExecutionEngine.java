@@ -4,7 +4,6 @@ import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerExecutor;
 import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.ConcreteQueryHandler;
-import com.gllue.myproxy.command.handler.query.DefaultHandlerResult;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequestImpl;
 import com.gllue.myproxy.command.result.CommandResult;
@@ -15,9 +14,19 @@ import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
 import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.Configurations;
+import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
+import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
+import com.gllue.myproxy.transport.backend.command.DirectTransferCommandResultReader;
+import com.gllue.myproxy.transport.backend.command.DirectTransferFieldListResultReader;
+import com.gllue.myproxy.transport.backend.connection.BackendConnection;
+import com.gllue.myproxy.transport.core.service.TransportService;
+import com.gllue.myproxy.transport.exception.ExceptionResolver;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
+import com.gllue.myproxy.transport.exception.SQLErrorCode;
 import com.gllue.myproxy.transport.exception.ServerErrorCode;
+import com.gllue.myproxy.transport.exception.UnsupportedCommandException;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.CreateDBCommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.DropDBCommandPacket;
@@ -28,16 +37,6 @@ import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.SimpleCommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
-import com.gllue.myproxy.repository.PersistRepository;
-import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
-import com.gllue.myproxy.transport.backend.command.DirectTransferCommandResultReader;
-import com.gllue.myproxy.transport.backend.command.DirectTransferFieldListResultReader;
-import com.gllue.myproxy.transport.backend.connection.BackendConnection;
-import com.gllue.myproxy.transport.core.service.TransportService;
-import com.gllue.myproxy.transport.exception.ExceptionResolver;
-import com.gllue.myproxy.transport.exception.SQLErrorCode;
-import com.gllue.myproxy.transport.exception.UnsupportedCommandException;
-import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.google.common.base.Strings;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
@@ -293,9 +292,7 @@ public class CommandExecutionEngine {
   }
 
   private void writeHandlerResult(FrontendConnection connection, HandlerResult result) {
-    if (result instanceof DefaultHandlerResult) {
-      writeOk(connection);
-    }
+    new HandlerResultWriter(result).write(connection);
   }
 
   /** Execute text-based query immediately. */
@@ -310,11 +307,20 @@ public class CommandExecutionEngine {
     handlerExecutor.execute(
         concreteQueryHandler,
         buildHandlerRequest(frontendConnection, packet),
-        new Callback<HandlerResult>() {
+        new Callback<>() {
           @Override
           public void onSuccess(HandlerResult result) {
-            if (!result.isDirectTransferred()) {
-              writeHandlerResult(frontendConnection, result);
+            try {
+              if (!result.isDirectTransferred()) {
+                writeHandlerResult(frontendConnection, result);
+              }
+
+              // Close the query result after writing to the connection buffer.
+              if (result.getQueryResult() != null) {
+                result.getQueryResult().close();
+              }
+            } catch (Exception e) {
+              frontendConnection.writeAndFlush(ExceptionResolver.resolve(e));
             }
           }
 

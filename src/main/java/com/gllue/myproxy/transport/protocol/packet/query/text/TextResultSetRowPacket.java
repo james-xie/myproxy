@@ -21,7 +21,7 @@ public class TextResultSetRowPacket implements MySQLPacket {
 
   public TextResultSetRowPacket(String[] rowData) {
     this.rowData = new byte[rowData.length][];
-    for (int i=0; i<rowData.length; i++) {
+    for (int i = 0; i < rowData.length; i++) {
       if (rowData[i] == null) {
         continue;
       }
@@ -33,7 +33,7 @@ public class TextResultSetRowPacket implements MySQLPacket {
     Preconditions.checkArgument(columns > 0, "Columns must be greater than 0");
 
     rowData = new byte[columns][];
-    for (int i=0; i<columns; i++) {
+    for (int i = 0; i < columns; i++) {
       if (payload.peek() == NULL) {
         payload.readInt1();
         rowData[i] = null;
@@ -45,7 +45,7 @@ public class TextResultSetRowPacket implements MySQLPacket {
 
   @Override
   public void write(final MySQLPayload payload) {
-    for (var columnData: rowData) {
+    for (var columnData : rowData) {
       if (columnData == null) {
         payload.writeInt1(NULL);
       } else {
