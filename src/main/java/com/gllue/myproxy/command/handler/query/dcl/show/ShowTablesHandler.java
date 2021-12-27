@@ -60,7 +60,8 @@ public class ShowTablesHandler extends AbstractQueryHandler {
                       result.getWarnings(),
                       new FilteredQueryResult(result.getQueryResult(), extensionTablesFilter)));
               return true;
-            },
+            })
+        .doCatch(
             (e) -> {
               callback.onFailure(e);
               return false;

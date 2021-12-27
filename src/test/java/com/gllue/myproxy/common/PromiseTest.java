@@ -3,6 +3,7 @@ package com.gllue.myproxy.common;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.gllue.myproxy.common.Promise.Promises;
 import com.gllue.myproxy.common.util.RandomUtils;
@@ -13,7 +14,10 @@ import java.util.List;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.function.Supplier;
+import org.checkerframework.checker.units.qual.A;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -506,7 +510,7 @@ public class PromiseTest {
   }
 
   @Test
-  public void testPromiseAllOnSuccess() throws InterruptedException {
+  public void testPromiseParallelAllOnSuccess() throws InterruptedException {
     var threadPool = Executors.newFixedThreadPool(5);
     var latch = new CountDownLatch(1);
 
@@ -530,7 +534,7 @@ public class PromiseTest {
       }
     }
 
-    Promise.<String>all(
+    Promise.<String>parallelAll(
             new Promises<>() {
               @Override
               public List<Promise<String>> list() {
@@ -555,11 +559,11 @@ public class PromiseTest {
   }
 
   @Test
-  public void testPromiseAllOnFailure() throws InterruptedException {
+  public void testPromiseParallelAllOnFailure() throws InterruptedException {
     var threadPool = Executors.newFixedThreadPool(5);
     var latch = new CountDownLatch(1);
 
-    Promise.<String>all(
+    Promise.<String>parallelAll(
             new Promises<>() {
               @Override
               public List<Promise<String>> list() {
@@ -658,5 +662,58 @@ public class PromiseTest {
             });
 
     assertEquals(List.of("0", "1", "2", "3", "4", "java.lang.RuntimeException"), result);
+  }
+
+  @Test
+  public void testPromiseAllOnSuccess() {
+    AtomicInteger index = new AtomicInteger(0);
+
+    Supplier<Promise<Integer>> supplier =
+        () -> {
+          if (index.incrementAndGet() > 10) {
+            return null;
+          }
+          return new Promise<>(
+              (cb) -> {
+                cb.onSuccess(index.get());
+              });
+        };
+
+    Promise.all(supplier)
+        .then(
+            (result) -> {
+              assertEquals(List.of(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10), result);
+              return null;
+            });
+  }
+
+  @Test
+  public void testPromiseAllOnFailure() {
+    AtomicInteger index = new AtomicInteger(0);
+
+    Supplier<Promise<Integer>> supplier =
+        () -> {
+          if (index.incrementAndGet() > 10) {
+            return null;
+          }
+          return new Promise<>(
+              (cb) -> {
+                if (index.get() >= 5) {
+                  throw new RuntimeException();
+                }
+                cb.onSuccess(index.get());
+              });
+        };
+
+    Promise.all(supplier)
+        .then(
+            (result) -> {
+              fail();
+              return null;
+            },
+            (e) -> {
+              assertTrue(e instanceof RuntimeException);
+              return null;
+            });
   }
 }

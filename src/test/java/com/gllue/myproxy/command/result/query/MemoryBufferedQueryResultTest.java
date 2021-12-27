@@ -176,11 +176,11 @@ public class MemoryBufferedQueryResultTest {
         new MemoryBufferedQueryResult(prepareMetaData(columnCount), 3000, 1000, 2000, 3000);
     AtomicBoolean writable = new AtomicBoolean(false);
     queryResult.setWritabilityChangedListener(() -> writable.set(true));
-    assertTrue(queryResult.addRow(buildEmptyRow(columnCount, 500)));
-    assertTrue(queryResult.addRow(buildEmptyRow(columnCount, 500)));
-    assertTrue(queryResult.addRow(buildEmptyRow(columnCount, 500)));
-    assertTrue(queryResult.addRow(buildEmptyRow(columnCount, 500)));
     assertFalse(queryResult.addRow(buildEmptyRow(columnCount, 500)));
+    assertFalse(queryResult.addRow(buildEmptyRow(columnCount, 500)));
+    assertFalse(queryResult.addRow(buildEmptyRow(columnCount, 500)));
+    assertFalse(queryResult.addRow(buildEmptyRow(columnCount, 500)));
+    assertTrue(queryResult.addRow(buildEmptyRow(columnCount, 500)));
     queryResult.setDone();
     queryResult.next();
     queryResult.next();

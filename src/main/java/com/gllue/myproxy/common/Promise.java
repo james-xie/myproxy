@@ -2,7 +2,10 @@ package com.gllue.myproxy.common;
 
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.VarHandle;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
@@ -279,7 +282,7 @@ public class Promise<R> {
   }
 
   /**
-   * The Promise.all() method takes an iterable of promises as an input, and returns a single
+   * The Promise.parallelAll() method takes an iterable of promises as an input, and returns a single
    * Promise that resolves to an array of the results of the input promises. This returned promise
    * will resolve when all of the input's promises have resolved, or if the input iterable contains
    * no promises. It rejects immediately upon any of the input promises rejecting or non-promises
@@ -289,7 +292,7 @@ public class Promise<R> {
    * @see <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise/all"></a>
    * </pre>
    */
-  public static <T> Promise<T[]> all(Promises<T> promises) {
+  public static <T> Promise<T[]> parallelAll(Promises<T> promises) {
     return new Promise<>(
         (callback) -> {
           AtomicBoolean callbackLatch = new AtomicBoolean(false);
@@ -326,18 +329,30 @@ public class Promise<R> {
   private static <T> Promise<T> chain0(Function<T, Promise<T>> supplier, T value) {
     var promise = supplier.apply(value);
     if (promise == null) {
-      return null;
+      return emptyPromise(value);
     }
 
-    return promise.thenAsync(
-        (v) -> {
-          var p = chain0(supplier, v);
-          return p == null ? emptyPromise(v) : p;
-        });
+    return promise.thenAsync((v) -> chain0(supplier, v));
   }
 
   public static <T> Promise<T> chain(Function<T, Promise<T>> supplier) {
-    var p = chain0(supplier, null);
-    return p == null ? emptyPromise() : p;
+    return chain0(supplier, null);
+  }
+
+  private static <T> Promise<List<T>> all0(Supplier<Promise<T>> supplier, List<T> result) {
+    var promise = supplier.get();
+    if (promise == null) {
+      return emptyPromise(result);
+    }
+
+    return promise.thenAsync((v) -> {
+      result.add(v);
+      return all0(supplier, result);
+    });
+  }
+
+  public static <T> Promise<List<T>> all(Supplier<Promise<T>> supplier) {
+    var result = Collections.synchronizedList(new ArrayList<T>());;
+    return all0(supplier, result);
   }
 }

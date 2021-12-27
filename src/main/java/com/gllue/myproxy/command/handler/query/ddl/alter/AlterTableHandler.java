@@ -347,7 +347,8 @@ public class AlterTableHandler extends AbstractDDLHandler {
             (v) -> {
               callback.onSuccess(QueryHandlerResult.OK_RESULT);
               return true;
-            },
+            })
+        .doCatch(
             (e) -> {
               callback.onFailure(e);
               return false;
@@ -411,7 +412,8 @@ public class AlterTableHandler extends AbstractDDLHandler {
             (v) -> {
               callback.onSuccess(QueryHandlerResult.OK_RESULT);
               return true;
-            },
+            })
+        .doCatch(
             (e) -> {
               callback.onFailure(e);
               return false;

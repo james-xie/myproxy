@@ -61,7 +61,7 @@ public class InsertQueryHandler extends AbstractDMLHandler {
     }
 
     var newInsertStmts = visitor.getNewInsertQueries();
-    if (newInsertStmts == null) {
+    if (newInsertStmts == null || newInsertStmts.isEmpty()) {
       var newSql = SQLStatementUtils.toSQLString(stmt);
       submitQueryToBackendDatabase(
           request.getConnectionId(), newSql, WrappedHandlerResult.wrappedCallback(callback));
@@ -71,14 +71,17 @@ public class InsertQueryHandler extends AbstractDMLHandler {
     var newInsertQueries =
         newInsertStmts.stream().map(SQLStatementUtils::toSQLString).collect(Collectors.toList());
     var promise = executeQueriesAtomically(request, newInsertQueries);
-    promise.then(
-        (result) -> {
-          callback.onSuccess(new WrappedHandlerResult(result));
-          return true;
-        },
-        (e) -> {
-          callback.onFailure(e);
-          return false;
-        });
+    promise
+        .then(
+            (result) -> {
+              var lastResult = result.get(result.size() - 1);
+              callback.onSuccess(new WrappedHandlerResult(lastResult));
+              return true;
+            })
+        .doCatch(
+            (e) -> {
+              callback.onFailure(e);
+              return false;
+            });
   }
 }
