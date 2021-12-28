@@ -24,7 +24,10 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   SelectQueryRewriteVisitor newRewriteVisitor(MultiDatabasesMetaData metaData) {
     var factory = new TableScopeFactory(DATASOURCE, DATABASE, metaData);
     return new SelectQueryRewriteVisitor(
-        DATABASE, factory, EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, ENCRYPT_KEY));
+        DATABASE,
+        factory,
+        EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, ENCRYPT_KEY),
+        EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, ENCRYPT_KEY));
   }
 
   @Test
@@ -37,6 +40,26 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "inner join table2 t2 on t.id = t2.id "
             + "inner join table3 t3 on t.id = t3.id "
             + "where t.id = 1";
+    var stmt = parseSelectQuery(query);
+    stmt.accept(rewriter);
+    assertSQLEquals(query, stmt);
+    assertFalse(rewriter.isQueryChanged());
+  }
+
+  @Test
+  public void testNothingRewrite1() {
+    var table1 = prepareTable("table1", "id", "col1", "col2");
+    var table2 = prepareTable("table2", "id", "col3", "col4");
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
+    var rewriter = newRewriteVisitor(databasesMetaData);
+    var query =
+        "select t1.id, t1.col1, t2.col3 from `table` t "
+            + "inner join table1 t1 on t.id = t1.id "
+            + "inner join table2 t2 on t.id = t2.id "
+            + "inner join table3 t3 on t.id = t3.id "
+            + "where t.id = 1 and t1.col2 in ('1', '2') and t2.col4 = '4' "
+            + "order by t1.id desc "
+            + "limit 10 ";
     var stmt = parseSelectQuery(query);
     stmt.accept(rewriter);
     assertSQLEquals(query, stmt);
@@ -102,7 +125,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "INNER JOIN table2 t2 ON t.id = t2.col2\n"
             + "INNER JOIN table3 t3 ON t.id = t3.id\n"
             + "WHERE t.id = 1\n"
-            + "AND t2.col2 = '456'",
+            + "AND t2.col2 = AES_ENCRYPT('456', 'key')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
 
@@ -111,8 +134,10 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt = parseSelectQuery(query);
     stmt.accept(rewriter);
     assertSQLEquals(
-        "SELECT col1 as t_col1, CONVERT(AES_DECRYPT(col2, 'key') USING 'utf8mb4') AS `col2` from `table2` \n"
-            + "where col1 = '123' or col2 = 'abc'",
+        "SELECT \n"
+            + "col1 as t_col1, CONVERT(AES_DECRYPT(col2, 'key') USING 'utf8mb4') AS `col2` \n"
+            + "from `table2` \n"
+            + "where col1 = '123' or col2 = AES_ENCRYPT('abc', 'key')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
@@ -143,7 +168,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + ") ON `t`.`id` = `$ext_0`.`col2`\n"
             + "INNER JOIN `table3` `t3` ON `t`.`id` = `t3`.`id`\n"
             + "WHERE `t`.`id` = 1\n"
-            + "AND `$ext_0`.`col2` = '456'",
+            + "AND `$ext_0`.`col2` = AES_ENCRYPT('456', 'key')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
@@ -174,7 +199,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "  ) t2\n"
             + "  ON table1.id = t2.col2\n"
             + "WHERE t2.id = 1\n"
-            + "  AND t2.col1 = '1234'\n"
+            + "  AND t2.col1 = AES_ENCRYPT('1234', 'key')\n"
             + "  AND table1.col1 = 'abc'",
         stmt);
     assertTrue(rewriter.isQueryChanged());
@@ -233,7 +258,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "INNER JOIN table2 t3 ON t.id = t3.id\n"
             + "INNER JOIN table4 t4 ON t.id = t4.id\n"
             + "WHERE t.id = 1\n"
-            + "AND t2.t2_col2 = '456'",
+            + "AND t2.t2_col2 = AES_ENCRYPT('456', 'key')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
@@ -290,7 +315,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "INNER JOIN table2 t3 ON t.id = t3.id\n"
             + "INNER JOIN table4 t4 ON t.id = t4.id\n"
             + "WHERE t.id = 1\n"
-            + "AND t2.t_col2 = '456'",
+            + "AND t2.t_col2 = AES_ENCRYPT('456', 'key')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
@@ -379,7 +404,18 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   @Test
   public void testRewriteForUnionQuery() {
     var table1 = prepareTable("table1", "id", "col1");
-    var table2 = prepareTable("table2", "id", "col1");
+
+    var builder = new Builder();
+    builder
+        .setName("table2")
+        .setType(TableType.STANDARD)
+        .setIdentity(RandomUtils.randomShortUUID())
+        .setVersion(1);
+    builder.addColumn(new ColumnMetaData.Builder().setName("id").setType(ColumnType.INT).build());
+    builder.addColumn(
+        new ColumnMetaData.Builder().setName("col1").setType(ColumnType.ENCRYPT).build());
+    var table2 = builder.build();
+
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
     var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
@@ -399,7 +435,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + " (SELECT table1.`id`, table1.`col1`\n"
             + "   FROM table1)\n"
             + " UNION\n"
-            + " (SELECT table2.`id`, table2.`col1`\n"
+            + " (SELECT table2.`id`, CONVERT(AES_DECRYPT(table2.`col1`, 'key') USING 'utf8mb4') AS `col1`\n"
             + "   FROM table2)\n"
             + ") t",
         stmt);
@@ -430,7 +466,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + ") ON `t`.`id` = `$ext_1`.`col2`\n"
             + "INNER JOIN `table3` `t3` ON `t`.`id` = `t3`.`id`\n"
             + "WHERE `t`.`id` = 1\n"
-            + "AND `$ext_1`.`col2` = '456'",
+            + "AND `$ext_1`.`col2` = AES_ENCRYPT('456', 'key')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }

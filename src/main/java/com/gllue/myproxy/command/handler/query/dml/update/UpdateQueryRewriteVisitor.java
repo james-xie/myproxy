@@ -12,15 +12,14 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
 import com.gllue.myproxy.command.handler.query.Decryptor;
 import com.gllue.myproxy.command.handler.query.Encryptor;
-import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
+import com.gllue.myproxy.command.handler.query.TablePartitionHelper;
 import com.gllue.myproxy.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
+import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
-import com.gllue.myproxy.command.handler.query.TablePartitionHelper;
-import com.gllue.myproxy.common.util.SQLStatementUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -38,7 +37,7 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       TableScopeFactory tableScopeFactory,
       Encryptor encryptor,
       Decryptor decryptor) {
-    super(defaultDatabase, tableScopeFactory);
+    super(defaultDatabase, tableScopeFactory, encryptor);
     this.encryptor = encryptor;
     this.decryptor = decryptor;
   }
@@ -48,13 +47,11 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     var tableSource = x.getTableSource();
     newScope(tableSource);
     var hasExtensionTable = prepareJoinExtensionTables(tableSource);
-    if (hasExtensionTable) {
-      shouldRewriteQuery = true;
-      originTableSource = tableSource;
-    }
-
-    if (scope.anyTablesInScope() || SQLStatementUtils.anySubQueryExists(tableSource)) {
+    if (hasExtensionTable
+        || scope.anyTablesInScope()
+        || SQLStatementUtils.anySubQueryExists(tableSource)) {
       shouldTransform = true;
+      shouldRewriteQuery = true;
       originTableSource = tableSource;
     }
     return true;

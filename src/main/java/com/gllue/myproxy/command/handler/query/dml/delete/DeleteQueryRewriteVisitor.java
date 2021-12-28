@@ -14,6 +14,7 @@ import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource.JoinType;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
+import com.gllue.myproxy.command.handler.query.Encryptor;
 import com.gllue.myproxy.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
@@ -23,8 +24,9 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   private boolean shouldTransform = false;
   private SQLTableSource originTableSource;
 
-  public DeleteQueryRewriteVisitor(String defaultDatabase, TableScopeFactory tableScopeFactory) {
-    super(defaultDatabase, tableScopeFactory);
+  public DeleteQueryRewriteVisitor(
+      String defaultDatabase, TableScopeFactory tableScopeFactory, Encryptor encryptor) {
+    super(defaultDatabase, tableScopeFactory, encryptor);
   }
 
   @Override
@@ -40,7 +42,9 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
 
     newScope(tableSource);
     var hasExtensionTable = prepareJoinExtensionTables(tableSource);
-    if (hasExtensionTable) {
+    if (hasExtensionTable
+        || scope.anyTablesInScope()
+        || SQLStatementUtils.anySubQueryExists(tableSource)) {
       shouldTransform = true;
       shouldRewriteQuery = true;
       originTableSource = tableSource;
@@ -69,7 +73,7 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   }
 
   private SQLTableSource generateCommaJoinedTableSource(SQLTableSource tableSource) {
-    var tableAliases = new ArrayList<Object>();
+    var tableAliases = new ArrayList<>();
     collectTableAliases(tableSource, tableAliases);
 
     SQLTableSource newTableSource = null;
@@ -121,6 +125,10 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   }
 
   private void rewriteSingleTableDelete(MySqlDeleteStatement x) {
+    if (!joinedExtensionTables) {
+      return;
+    }
+
     var orderBy = x.getOrderBy();
     var limit = x.getLimit();
     if (orderBy == null && limit == null) {
@@ -136,11 +144,14 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     String[] extensionTableAliases = null;
     if (tableAlias instanceof SQLPropertyExpr) {
       var property = (SQLPropertyExpr) tableAlias;
-      var schema = SQLStatementUtils.unquoteName(((SQLIdentifierExpr) (property.getOwner())).getSimpleName());
+      var schema =
+          SQLStatementUtils.unquoteName(
+              ((SQLIdentifierExpr) (property.getOwner())).getSimpleName());
       var tableName = SQLStatementUtils.unquoteName(property.getName());
       extensionTableAliases = scope.getExtensionTableAliases(schema, tableName);
     } else if (tableAlias instanceof SQLIdentifierExpr) {
-      var tableName = SQLStatementUtils.unquoteName(((SQLIdentifierExpr) tableAlias).getSimpleName());
+      var tableName =
+          SQLStatementUtils.unquoteName(((SQLIdentifierExpr) tableAlias).getSimpleName());
       extensionTableAliases = scope.getExtensionTableAliases(defaultDatabase, tableName);
     } else if (tableAlias instanceof String) {
       var alias = SQLStatementUtils.unquoteName((String) tableAlias);
@@ -150,12 +161,16 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   }
 
   private void rewriteMultiTableDelete(MySqlDeleteStatement x) {
+    if (!joinedExtensionTables) {
+      return;
+    }
+
     if (x.getOrderBy() != null || x.getLimit() != null) {
       throw new BadSQLException("Multiple table delete does not support orderBy/limit clause.");
     }
 
     var tableSource = x.getTableSource();
-    var tableAliases = new ArrayList<Object>();
+    var tableAliases = new ArrayList<>();
     collectTableAliases(tableSource, tableAliases);
 
     for (var alias : tableAliases) {

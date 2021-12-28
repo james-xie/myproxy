@@ -55,7 +55,7 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       IdGenerator idGenerator,
       Encryptor encryptor,
       Decryptor decryptor) {
-    super(defaultDatabase, tableScopeFactory);
+    super(defaultDatabase, tableScopeFactory, encryptor);
     this.datasource = datasource;
     this.databasesMetaData = databasesMetaData;
     this.idGenerator = idGenerator;

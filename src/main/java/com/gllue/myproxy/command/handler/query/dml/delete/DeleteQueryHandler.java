@@ -4,6 +4,7 @@ import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerResult;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.command.handler.query.dml.AbstractDMLHandler;
@@ -32,7 +33,9 @@ public class DeleteQueryHandler extends AbstractDMLHandler {
   }
 
   private DeleteQueryRewriteVisitor newQueryRewriteVisitor(QueryHandlerRequest request) {
-    return new DeleteQueryRewriteVisitor(request.getDatabase(), newScopeFactory(request));
+    var encryptKey = EncryptionHelper.getEncryptKey(request);
+    return new DeleteQueryRewriteVisitor(
+        request.getDatabase(), newScopeFactory(request), newEncryptor(encryptKey));
   }
 
   @Override

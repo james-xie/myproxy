@@ -20,6 +20,8 @@ Configuration:
         level: DEBUG
       - name: com.gllue.myproxy.sql
         level: DEBUG
+      - name: com.gllue.myproxy.command.handler
+        level: DEBUG
 #      - name: com.gllue.myproxy.transport.frontend.command
 #        level: INFO
 #      - name: com.gllue.myproxy.transport.core.connection

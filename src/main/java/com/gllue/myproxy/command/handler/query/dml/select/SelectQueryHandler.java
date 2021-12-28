@@ -31,7 +31,10 @@ public class SelectQueryHandler extends AbstractDMLHandler {
   private SelectQueryRewriteVisitor newQueryRewriteVisitor(QueryHandlerRequest request) {
     String encryptKey = EncryptionHelper.getEncryptKey(request);
     return new SelectQueryRewriteVisitor(
-        request.getDatabase(), newScopeFactory(request), newDecryptor(encryptKey));
+        request.getDatabase(),
+        newScopeFactory(request),
+        newEncryptor(encryptKey),
+        newDecryptor(encryptKey));
   }
 
   private boolean isSimpleSelectQuery(SQLSelectStatement stmt) {

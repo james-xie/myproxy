@@ -1,5 +1,6 @@
 package com.gllue.myproxy.command.handler.query;
 
+import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
@@ -70,5 +71,16 @@ public class EncryptionHelper {
       encryptKey = request.getSessionContext().getEncryptKey();
     }
     return encryptKey;
+  }
+
+  public static boolean isValidOperator(SQLBinaryOperator operator) {
+    switch (operator) {
+      case Equality:
+      case NotEqual:
+      case Is:
+      case IsNot:
+        return true;
+    }
+    return false;
   }
 }

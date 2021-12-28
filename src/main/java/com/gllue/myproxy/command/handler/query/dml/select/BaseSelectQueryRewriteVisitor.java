@@ -14,7 +14,9 @@ import com.alibaba.druid.sql.ast.SQLExpr;
 import com.alibaba.druid.sql.ast.expr.SQLAllColumnExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOpExpr;
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
+import com.alibaba.druid.sql.ast.expr.SQLCharExpr;
 import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
+import com.alibaba.druid.sql.ast.expr.SQLInListExpr;
 import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
@@ -27,11 +29,13 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.alibaba.druid.sql.dialect.mysql.visitor.MySqlASTVisitorAdapter;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
 import com.gllue.myproxy.command.handler.query.Decryptor;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
 import com.gllue.myproxy.command.handler.query.Encryptor;
 import com.gllue.myproxy.common.exception.BadColumnException;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
+import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.metadata.model.TemporaryColumnMetaData;
@@ -52,6 +56,7 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
 
   protected final String defaultDatabase;
   private final TableScopeFactory tableScopeFactory;
+  protected final Encryptor encryptor;
 
   protected TableScope scope;
   protected boolean shouldRewriteQuery = false;
@@ -123,6 +128,38 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
 
     if (temporaryTable != null) {
       scope.addTable(defaultDatabase, temporaryTable.getName(), temporaryTable);
+    }
+  }
+
+  @Override
+  public void endVisit(SQLBinaryOpExpr x) {
+    var left = x.getLeft();
+    var column = findColumnInScope(scope, left);
+    if (column != null && column.getType() == ColumnType.ENCRYPT) {
+      if (!EncryptionHelper.isValidOperator(x.getOperator())) {
+        throw new BadSQLException(
+            "Invalid binary operator [%s] for encrypted column.", x.getOperator().getName());
+      }
+      var right = x.getRight();
+      if (right instanceof SQLCharExpr) {
+        x.setRight(encryptColumn(encryptor, right));
+      }
+    }
+  }
+
+  @Override
+  public void endVisit(SQLInListExpr x) {
+    var expr = x.getExpr();
+    var column = findColumnInScope(scope, expr);
+    if (column != null && column.getType() == ColumnType.ENCRYPT) {
+      var targetList = x.getTargetList();
+      int i = 0;
+      for (var item: targetList) {
+        if (item instanceof SQLCharExpr) {
+          targetList.set(i, encryptColumn(encryptor, item));
+        }
+        i++;
+      }
     }
   }
 

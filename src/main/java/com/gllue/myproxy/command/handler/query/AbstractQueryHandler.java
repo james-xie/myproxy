@@ -11,18 +11,26 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public abstract class AbstractQueryHandler implements CommandHandler<QueryHandlerRequest> {
   protected final TransportService transportService;
 
   protected void submitQueryToBackendDatabase(
       int connectionId, String query, Callback<CommandResult> callback) {
+    if (log.isDebugEnabled()) {
+      log.debug("Submit query to backend database:\n{}", query);
+    }
     transportService.submitQueryToBackendDatabase(connectionId, query, callback);
   }
 
   protected void submitQueryAndDirectTransferResult(
       int connectionId, String query, Callback<HandlerResult> callback) {
+    if (log.isDebugEnabled()) {
+      log.debug("Submit query to backend database:\n{}", query);
+    }
     transportService.submitQueryAndDirectTransferResult(
         connectionId,
         query,
@@ -30,6 +38,9 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
   }
 
   protected Promise<CommandResult> submitQueryToBackendDatabase(int connectionId, String query) {
+    if (log.isDebugEnabled()) {
+      log.debug("Submit query to backend database:\n{}", query);
+    }
     return transportService.submitQueryToBackendDatabase(connectionId, query);
   }
 

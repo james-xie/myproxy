@@ -43,7 +43,7 @@ dependencies {
 
     testImplementation("junit:junit:4.12")
     testImplementation("org.hamcrest:hamcrest-library:1.3")
-    testImplementation("org.mockito:mockito-core:2.1.0")
+    testImplementation("org.mockito:mockito-core:3.2.4")
 //    integrationTestImplementation("junit:junit:4.12")
 //    integrationTestImplementation("org.hamcrest:hamcrest-library:1.3")
 //    integrationTestImplementation("org.mockito:mockito-core:2.1.0")

@@ -270,6 +270,15 @@ public class SQLParserTest {
 
     var stmt4 = (SQLSelectStatement) parser.parse("select version();");
 
+    var stmt5 = (SQLSelectStatement) parser.parse(
+        "select * from `table` "
+            + "where name = '123' and name in (1,2,3) "
+            + "and case when mobile = '13911289189' then 1 end "
+            + "and name not in (1, '2', '3') "
+            + "and name between 1 and 3 "
+            + "and name is null and name is not null "
+            + "");
+
     //    var visitor = new SelectQueryInspectVisitor();
     //    stmt.accept(visitor);
 

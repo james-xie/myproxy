@@ -38,6 +38,23 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   }
 
   @Test
+  public void testNothingRewriteWithMultiUpdate() {
+    var table1 = prepareTable("table1", "id", "col1");
+    var table2 = prepareTable("table2", "id", "col2", "col3");
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
+    var rewriter = newRewriteVisitor(databasesMetaData);
+    var query =
+        "update table1 "
+            + "inner join table2 on table1.id = table2.id "
+            + "set col1 = col2, table2.col2 = table2.col3 "
+            + "where id = 1 and col2 = 3";
+    var stmt = parseUpdateQuery(query);
+    stmt.accept(rewriter);
+    assertFalse(rewriter.isQueryChanged());
+    assertSQLEquals(query, stmt);
+  }
+
+  @Test
   public void testRewritePartitionTableWithSingleUpdate() {
     var table1 = preparePartitionTable("table1");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
@@ -59,7 +76,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "     `$ext_0`.col2 = AES_ENCRYPT(`$ext_0`.col4, '123'), "
             + "     `$ext_0`.col2 = AES_ENCRYPT('1234', '123')\n"
             + "WHERE `db`.table1.id = 1\n"
-            + "  AND `$ext_0`.col2 = '1234'",
+            + "  AND `$ext_0`.col2 = AES_ENCRYPT('1234', '123')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
@@ -81,7 +98,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "  LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "SET col2 = AES_ENCRYPT(col3, '123'), col4 = '1234', `db`.`table1`.`$_ext_id` = `db`.`table1`.`$_ext_id`\n"
             + "WHERE id = 1\n"
-            + "  AND col2 = '1234'",
+            + "  AND col2 = AES_ENCRYPT('1234', '123')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
@@ -109,7 +126,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "    FROM `table1`\n"
             + "      LEFT JOIN `db`.`table1_ext_1` `$ext_0` ON `table1`.`$_ext_id` = `$ext_0`.`$_ext_id`\n"
             + "    WHERE id = 1\n"
-            + "      AND col2 = '1234'\n"
+            + "      AND col2 = AES_ENCRYPT('1234', '123')\n"
             + "    ORDER BY id DESC\n"
             + "    LIMIT 10\n"
             + "  ) `$_sub_query`\n"
@@ -139,7 +156,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "  INNER JOIN `table2` ON `$ext_0`.col2 = `table2`.id\n"
             + "SET `table1`.col1 = AES_ENCRYPT(table2.name, '123'), `table1`.col3 = '456', `table2`.name = 'abc'\n"
             + "WHERE table1.id = 1\n"
-            + "  AND `$ext_0`.col2 = '1234'",
+            + "  AND `$ext_0`.col2 = AES_ENCRYPT('1234', '123')",
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
