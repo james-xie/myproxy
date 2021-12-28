@@ -8,6 +8,7 @@ public class BackendResultReadException extends TransportException {
   private final SQLErrorCode sqlErrorCode;
 
   public BackendResultReadException(final SQLErrorCode sqlErrorCode) {
+    super("errCode: %d, errMsg: %s", sqlErrorCode.getErrorCode(), sqlErrorCode.getErrorMessage());
     this.sqlErrorCode = sqlErrorCode;
   }
 

@@ -31,7 +31,10 @@ public class UpdateQueryHandler extends AbstractDMLHandler {
   private UpdateQueryRewriteVisitor newQueryRewriteVisitor(QueryHandlerRequest request) {
     String encryptKey = request.getSessionContext().getEncryptKey();
     return new UpdateQueryRewriteVisitor(
-        request.getDatabase(), newScopeFactory(request), encryptKey);
+        request.getDatabase(),
+        newScopeFactory(request),
+        newEncryptor(encryptKey),
+        newDecryptor(encryptKey));
   }
 
   @Override

@@ -42,7 +42,8 @@ public class InsertQueryHandler extends AbstractDMLHandler {
         request.getDatasource(),
         clusterState.getMetaData(),
         idGenerator,
-        encryptKey);
+        newEncryptor(encryptKey),
+        newDecryptor(encryptKey));
   }
 
   @Override

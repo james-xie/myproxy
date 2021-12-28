@@ -11,7 +11,8 @@ import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
-import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
+import com.gllue.myproxy.command.handler.query.Decryptor;
+import com.gllue.myproxy.command.handler.query.Encryptor;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import java.util.ArrayList;
@@ -20,7 +21,8 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 class EncryptColumnProcessor {
-  private final String encryptKey;
+  private final Encryptor encryptor;
+  private final Decryptor decryptor;
   final List<EncryptColumnInfo> encryptColumns = new ArrayList<>();
   final List<EncryptColumnInfo> decryptColumns = new ArrayList<>();
 
@@ -67,16 +69,6 @@ class EncryptColumnProcessor {
       return isEncryptColumn(((MySqlAlterTableChangeColumn) item).getNewColumnDefinition());
     }
     return false;
-  }
-
-  String getEncryptKey() {
-    return encryptKey;
-  }
-
-  void ensureEncryptKey() {
-    if (shouldDoEncryptOrDecrypt() && getEncryptKey() == null) {
-      throw new NoEncryptKeyException();
-    }
   }
 
   SQLAlterTableAddColumn updateEncryptToVarbinary(final SQLAlterTableAddColumn item) {
@@ -175,20 +167,15 @@ class EncryptColumnProcessor {
   String generateUpdateSqlToEncryptAndDecryptData(String tableName) {
     assert shouldDoEncryptOrDecrypt();
 
-    var encryptKey = getEncryptKey();
     var sqlPrefix = String.format("UPDATE `%s` SET ", tableName);
     var setItems = new ArrayList<String>();
     for (var columnInfo : encryptColumns) {
-      setItems.add(
-          String.format(
-              "`%s` = AES_ENCRYPT(`%s`, '%s')",
-              columnInfo.temporaryColumn, columnInfo.oldColumn, encryptKey));
+      var encryptExpr = encryptor.encryptExpr(quoteName(columnInfo.oldColumn));
+      setItems.add(String.format("`%s` = %s", columnInfo.temporaryColumn, encryptExpr));
     }
     for (var columnInfo : decryptColumns) {
-      setItems.add(
-          String.format(
-              "`%s` = AES_DECRYPT(`%s`, '%s')",
-              columnInfo.temporaryColumn, columnInfo.oldColumn, encryptKey));
+      var decryptExpr = decryptor.decryptExpr(quoteName(columnInfo.oldColumn));
+      setItems.add(String.format("`%s` = %s", columnInfo.temporaryColumn, decryptExpr));
     }
     return sqlPrefix + String.join(", ", setItems);
   }
@@ -198,7 +185,7 @@ class EncryptColumnProcessor {
 
     var sqlPrefix = String.format("ALTER TABLE `%s` ", tableName);
     var alterItems = new ArrayList<String>();
-    var allColumns = new ArrayList<EncryptColumnInfo>(encryptColumns);
+    var allColumns = new ArrayList<>(encryptColumns);
     allColumns.addAll(decryptColumns);
     for (var columnInfo : allColumns) {
       var columnDef = columnInfo.columnDefinition.clone();

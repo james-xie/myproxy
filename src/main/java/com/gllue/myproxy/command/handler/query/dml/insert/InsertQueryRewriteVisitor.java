@@ -17,7 +17,8 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
-import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
+import com.gllue.myproxy.command.handler.query.Decryptor;
+import com.gllue.myproxy.command.handler.query.Encryptor;
 import com.gllue.myproxy.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.myproxy.common.exception.BadColumnException;
@@ -40,7 +41,8 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
   private final String datasource;
   private final MultiDatabasesMetaData databasesMetaData;
   private final IdGenerator idGenerator;
-  private final String encryptKey;
+  private final Encryptor encryptor;
+  private final Decryptor decryptor;
 
   @Getter private List<MySqlInsertStatement> newInsertQueries;
   private MySqlInsertStatement insertStatement;
@@ -51,12 +53,14 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       String datasource,
       MultiDatabasesMetaData databasesMetaData,
       IdGenerator idGenerator,
-      String encryptKey) {
+      Encryptor encryptor,
+      Decryptor decryptor) {
     super(defaultDatabase, tableScopeFactory);
     this.datasource = datasource;
     this.databasesMetaData = databasesMetaData;
     this.idGenerator = idGenerator;
-    this.encryptKey = encryptKey;
+    this.encryptor = encryptor;
+    this.decryptor = decryptor;
   }
 
   @Override
@@ -150,7 +154,7 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     for (var index : encryptColumnIndices) {
       var value = values.get(index);
       if (value instanceof SQLCharExpr) {
-        values.set(index, encryptColumn(encryptKey, value));
+        values.set(index, encryptColumn(encryptor, value));
       }
     }
   }
@@ -188,10 +192,10 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
         if (right instanceof SQLCharExpr
             || right instanceof SQLIdentifierExpr
             || right instanceof SQLPropertyExpr) {
-          binOp.setRight(encryptColumn(encryptKey, binOp.getRight()));
+          binOp.setRight(encryptColumn(encryptor, binOp.getRight()));
         }
       } else {
-        binOp.setRight(decryptColumn(encryptKey, binOp.getRight()));
+        binOp.setRight(decryptColumn(decryptor, binOp.getRight()));
       }
       setQueryChanged();
     }
@@ -231,10 +235,6 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     var encryptColumnIndices = findEncryptColumns(columns);
     if (encryptColumnIndices.length == 0) {
       return;
-    }
-
-    if (encryptKey == null) {
-      throw new NoEncryptKeyException();
     }
 
     int i = 0;
@@ -364,8 +364,9 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     return false;
   }
 
-  private void rewriteEncryptColumnInSelectItems(List<SQLSelectItem> items, ColumnMetaData[] columns) {
-    for (int i=0; i<items.size(); i++) {
+  private void rewriteEncryptColumnInSelectItems(
+      List<SQLSelectItem> items, ColumnMetaData[] columns) {
+    for (int i = 0; i < items.size(); i++) {
       var item = items.get(i);
       var expr = item.getExpr();
 
@@ -390,14 +391,10 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       var isEncryptColumn = columns != null && columns[i].getType() == ColumnType.ENCRYPT;
 
       if (isEncryptItem != isEncryptColumn) {
-        if (encryptKey == null) {
-          throw new NoEncryptKeyException();
-        }
-
         if (isEncryptItem) {
-          item.setExpr(decryptColumn(encryptKey, expr));
+          item.setExpr(decryptColumn(decryptor, expr));
         } else {
-          item.setExpr(encryptColumn(encryptKey, expr));
+          item.setExpr(encryptColumn(encryptor, expr));
         }
         setQueryChanged();
       }
@@ -422,7 +419,8 @@ public class InsertQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
 
     var columns = getColumns(schema, table, x.getColumns());
     if (table.getType() == TableType.PARTITION) {
-      throw new BadSQLException("Cannot execute 'insert into ... select' statement on the partition table.");
+      throw new BadSQLException(
+          "Cannot execute 'insert into ... select' statement on the partition table.");
     }
 
     if (selectQuery.getSelectList().size() != columns.length) {

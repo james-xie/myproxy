@@ -11,7 +11,8 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyCo
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerResult;
-import com.gllue.myproxy.command.handler.query.EncryptColumnHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
+import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
@@ -103,8 +104,9 @@ public class AlterTableHandler extends AbstractDDLHandler {
       this.request = request;
       this.tableMetaData = tableMetaData;
       this.statement = statement;
+      var encryptKey = EncryptionHelper.getEncryptKey(request);
       this.encryptColumnProcessor =
-          new EncryptColumnProcessor(EncryptColumnHelper.getEncryptKey(request));
+          new EncryptColumnProcessor(newEncryptor(encryptKey), newDecryptor(encryptKey));
       this.alterTableProcessor =
           new AlterTableStatementProcessor(
               tableMetaData, columnsInDatabase, encryptColumnProcessor);
@@ -127,7 +129,6 @@ public class AlterTableHandler extends AbstractDDLHandler {
 
     private Promise<CommandResult> execute() {
       var newStmt = alterTableProcessor.processStatement(statement);
-      encryptColumnProcessor.ensureEncryptKey();
 
       Promise<CommandResult> alterTablePromise;
       if (newStmt.getItems().isEmpty()) {
@@ -282,8 +283,9 @@ public class AlterTableHandler extends AbstractDDLHandler {
   private void executeAlterTable(
       QueryHandlerRequest request, Callback<HandlerResult> callback, String tableName) {
     var stmt = (SQLAlterTableStatement) request.getStatement();
+    var encryptKey = EncryptionHelper.getEncryptKey(request);
     var encryptColumnProcessor =
-        new EncryptColumnProcessor(EncryptColumnHelper.getEncryptKey(request));
+        new EncryptColumnProcessor(newEncryptor(encryptKey), newDecryptor(encryptKey));
 
     var isAlterEncryptColumn = false;
     for (var item : stmt.getItems()) {
@@ -295,6 +297,10 @@ public class AlterTableHandler extends AbstractDDLHandler {
     if (!isAlterEncryptColumn) {
       submitQueryToBackendDatabase(request, request.getQuery(), callback);
       return;
+    }
+
+    if (encryptKey == null) {
+      throw new NoEncryptKeyException();
     }
 
     Function<CommandResult, Promise<Boolean>> operation =

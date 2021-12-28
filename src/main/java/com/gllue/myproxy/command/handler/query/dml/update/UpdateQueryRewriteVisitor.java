@@ -10,6 +10,8 @@ import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLUpdateSetItem;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.gllue.myproxy.command.handler.query.BadSQLException;
+import com.gllue.myproxy.command.handler.query.Decryptor;
+import com.gllue.myproxy.command.handler.query.Encryptor;
 import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
 import com.gllue.myproxy.command.handler.query.dml.select.BaseSelectQueryRewriteVisitor;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
@@ -25,16 +27,20 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
-  private final String encryptKey;
+  private final Encryptor encryptor;
+  private final Decryptor decryptor;
 
   private boolean shouldTransform = false;
   private SQLTableSource originTableSource;
 
-
   public UpdateQueryRewriteVisitor(
-      String defaultDatabase, TableScopeFactory tableScopeFactory, String encryptKey) {
+      String defaultDatabase,
+      TableScopeFactory tableScopeFactory,
+      Encryptor encryptor,
+      Decryptor decryptor) {
     super(defaultDatabase, tableScopeFactory);
-    this.encryptKey = encryptKey;
+    this.encryptor = encryptor;
+    this.decryptor = decryptor;
   }
 
   @Override
@@ -85,10 +91,12 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     var where = x.getWhere();
     x.setWhere(null);
     var filterSubQuery =
-        TablePartitionHelper.constructSubQueryToFilter(tableSource, tableSourceAlias, where, orderBy, limit);
+        TablePartitionHelper.constructSubQueryToFilter(
+            tableSource, tableSourceAlias, where, orderBy, limit);
 
     var condition =
-        TablePartitionHelper.newTableJoinCondition(tableSourceAlias, new SQLIdentifierExpr(filterSubQuery.getAlias()));
+        TablePartitionHelper.newTableJoinCondition(
+            tableSourceAlias, new SQLIdentifierExpr(filterSubQuery.getAlias()));
     x.setTableSource(
         new SQLJoinTableSource(tableSource, JoinType.INNER_JOIN, filterSubQuery, condition));
   }
@@ -98,12 +106,6 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       return false;
     }
     return column.getType() == ColumnType.ENCRYPT;
-  }
-
-  private void ensureEncryptKeyExists() {
-    if (encryptKey == null) {
-      throw new NoEncryptKeyException();
-    }
   }
 
   private boolean onlyUpdatedExtensionTables(
@@ -128,7 +130,9 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     } else {
       columnExpr =
           new SQLPropertyExpr(
-              new SQLPropertyExpr(SQLStatementUtils.quoteName(schema), SQLStatementUtils.quoteName(tableOrAlias)), columnName);
+              new SQLPropertyExpr(
+                  SQLStatementUtils.quoteName(schema), SQLStatementUtils.quoteName(tableOrAlias)),
+              columnName);
     }
 
     item.setColumn(columnExpr);
@@ -141,7 +145,8 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
     var updateTables =
         updateColumns.stream().map(x -> x.getTable().getName()).collect(Collectors.toSet());
 
-    var tableSources = SQLStatementUtils.listTableSources(originTableSource, x -> x instanceof SQLExprTableSource);
+    var tableSources =
+        SQLStatementUtils.listTableSources(originTableSource, x -> x instanceof SQLExprTableSource);
     for (var item : tableSources) {
       var tableSource = (SQLExprTableSource) item;
       var schema = getSchema(tableSource);
@@ -166,12 +171,10 @@ public class UpdateQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       var column = findColumnInScope(scope, columnExpr);
       var value = findColumnInScope(scope, valueExpr);
       if (isEncryptColumn(column) && !isEncryptColumn(value)) {
-        ensureEncryptKeyExists();
-        item.setValue(encryptColumn(encryptKey, valueExpr));
+        item.setValue(encryptColumn(encryptor, valueExpr));
         hasEncryptColumn = true;
       } else if (!isEncryptColumn(column) && isEncryptColumn(value)) {
-        ensureEncryptKeyExists();
-        item.setValue(decryptColumn(encryptKey, valueExpr));
+        item.setValue(decryptColumn(decryptor, valueExpr));
         hasEncryptColumn = true;
       }
       if (column != null) {

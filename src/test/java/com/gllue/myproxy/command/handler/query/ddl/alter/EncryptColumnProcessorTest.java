@@ -7,6 +7,8 @@ import com.alibaba.druid.sql.ast.statement.SQLAlterTableAddColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableChangeColumn;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyColumn;
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
@@ -18,7 +20,9 @@ import org.mockito.runners.MockitoJUnitRunner;
 @RunWith(MockitoJUnitRunner.class)
 public class EncryptColumnProcessorTest extends BaseQueryHandlerTest {
   EncryptColumnProcessor prepareProcessor(String encryptKey) {
-    return new EncryptColumnProcessor(encryptKey);
+    return new EncryptColumnProcessor(
+        EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, encryptKey),
+        EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, encryptKey));
   }
 
   @Test

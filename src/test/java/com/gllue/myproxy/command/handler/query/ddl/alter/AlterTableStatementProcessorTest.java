@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.common.exception.BadColumnException;
 import com.gllue.myproxy.common.exception.ColumnExistsException;
 import com.gllue.myproxy.common.util.RandomUtils;
@@ -23,7 +25,10 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
   AlterTableStatementProcessor prepareProcessor(
       TableMetaData tableMetaData, Map<String, SQLColumnDefinition> columnsInDatabase) {
     var encryptKey = "123";
-    var encryptProcessor = new EncryptColumnProcessor(encryptKey);
+    var encryptProcessor =
+        new EncryptColumnProcessor(
+            EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, encryptKey),
+            EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, encryptKey));
     return new AlterTableStatementProcessor(tableMetaData, columnsInDatabase, encryptProcessor);
   }
 

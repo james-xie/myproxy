@@ -1,11 +1,14 @@
 package com.gllue.myproxy.command.handler.query;
 
 import com.gllue.myproxy.cluster.ClusterState;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
 import com.gllue.myproxy.config.Configurations;
+import com.gllue.myproxy.config.Configurations.Type;
+import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.metadata.command.CreateDatabaseCommand;
 import com.gllue.myproxy.metadata.command.context.CommandExecutionContext;
 import com.gllue.myproxy.metadata.command.context.MultiDatabasesCommandContext;
@@ -103,5 +106,17 @@ public abstract class SchemaRelatedQueryHandler extends AbstractQueryHandler {
     } else {
       throw new NoDatabaseException();
     }
+  }
+
+  protected Encryptor newEncryptor(final String key) {
+    String algorithm =
+        configurations.getValue(Type.GENERIC, GenericConfigPropertyKey.ENCRYPTION_ALGORITHM);
+    return EncryptionHelper.newEncryptor(EncryptionAlgorithm.getAlgorithmByName(algorithm), key);
+  }
+
+  protected Decryptor newDecryptor(final String key) {
+    String algorithm =
+        configurations.getValue(Type.GENERIC, GenericConfigPropertyKey.ENCRYPTION_ALGORITHM);
+    return EncryptionHelper.newDecryptor(EncryptionAlgorithm.getAlgorithmByName(algorithm), key);
   }
 }

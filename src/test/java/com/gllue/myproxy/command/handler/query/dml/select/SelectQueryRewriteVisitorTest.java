@@ -5,24 +5,32 @@ import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.command.handler.query.BadSQLException;
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
-import com.gllue.myproxy.metadata.model.TableType;
+import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData.Builder;
+import com.gllue.myproxy.metadata.model.TableType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
+  private static final String ENCRYPT_KEY = "key";
+
+  SelectQueryRewriteVisitor newRewriteVisitor(MultiDatabasesMetaData metaData) {
+    var factory = new TableScopeFactory(DATASOURCE, DATABASE, metaData);
+    return new SelectQueryRewriteVisitor(
+        DATABASE, factory, EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, ENCRYPT_KEY));
+  }
 
   @Test
   public void testNothingRewrite() {
-    var encryptKey = "";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select *, t3.* from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -39,10 +47,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testExpandStar() {
     var table1 = prepareTable("table1", "id", "col1", "col2", "col3");
     var table2 = prepareTable("table2", "id", "col4", "col5");
-    var encryptKey = "";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select *, t3.* from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -78,12 +84,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     builder.addColumn(
         new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build());
     var table2 = builder.build();
-    var datasource = DATASOURCE;
-    var database = DATABASE;
-    var encryptKey = "key";
-    var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
-    var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -104,7 +106,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
         stmt);
     assertTrue(rewriter.isQueryChanged());
 
-    rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
+    rewriter = newRewriteVisitor(databasesMetaData);
     query = "select col1 as t_col1, col2 from `table2` where col1 = '123' or col2 = 'abc'";
     stmt = parseSelectQuery(query);
     stmt.accept(rewriter);
@@ -119,10 +121,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTable() {
     var table1 = prepareTable("table1", "id", "col1");
     var table2 = preparePartitionTable("table2");
-    var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` `t` "
             + "inner join `table1` `t1` on `t`.`id` = `t1`.`id` "
@@ -152,10 +152,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTableForSubQuery() {
     var table1 = prepareTable("table1", "id", "col1");
     var table2 = preparePartitionTable("table2");
-    var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table1`\n"
             + "inner join (\n"
@@ -198,11 +196,9 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
         new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build());
     var table2 = builder.build();
     var table3 = prepareTable("table3", "col3");
-    var encryptKey = "key";
     var databasesMetaData =
         prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2, table3);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -258,11 +254,9 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
         new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build());
     var table2 = builder.build();
     var table3 = prepareTable("table3", "col3");
-    var encryptKey = "key";
     var databasesMetaData =
         prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2, table3);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -304,10 +298,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   @Test(expected = BadSQLException.class)
   public void testSubQueryRewriteFailed() {
     var table2 = prepareTable("table2", "col1", "col2");
-    var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table2);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -337,12 +329,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     builder.addColumn(
         new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build());
     var table2 = builder.build();
-    var datasource = DATASOURCE;
-    var database = DATABASE;
-    var encryptKey = "key";
-    var databasesMetaData = prepareMultiDatabasesMetaData(datasource, database, table1, table2);
-    var factory = new TableScopeFactory(datasource, database, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(database, factory, encryptKey);
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -359,10 +347,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
 
   @Test
   public void testRewriteForNoTableMetaDataSubQuery() {
-    var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from `table` t "
             + "inner join table1 t1 on t.id = t1.id "
@@ -394,10 +380,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewriteForUnionQuery() {
     var table1 = prepareTable("table1", "id", "col1");
     var table2 = prepareTable("table2", "id", "col1");
-    var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select * from (\n"
             + "    (\n"
@@ -426,10 +410,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testLazyJoinExtensionTable() {
     var table1 = preparePartitionTable("table1");
     var table2 = preparePartitionTable("table2");
-    var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new SelectQueryRewriteVisitor(DATABASE, factory, encryptKey);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "select t.* from `table` `t` "
             + "inner join `table1` `t1` on `t`.`id` = `t1`.`id` "

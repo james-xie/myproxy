@@ -19,6 +19,7 @@ import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
+import com.gllue.myproxy.transport.exception.CustomErrorCode;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.backend.BackendResultReadException;
 import java.util.ArrayList;
@@ -277,7 +278,9 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
         (sql) -> {
           submitSqlList.add(sql);
           if (counter.getAndIncrement() == 0) {
-            throw new BackendResultReadException(MySQLServerErrorCode.ER_TABLE_EXISTS_ERROR);
+            var errorCode = MySQLServerErrorCode.ER_TABLE_EXISTS_ERROR;
+            throw new BackendResultReadException(
+                new CustomErrorCode(errorCode.getErrorCode(), "", ""));
           }
           return emptyCommandResult();
         };

@@ -4,7 +4,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
+import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
@@ -13,12 +16,20 @@ import org.mockito.runners.MockitoJUnitRunner;
 public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   private static final String ENCRYPT_KEY = "123";
 
+  UpdateQueryRewriteVisitor newRewriteVisitor(MultiDatabasesMetaData metaData) {
+    var factory = new TableScopeFactory(DATASOURCE, DATABASE, metaData);
+    return new UpdateQueryRewriteVisitor(
+        DATABASE,
+        factory,
+        EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, ENCRYPT_KEY),
+        EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, ENCRYPT_KEY));
+  }
+
   @Test
   public void testNothingRewriteWithSingleUpdate() {
     var table1 = prepareTable("table1", "id", "col1", "col2", "col3");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new UpdateQueryRewriteVisitor(DATABASE, factory, ENCRYPT_KEY);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query = "update table1 set col1 = col2 where id = 1 order by col3 desc limit 1";
     var stmt = parseUpdateQuery(query);
     stmt.accept(rewriter);
@@ -30,8 +41,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTableWithSingleUpdate() {
     var table1 = preparePartitionTable("table1");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new UpdateQueryRewriteVisitor(DATABASE, factory, ENCRYPT_KEY);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "update `db`.`table1` "
             + "set `db`.table1.col1 = table1.col2, "
@@ -58,8 +68,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTableWithOnlyUpdateExtensionTableColumns() {
     var table1 = preparePartitionTable("table1");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new UpdateQueryRewriteVisitor(DATABASE, factory, ENCRYPT_KEY);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "update `table1` "
             + "set col2 = col3, "
@@ -81,8 +90,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTableWithSingleUpdateWithOrderBy() {
     var table1 = preparePartitionTable("table1");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new UpdateQueryRewriteVisitor(DATABASE, factory, ENCRYPT_KEY);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "update `table1`\n"
             + "set col1 = col3,\n"
@@ -115,8 +123,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTableWithMultiUpdate() {
     var table1 = preparePartitionTable("table1");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new UpdateQueryRewriteVisitor(DATABASE, factory, ENCRYPT_KEY);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "update `table1` "
             + "inner join `table2` on `table1`.col2 = `table2`.id "
@@ -141,8 +148,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
   public void testRewritePartitionTableWithMultiUpdate1() {
     var table3 = preparePartitionTable("table3");
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table3);
-    var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
-    var rewriter = new UpdateQueryRewriteVisitor(DATABASE, factory, ENCRYPT_KEY);
+    var rewriter = newRewriteVisitor(databasesMetaData);
     var query =
         "update `table1`\n"
             + "inner join `table2` on `table1`.col2 = `table2`.id\n"

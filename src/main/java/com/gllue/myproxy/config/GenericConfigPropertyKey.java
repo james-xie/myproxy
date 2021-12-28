@@ -24,8 +24,12 @@ public enum GenericConfigPropertyKey implements TypedPropertyKey {
   EXTENSION_TABLE_COLUMNS_ALLOCATION_WATERMARK(
       "table.partition.extension_table.columns_allocation_watermark", 0.9, Type.DOUBLE),
 
+  // query result
   QUERY_RESULT_CACHED_MAX_CAPACITY_IN_BYTES(
       "query.result.cached.max_capacity_in_bytes", 100 * 1024 * 1024, Type.INTEGER),
+
+  // encryption
+  ENCRYPTION_ALGORITHM("encryption.algorithm", "AES", Type.STRING),
 
   // repository
   REPOSITORY_ROOT_PATH("repository.root_path", "/myproxy", Type.STRING);

@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.common.util.RandomUtils;
@@ -29,8 +31,10 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var encryptKey = "key";
     var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, tables);
     var factory = new TableScopeFactory(DATASOURCE, DATABASE, databasesMetaData);
+    var encryptor = EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, encryptKey);
+    var decryptor = EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, encryptKey);
     return new InsertQueryRewriteVisitor(
-        DATABASE, factory, DATASOURCE, databasesMetaData, idGenerator(), encryptKey);
+        DATABASE, factory, DATASOURCE, databasesMetaData, idGenerator(), encryptor, decryptor);
   }
 
   @Test
@@ -118,11 +122,9 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "  (3, AES_ENCRYPT('123', 'key'), 'abc', 3)",
         newInsertQueries.get(0));
     assertSQLEquals(
-        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)",
-        newInsertQueries.get(1));
+        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)", newInsertQueries.get(1));
     assertTrue(rewriter.isQueryChanged());
   }
-
 
   @Test(expected = ColumnCountNotMatchValueCountException.class)
   public void testColumnCountNotMatchValueCount() {
@@ -156,8 +158,7 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "on duplicate key update `col1`=AES_ENCRYPT('a', 'key'), `col3`='b'",
         newInsertQueries.get(0));
     assertSQLEquals(
-        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)",
-        newInsertQueries.get(1));
+        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)", newInsertQueries.get(1));
     assertTrue(rewriter.isQueryChanged());
   }
 
@@ -182,8 +183,7 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "on duplicate key update `col1`=values(`col1`), `col3`=values(`col3`)",
         newInsertQueries.get(0));
     assertSQLEquals(
-        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)",
-        newInsertQueries.get(1));
+        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)", newInsertQueries.get(1));
     assertTrue(rewriter.isQueryChanged());
   }
 
@@ -210,8 +210,7 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "`col3` = AES_DECRYPT(values(`col1`), 'key')",
         newInsertQueries.get(0));
     assertSQLEquals(
-        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)",
-        newInsertQueries.get(1));
+        "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)", newInsertQueries.get(1));
     assertTrue(rewriter.isQueryChanged());
   }
 

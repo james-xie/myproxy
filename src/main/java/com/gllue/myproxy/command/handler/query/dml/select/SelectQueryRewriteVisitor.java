@@ -8,20 +8,19 @@ import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlSelectQueryBlock;
-import com.gllue.myproxy.command.handler.query.NoEncryptKeyException;
+import com.gllue.myproxy.command.handler.query.Decryptor;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import java.util.List;
 
 public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
-  private final String encryptKey;
-
+  private final Decryptor decryptor;
   private int selectQueryBlockDepth = 0;
 
   public SelectQueryRewriteVisitor(
-      String defaultDatabase, TableScopeFactory tableScopeFactory, String encryptKey) {
+      String defaultDatabase, TableScopeFactory tableScopeFactory, Decryptor decryptor) {
     super(defaultDatabase, tableScopeFactory);
-    this.encryptKey = encryptKey;
+    this.decryptor = decryptor;
   }
 
   @Override
@@ -70,11 +69,7 @@ public class SelectQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
       }
 
       if (column != null && column.getType() == ColumnType.ENCRYPT) {
-        if (encryptKey == null) {
-          throw new NoEncryptKeyException();
-        }
-
-        item.setExpr(decryptColumn(encryptKey, expr));
+        item.setExpr(decryptColumn(decryptor, expr));
         if (item.getAlias() == null) {
           item.setAlias(quoteName(column.getName()));
         }

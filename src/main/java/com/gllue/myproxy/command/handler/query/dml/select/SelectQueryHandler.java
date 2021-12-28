@@ -3,9 +3,8 @@ package com.gllue.myproxy.command.handler.query.dml.select;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerResult;
-import com.gllue.myproxy.command.handler.query.EncryptColumnHelper;
+import com.gllue.myproxy.command.handler.query.EncryptionHelper;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
-import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.handler.query.dml.AbstractDMLHandler;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
@@ -30,9 +29,9 @@ public class SelectQueryHandler extends AbstractDMLHandler {
   }
 
   private SelectQueryRewriteVisitor newQueryRewriteVisitor(QueryHandlerRequest request) {
-    String encryptKey = EncryptColumnHelper.getEncryptKey(request);
+    String encryptKey = EncryptionHelper.getEncryptKey(request);
     return new SelectQueryRewriteVisitor(
-        request.getDatabase(), newScopeFactory(request), encryptKey);
+        request.getDatabase(), newScopeFactory(request), newDecryptor(encryptKey));
   }
 
   private boolean isSimpleSelectQuery(SQLSelectStatement stmt) {
