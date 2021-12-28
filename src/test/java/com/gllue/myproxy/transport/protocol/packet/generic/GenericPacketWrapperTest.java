@@ -9,7 +9,7 @@ import com.gllue.myproxy.transport.BaseTransportTest;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class GenericPacketWrapperTest extends BaseTransportTest {

@@ -9,7 +9,7 @@ import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class EncryptColumnProcessorTest extends BaseQueryHandlerTest {

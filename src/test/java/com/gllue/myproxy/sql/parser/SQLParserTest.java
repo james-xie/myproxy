@@ -5,7 +5,7 @@ import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class SQLParserTest {

@@ -10,7 +10,7 @@ import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class HandshakeResponsePacket41Test extends BaseTransportTest {

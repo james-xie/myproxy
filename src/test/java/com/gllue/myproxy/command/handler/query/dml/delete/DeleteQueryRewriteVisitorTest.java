@@ -10,7 +10,7 @@ import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.runners.MockitoJUnitRunner;
+import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
