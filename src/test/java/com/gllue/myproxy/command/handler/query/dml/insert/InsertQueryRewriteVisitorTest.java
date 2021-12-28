@@ -207,7 +207,7 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
             + "  (3, AES_ENCRYPT('123', 'key'), 'abc', 3) \n"
             + "on duplicate key update\n"
             + "`col1` = AES_ENCRYPT(values(`col3`), 'key'),\n"
-            + "`col3` = AES_DECRYPT(values(`col1`), 'key')",
+            + "`col3` = CONVERT(AES_DECRYPT(values(`col1`), 'key') USING 'utf8mb4')",
         newInsertQueries.get(0));
     assertSQLEquals(
         "INSERT INTO `table1_ext_1` (`$_ext_id`) VALUES (1), (2), (3)", newInsertQueries.get(1));
@@ -238,7 +238,7 @@ public class InsertQueryRewriteVisitorTest extends BaseQueryHandlerTest {
 
     assertSQLEquals(
         "INSERT INTO `table1` (`id`, `col1`, `col2`)\n"
-            + "SELECT `id`, AES_DECRYPT(`col2`, 'key')\n"
+            + "SELECT `id`, CONVERT(AES_DECRYPT(`col2`, 'key') USING 'utf8mb4')\n"
             + "\t, AES_ENCRYPT(`col1`, 'key')\n"
             + "FROM `table1`\n"
             + "WHERE col1 = '123'",

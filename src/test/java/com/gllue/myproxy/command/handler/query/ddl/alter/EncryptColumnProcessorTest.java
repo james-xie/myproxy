@@ -126,8 +126,8 @@ public class EncryptColumnProcessorTest extends BaseQueryHandlerTest {
         "UPDATE `table` SET "
             + "`tmpCol1` = AES_ENCRYPT(`col1`, '123'), "
             + "`tmpCol2` = AES_ENCRYPT(`col2`, '123'), "
-            + "`tmpCol3` = AES_DECRYPT(`col3`, '123'), "
-            + "`tmpCol4` = AES_DECRYPT(`col4`, '123')",
+            + "`tmpCol3` = CONVERT(AES_DECRYPT(`col3`, '123') USING 'utf8mb4'), "
+            + "`tmpCol4` = CONVERT(AES_DECRYPT(`col4`, '123') USING 'utf8mb4')",
         updateSql);
   }
 

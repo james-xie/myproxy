@@ -1,5 +1,6 @@
 package com.gllue.myproxy.command.handler.query.dml.delete;
 
+import com.alibaba.druid.sql.ast.statement.SQLDeleteStatement;
 import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerResult;
@@ -38,7 +39,7 @@ public class DeleteQueryHandler extends AbstractDMLHandler {
   public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
     ensureDatabaseExists(request);
 
-    var stmt = (SQLInsertStatement) request.getStatement();
+    var stmt = request.getStatement();
     var visitor = newQueryRewriteVisitor(request);
     stmt.accept(visitor);
     if (!visitor.isQueryChanged()) {

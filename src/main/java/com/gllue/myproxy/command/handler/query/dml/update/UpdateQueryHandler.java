@@ -1,6 +1,6 @@
 package com.gllue.myproxy.command.handler.query.dml.update;
 
-import com.alibaba.druid.sql.ast.statement.SQLInsertStatement;
+import com.alibaba.druid.sql.ast.statement.SQLUpdateStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
@@ -41,7 +41,7 @@ public class UpdateQueryHandler extends AbstractDMLHandler {
   public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
     ensureDatabaseExists(request);
 
-    var stmt = (SQLInsertStatement) request.getStatement();
+    var stmt = request.getStatement();
     var visitor = newQueryRewriteVisitor(request);
     stmt.accept(visitor);
     if (!visitor.isQueryChanged()) {

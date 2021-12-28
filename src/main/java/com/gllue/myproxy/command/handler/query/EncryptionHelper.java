@@ -11,7 +11,7 @@ public class EncryptionHelper {
     AES;
 
     public static EncryptionAlgorithm getAlgorithmByName(final String name) {
-      for (var value: EncryptionAlgorithm.values()) {
+      for (var value : EncryptionAlgorithm.values()) {
         if (value.name().equalsIgnoreCase(name)) {
           return value;
         }
@@ -36,6 +36,7 @@ public class EncryptionHelper {
 
   @RequiredArgsConstructor
   public static final class AesDecryptor implements Decryptor {
+    private static final String CHARSET = "utf8mb4";
     private final String key;
 
     /** Wrap the expression with AES_DECRYPT() function. */
@@ -44,7 +45,7 @@ public class EncryptionHelper {
       if (key == null) {
         throw new NoEncryptKeyException();
       }
-      return String.format("AES_DECRYPT(%s, '%s')", expr, key);
+      return String.format("CONVERT(AES_DECRYPT(%s, '%s') USING '%s')", expr, key, CHARSET);
     }
   }
 

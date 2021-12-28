@@ -96,7 +96,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "SELECT t.*, t1.`id`, t1.`col1`, t2.`id`, t2.`col1`\n"
-            + ", AES_DECRYPT(t2.`col2`, 'key') AS `col2`, t3.*\n"
+            + ", CONVERT(AES_DECRYPT(t2.`col2`, 'key') USING 'utf8mb4') AS `col2`, t3.*\n"
             + "FROM `table` t\n"
             + "INNER JOIN table1 t1 ON t.id = t1.id\n"
             + "INNER JOIN table2 t2 ON t.id = t2.col2\n"
@@ -111,7 +111,7 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt = parseSelectQuery(query);
     stmt.accept(rewriter);
     assertSQLEquals(
-        "SELECT col1 as t_col1, AES_DECRYPT(col2, 'key') AS `col2` from `table2` \n"
+        "SELECT col1 as t_col1, CONVERT(AES_DECRYPT(col2, 'key') USING 'utf8mb4') AS `col2` from `table2` \n"
             + "where col1 = '123' or col2 = 'abc'",
         stmt);
     assertTrue(rewriter.isQueryChanged());
@@ -133,8 +133,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "SELECT `t`.*, `t1`.`id`, `t1`.`col1`, `t2`.`id`\n"
-            + ", AES_DECRYPT(`t2`.`col1`, 'key') AS `col1`, `t2`.`col3`\n"
-            + ", AES_DECRYPT(`$ext_0`.`col2`, 'key') AS `col2`, `$ext_0`.`col4`\n"
+            + ", CONVERT(AES_DECRYPT(`t2`.`col1`, 'key') USING 'utf8mb4') AS `col1`, `t2`.`col3`\n"
+            + ", CONVERT(AES_DECRYPT(`$ext_0`.`col2`, 'key') USING 'utf8mb4') AS `col2`, `$ext_0`.`col4`\n"
             + ", `t3`.*\n"
             + "FROM `table` `t`\n"
             + "INNER JOIN `table1` `t1` ON `t`.`id` = `t1`.`id`\n"
@@ -164,8 +164,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "SELECT `table1`.`id`, `table1`.`col1`, t2.`id`\n"
-            + "  , AES_DECRYPT(t2.`col1`, 'key') AS `col1`, t2.`col3`\n"
-            + "  , AES_DECRYPT(t2.`col2`, 'key') AS `col2`, t2.`col4`\n"
+            + "  , CONVERT(AES_DECRYPT(t2.`col1`, 'key') USING 'utf8mb4') AS `col1`, t2.`col3`\n"
+            + "  , CONVERT(AES_DECRYPT(t2.`col2`, 'key') USING 'utf8mb4') AS `col2`, t2.`col4`\n"
             + "FROM `table1`\n"
             + "  INNER JOIN (\n"
             + "    SELECT `table2`.`id`, `table2`.`col1`, `table2`.`col3`, `$ext_0`.`col2`, `$ext_0`.`col4`\n"
@@ -216,8 +216,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "SELECT t.*, t1.`id`, t1.`col1`, t2.`id`, t2.`col1`\n"
-            + ", AES_DECRYPT(t2.`t2_col2`, 'key') AS `t2_col2`, t2.`col3`, t3.`id`, t3.`col1`\n"
-            + ", AES_DECRYPT(t3.`col2`, 'key') AS `col2`\n"
+            + ", CONVERT(AES_DECRYPT(t2.`t2_col2`, 'key') USING 'utf8mb4') AS `t2_col2`, t2.`col3`, t3.`id`, t3.`col1`\n"
+            + ", CONVERT(AES_DECRYPT(t3.`col2`, 'key') USING 'utf8mb4') AS `col2`\n"
             + ", t4.*\n"
             + "FROM `table` t\n"
             + "INNER JOIN table1 t1 ON t.id = t1.id\n"
@@ -273,8 +273,8 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertSQLEquals(
         "SELECT t.*, t1.`id`, t1.`col1`, t2.`t_col1`\n"
-            + ", AES_DECRYPT(t2.`t_col2`, 'key') AS `t_col2`, t2.`col3`\n"
-            + ", t3.`id`, t3.`col1`, AES_DECRYPT(t3.`col2`, 'key') AS `col2`\n"
+            + ", CONVERT(AES_DECRYPT(t2.`t_col2`, 'key') USING 'utf8mb4') AS `t_col2`, t2.`col3`\n"
+            + ", t3.`id`, t3.`col1`, CONVERT(AES_DECRYPT(t3.`col2`, 'key') USING 'utf8mb4') AS `col2`\n"
             + ", t4.*\n"
             + "FROM `table` t\n"
             + "INNER JOIN table1 t1 ON t.id = t1.id\n"
