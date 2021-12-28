@@ -143,6 +143,7 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
       var right = x.getRight();
       if (right instanceof SQLCharExpr) {
         x.setRight(encryptColumn(encryptor, right));
+        setQueryChanged();
       }
     }
   }
@@ -157,6 +158,7 @@ public class BaseSelectQueryRewriteVisitor extends MySqlASTVisitorAdapter {
       for (var item: targetList) {
         if (item instanceof SQLCharExpr) {
           targetList.set(i, encryptColumn(encryptor, item));
+          setQueryChanged();
         }
         i++;
       }

@@ -70,6 +70,8 @@ public class DeleteQueryRewriteVisitor extends BaseSelectQueryRewriteVisitor {
         rewriteSingleTableDelete(x);
       }
     }
+
+    exitScope();
   }
 
   private SQLTableSource generateCommaJoinedTableSource(SQLTableSource tableSource) {

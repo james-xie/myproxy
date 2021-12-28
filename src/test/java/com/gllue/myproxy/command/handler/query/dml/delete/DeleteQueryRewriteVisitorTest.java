@@ -7,7 +7,12 @@ import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
 import com.gllue.myproxy.command.handler.query.EncryptionHelper;
 import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
+import com.gllue.myproxy.common.util.RandomUtils;
+import com.gllue.myproxy.metadata.model.ColumnMetaData;
+import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
+import com.gllue.myproxy.metadata.model.TableMetaData;
+import com.gllue.myproxy.metadata.model.TableType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
@@ -48,6 +53,35 @@ public class DeleteQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     stmt.accept(rewriter);
     assertFalse(rewriter.isQueryChanged());
     assertSQLEquals(query, stmt);
+  }
+
+  @Test
+  public void testRewriteEncryptColumn() {
+    var builder = new TableMetaData.Builder();
+    builder
+        .setName("table1")
+        .setType(TableType.STANDARD)
+        .setIdentity(RandomUtils.randomShortUUID())
+        .setVersion(1);
+    builder.addColumn(new ColumnMetaData.Builder().setName("id").setType(ColumnType.INT).build());
+    builder.addColumn(
+        new ColumnMetaData.Builder().setName("col1").setType(ColumnType.VARCHAR).build());
+    builder.addColumn(
+        new ColumnMetaData.Builder().setName("col2").setType(ColumnType.ENCRYPT).build());
+    var table1 = builder.build();
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
+    var rewriter = newRewriteVisitor(databasesMetaData);
+    var query = "delete `table1` from `table1` where table1.id = 1 and table1.col1 = 'abc' and table1.col2 = '1234'";
+    var stmt = parseDeleteQuery(query);
+    stmt.accept(rewriter);
+    assertSQLEquals(
+        "DELETE `table1`\n"
+            + "FROM `table1`\n"
+            + "WHERE table1.id = 1\n"
+            + "AND table1.col1 = 'abc'\n"
+            + "AND table1.col2 = AES_ENCRYPT('1234', 'key')",
+        stmt);
+    assertTrue(rewriter.isQueryChanged());
   }
 
   @Test
