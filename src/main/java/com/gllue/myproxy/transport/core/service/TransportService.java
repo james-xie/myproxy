@@ -11,6 +11,11 @@ import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.config.Configurations;
+import com.gllue.myproxy.config.Configurations.Type;
+import com.gllue.myproxy.config.GenericConfigPropertyKey;
+import com.gllue.myproxy.transport.backend.command.CachedQueryResultReader;
+import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
@@ -31,12 +36,16 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TransportService implements FrontendConnectionManager {
+  private final Configurations configurations;
+
   @Getter
   private final DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
 
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
 
-  public TransportService(final List<BackendDataSource> dataSources) {
+  public TransportService(
+      final Configurations configurations, final List<BackendDataSource> dataSources) {
+    this.configurations = configurations;
     backendDataSourceManager = new DataSourceManager<>(dataSources);
     frontendConnectionMap = new ConcurrentHashMap<>();
   }
@@ -112,7 +121,7 @@ public class TransportService implements FrontendConnectionManager {
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
             (cb) -> {
-              var reader = new BufferedQueryResultReader().addCallback(cb);
+              var reader = new DefaultCommandResultReader().addCallback(cb);
               backendConnection.sendCommand(BEGIN_COMMAND, reader);
             })
         .then(
@@ -128,7 +137,7 @@ public class TransportService implements FrontendConnectionManager {
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
             (cb) -> {
-              var reader = new BufferedQueryResultReader().addCallback(cb);
+              var reader = new DefaultCommandResultReader().addCallback(cb);
               backendConnection.sendCommand(COMMIT_COMMAND, reader);
             })
         .then(
@@ -144,7 +153,7 @@ public class TransportService implements FrontendConnectionManager {
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
             (cb) -> {
-              var reader = new BufferedQueryResultReader().addCallback(cb);
+              var reader = new DefaultCommandResultReader().addCallback(cb);
               backendConnection.sendCommand(ROLLBACK_COMMAND, reader);
             })
         .then(
@@ -191,13 +200,20 @@ public class TransportService implements FrontendConnectionManager {
         new DirectTransferQueryResultReader(frontendConnection).addCallback(newCallback));
   }
 
+  private CommandResultReader newCachedQueryResultReader(Callback<CommandResult> callback) {
+    int maxCapacity =
+        configurations.getValue(
+            Type.GENERIC, GenericConfigPropertyKey.QUERY_RESULT_CACHED_MAX_CAPACITY_IN_BYTES);
+    return new CachedQueryResultReader(maxCapacity).addCallback(callback);
+  }
+
   public void submitQueryToBackendDatabase(
       final int connectionId, final String query, final Callback<CommandResult> callback) {
     var frontendConnection = getFrontendConnection(connectionId);
     var backendConnection = frontendConnection.getBackendConnection();
     var newCallback = wrappedCallback(frontendConnection, callback);
     backendConnection.sendCommand(
-        new QueryCommandPacket(query), new BufferedQueryResultReader().addCallback(newCallback));
+        new QueryCommandPacket(query), newCachedQueryResultReader(newCallback));
   }
 
   public Promise<CommandResult> submitQueryToBackendDatabase(

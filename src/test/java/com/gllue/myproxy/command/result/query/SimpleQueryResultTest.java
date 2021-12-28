@@ -10,7 +10,7 @@ import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class DefaultQueryResultTest {
+public class SimpleQueryResultTest {
 
   QueryResultMetaData prepareMetaData(int columnCount) {
     var columns = new Column[columnCount];
@@ -45,7 +45,7 @@ public class DefaultQueryResultTest {
     var columnCount = 5;
     var rowCount = 10;
     var rows = new String[rowCount][];
-    var queryResult = new DefaultQueryResult(prepareMetaData(columnCount), rows);
+    var queryResult = new SimpleQueryResult(prepareMetaData(columnCount), rows);
     for (int i = 0; i < rowCount; i++) {
       rows[i] = buildRandomRow(columnCount);
     }

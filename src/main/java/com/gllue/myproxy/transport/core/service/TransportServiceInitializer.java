@@ -56,7 +56,9 @@ public class TransportServiceInitializer implements Initializer {
 
   @Override
   public void initialize(ServerContext context) {
-    var transportService = new TransportService(preloadDataSources(context.getConfigurations()));
+    var transportService =
+        new TransportService(
+            context.getConfigurations(), preloadDataSources(context.getConfigurations()));
     context.setTransportService(transportService);
   }
 

@@ -11,49 +11,12 @@ import com.gllue.myproxy.transport.constant.MySQLColumnType;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.runners.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
-public class MemoryBufferedQueryResultTest {
-  QueryResultMetaData prepareMetaData(int columnCount) {
-    var columns = new Column[columnCount];
-    for (int i = 0; i < columnCount; i++) {
-      columns[i] = new Column("col_" + i, MySQLColumnType.MYSQL_TYPE_VAR_STRING);
-    }
-    return new DefaultQueryResultMetaData(columns);
-  }
-
-  byte[][] buildEmptyRow(int columnCount, int rowBytes) {
-    byte[][] row = new byte[columnCount][];
-    for (int i = 0; i < columnCount; i++) {
-      row[i] = new byte[rowBytes];
-    }
-    return row;
-  }
-
-  byte[][] buildRandomRow(int columnCount) {
-    byte[][] row = new byte[columnCount][];
-    for (int i = 0; i < columnCount; i++) {
-      row[i] = RandomUtils.generateRandomBytes(10);
-    }
-    return row;
-  }
-
-  void assertRowsEquals(byte[][][] rows, QueryResult queryResult) {
-    int i = 0;
-    var columnCount = queryResult.getMetaData().getColumnCount();
-    while (queryResult.next()) {
-      for (int col = 0; col < columnCount; col++) {
-        assertArrayEquals(rows[i][col], queryResult.getValue(col));
-      }
-      i++;
-    }
-    assertEquals(rows.length, i);
-  }
-
+public class MemoryBufferedQueryResultTest extends BaseQueryResultTest {
   @Test
   public void testNext() {
     var columnCount = 3;
@@ -70,8 +33,8 @@ public class MemoryBufferedQueryResultTest {
 
   @Test
   public void testMaxCapacity() {
-    var columnCount = 10;
-    var rowCount = 1;
+    var columnCount = 1;
+    var rowCount = 10;
     var queryResult = new MemoryBufferedQueryResult(prepareMetaData(columnCount), 10 * 1024);
     var rows = new byte[rowCount][columnCount][];
     for (int i = 0; i < rowCount; i++) {
@@ -82,7 +45,7 @@ public class MemoryBufferedQueryResultTest {
     assertRowsEquals(rows, queryResult);
   }
 
-  @Test(expected = BufferOutOfMemoryException.class)
+  @Test(expected = QueryResultOutOfMemoryException.class)
   public void testBufferOutOfMemory() {
     var columnCount = 101;
     var rowCount = 1;

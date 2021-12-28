@@ -4,13 +4,13 @@ import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
-public class DefaultQueryResult implements QueryResult {
+public class SimpleQueryResult implements QueryResult {
   private final QueryResultMetaData queryResultMetaData;
   private final String[][] rows;
   private final int maxIndex;
   private int rowIndex = -1;
 
-  public DefaultQueryResult(final QueryResultMetaData queryResultMetaData, final String[][] rows) {
+  public SimpleQueryResult(final QueryResultMetaData queryResultMetaData, final String[][] rows) {
     this.queryResultMetaData = queryResultMetaData;
     this.rows = rows;
     this.maxIndex = rows.length - 1;

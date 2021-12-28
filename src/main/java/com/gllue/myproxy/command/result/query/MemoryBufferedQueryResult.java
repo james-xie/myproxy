@@ -114,7 +114,7 @@ public class MemoryBufferedQueryResult implements BufferedQueryResult {
 
   private void ensureCapacityInBytes() {
     if (capacityInBytes > maxCapacityInBytes) {
-      throw new BufferOutOfMemoryException(capacityInBytes);
+      throw new QueryResultOutOfMemoryException(capacityInBytes);
     }
   }
 

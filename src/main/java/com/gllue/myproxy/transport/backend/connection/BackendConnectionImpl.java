@@ -4,6 +4,7 @@ import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.common.concurrent.SettableFuture;
+import com.gllue.myproxy.transport.backend.command.CachedQueryResultReader;
 import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
 import com.gllue.myproxy.transport.backend.datasource.DataSource;
@@ -146,7 +147,7 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
     var future = new PlainFuture<CommandResult>();
     sendCommand(
         packet,
-        DefaultCommandResultReader.newInstance(
+        CachedQueryResultReader.newInstance(
             new Callback<>() {
               @Override
               public void onSuccess(CommandResult result) {
