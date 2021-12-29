@@ -470,4 +470,37 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
         stmt);
     assertTrue(rewriter.isQueryChanged());
   }
+
+  @Test
+  public void testEncryptColumnInWhereExpr() {
+    var table1 = preparePartitionTable("table1");
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
+    var rewriter = newRewriteVisitor(databasesMetaData);
+    var query =
+        "select t.id from `table1` `t` "
+            + "where `t`.`id` = 1 and col1 = '123' and col1 != 'abc' "
+            + "and col1 is null and col1 is not null";
+    var stmt = parseSelectQuery(query);
+    stmt.accept(rewriter);
+    assertSQLEquals(
+        "SELECT t.id\n"
+            + "FROM `table1` `t`\n"
+            + "WHERE `t`.`id` = 1\n"
+            + "\tAND col1 = AES_ENCRYPT('123', 'key')\n"
+            + "\tAND col1 != AES_ENCRYPT('abc', 'key')\n"
+            + "\tAND col1 IS NULL\n"
+            + "\tAND col1 IS NOT NULL",
+        stmt);
+    assertTrue(rewriter.isQueryChanged());
+  }
+
+  @Test(expected = BadSQLException.class)
+  public void testBadOperatorForEncryptColumn() {
+    var table1 = preparePartitionTable("table1");
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1);
+    var rewriter = newRewriteVisitor(databasesMetaData);
+    var query = "select t.* from `table1` `t` " + "where `t`.`id` = 1 and `t`.`col2` like '%456%'";
+    var stmt = parseSelectQuery(query);
+    stmt.accept(rewriter);
+  }
 }

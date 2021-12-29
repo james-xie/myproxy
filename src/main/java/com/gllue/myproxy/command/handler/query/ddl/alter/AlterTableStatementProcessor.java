@@ -132,7 +132,7 @@ public class AlterTableStatementProcessor {
     }
 
     result.add(encryptColumnProcessor.alterTableAddTemporaryColumnItem(item, tmpColumn));
-    encryptColumnProcessor.encryptColumns.add(
+    encryptColumnProcessor.addEncryptColumn(
         new EncryptColumnInfo(columnName, columnName, tmpColumnName, tmpColumn));
     return result;
   }
@@ -163,7 +163,7 @@ public class AlterTableStatementProcessor {
     }
 
     result.add(encryptColumnProcessor.alterTableAddTemporaryColumnItem(item, tmpColumn));
-    encryptColumnProcessor.encryptColumns.add(
+    encryptColumnProcessor.addDecryptColumn(
         new EncryptColumnInfo(columnName, columnName, tmpColumnName, tmpColumn));
     return result;
   }
@@ -250,7 +250,7 @@ public class AlterTableStatementProcessor {
     }
 
     result.add(encryptColumnProcessor.alterTableAddTemporaryColumnItem(item, tmpColumn));
-    encryptColumnProcessor.encryptColumns.add(
+    encryptColumnProcessor.addEncryptColumn(
         new EncryptColumnInfo(oldColumnName, newColumnName, tmpColumnName, tmpColumn));
     return result;
   }
@@ -298,7 +298,7 @@ public class AlterTableStatementProcessor {
     }
 
     result.add(encryptColumnProcessor.alterTableAddTemporaryColumnItem(item, tmpColumn));
-    encryptColumnProcessor.encryptColumns.add(
+    encryptColumnProcessor.addDecryptColumn(
         new EncryptColumnInfo(oldColumnName, newColumnName, tmpColumnName, tmpColumn));
     return result;
   }

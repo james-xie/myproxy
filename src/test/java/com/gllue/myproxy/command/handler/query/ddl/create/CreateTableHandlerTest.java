@@ -70,24 +70,11 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
 
     var request = newQueryHandlerRequest(query, Map.of());
 
-    var future = new PlainFuture<>();
-    var callback =
-        new Callback<HandlerResult>() {
-          @Override
-          public void onSuccess(HandlerResult result) {
-            future.set(result);
-          }
-
-          @Override
-          public void onFailure(Throwable e) {
-            future.setException(e);
-          }
-        };
-
+    var callback = new FuturableCallback<HandlerResult>();
     var handler = newHandler();
     handler.execute(request, callback);
 
-    future.get();
+    callback.get();
 
     assertEquals(1, submitSqlList.size());
     assertSQLEquals(query, submitSqlList.get(0));

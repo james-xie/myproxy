@@ -114,11 +114,13 @@ public class Promise<R> {
     assert nextPromiseCallback != null;
 
     try {
-      Object res = null;
+      Object res;
       if (onSuccess != null) {
         res = onSuccess.apply(result);
       } else if (onFinished != null) {
         res = invokeOnFinishedFunction(onFinished, result, exception);
+      } else {
+        res = result;
       }
 
       if (res instanceof Promise) {

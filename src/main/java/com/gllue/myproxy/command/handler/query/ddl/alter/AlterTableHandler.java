@@ -34,8 +34,10 @@ import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -190,13 +192,22 @@ public class AlterTableHandler extends AbstractDDLHandler {
     return tableName;
   }
 
+  private Column[] sortColumns(Column[] columns, Map<String, Integer> columnOrders) {
+    Arrays.sort(
+        columns,
+        Comparator.comparingInt(x -> columnOrders.getOrDefault(x.name, Integer.MAX_VALUE)));
+    return columns;
+  }
+
   private boolean updateStandardTableMetaData(
       QueryHandlerRequest request, TableMetaData table, SQLAlterTableStatement stmt) {
     var tableName = table.getName();
-    Map<String, UpdateTableCommand.Column> columnsMap = new HashMap<>();
+    Map<String, UpdateTableCommand.Column> columnsMap = new LinkedHashMap<>();
+    Map<String, Integer> columnOrders = new HashMap<>();
     for (int i = 0; i < table.getNumberOfColumns(); i++) {
       var column = table.getColumn(i);
       columnsMap.put(column.getName(), AbstractTableUpdateCommand.Column.newColumn(column));
+      columnOrders.put(column.getName(), i);
     }
 
     tableName = applyChangesToColumnsMap(tableName, columnsMap, stmt);
@@ -206,7 +217,7 @@ public class AlterTableHandler extends AbstractDDLHandler {
             request.getDatabase(),
             table.getIdentity(),
             tableName,
-            columnsMap.values().toArray(Column[]::new))
+            sortColumns(columnsMap.values().toArray(Column[]::new), columnOrders))
         .execute(newCommandExecutionContext());
     return true;
   }
@@ -289,18 +300,17 @@ public class AlterTableHandler extends AbstractDDLHandler {
 
     var isAlterEncryptColumn = false;
     for (var item : stmt.getItems()) {
-      isAlterEncryptColumn |=
-          encryptColumnProcessor.isAddEncryptColumn(item)
-              || encryptColumnProcessor.isModifyToEncryptColumn(item)
-              || encryptColumnProcessor.isChangeToEncryptColumn(item);
+      var isAddEncryptColumn = encryptColumnProcessor.isAddEncryptColumn(item);
+      var isModifyEncryptColumn = encryptColumnProcessor.isModifyToEncryptColumn(item);
+      var isChangeEncryptColumn = encryptColumnProcessor.isChangeToEncryptColumn(item);
+      isAlterEncryptColumn |= isAddEncryptColumn || isModifyEncryptColumn || isChangeEncryptColumn;
+      if (encryptKey == null && (isModifyEncryptColumn || isChangeEncryptColumn)) {
+        throw new NoEncryptKeyException();
+      }
     }
     if (!isAlterEncryptColumn) {
       submitQueryToBackendDatabase(request, request.getQuery(), callback);
       return;
-    }
-
-    if (encryptKey == null) {
-      throw new NoEncryptKeyException();
     }
 
     Function<CommandResult, Promise<Boolean>> operation =
@@ -308,7 +318,6 @@ public class AlterTableHandler extends AbstractDDLHandler {
           return rebuildTableMetaData(request, tableName)
               .thenAsync(
                   (columnDefinitionMap) -> {
-                    // TODO: maybe cannot get table metadata.
                     var table =
                         clusterState
                             .getMetaData()

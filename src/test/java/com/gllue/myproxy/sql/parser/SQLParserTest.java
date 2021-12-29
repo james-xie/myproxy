@@ -94,6 +94,7 @@ public class SQLParserTest {
             ""
                 + "alter table configvalue "
                 + "add column `a` ENCRYPT null,"
+                + "add column `c` int(11) not null AUTO_INCREMENT COMMENT 'string' COLLATE 'utf8mb4_0900_ai_ci' REFERENCES `channel` (`id`),"
                 + "add column `b` ENCRYPT null,"
                 + "modify column `a` ENCRYPT null,"
                 + "change column `a` `b` ENCRYPT null,"

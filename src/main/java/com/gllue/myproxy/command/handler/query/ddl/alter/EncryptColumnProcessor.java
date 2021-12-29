@@ -26,6 +26,14 @@ class EncryptColumnProcessor {
   final List<EncryptColumnInfo> encryptColumns = new ArrayList<>();
   final List<EncryptColumnInfo> decryptColumns = new ArrayList<>();
 
+  public void addEncryptColumn(final EncryptColumnInfo columnInfo) {
+    this.encryptColumns.add(columnInfo);
+  }
+
+  public void addDecryptColumn(final EncryptColumnInfo columnInfo) {
+    this.decryptColumns.add(columnInfo);
+  }
+
   void validateEncryptColumnDefinition(SQLColumnDefinition columnDef) {
     assert isEncryptColumn(columnDef);
 

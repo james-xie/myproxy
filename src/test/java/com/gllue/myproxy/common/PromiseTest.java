@@ -157,21 +157,25 @@ public class PromiseTest {
   }
 
   @Test
-  public void testPromiseOnSuccessThenNull() {
+  public void testPromiseOnSuccessThenDoCatch() {
     List<String> result = new ArrayList<>();
     new Promise<Boolean>(
             cb -> {
               result.add("resolve");
               cb.onSuccess(true);
             })
-        .then(null)
+        .doCatch(
+            (e) -> {
+              result.add("doCatch: " + e);
+              return null;
+            })
         .then(
             (value) -> {
               result.add("then 1 onSuccess: " + value);
               return value;
             });
 
-    assertEquals(List.of("resolve", "then 1 onSuccess: null"), result);
+    assertEquals(List.of("resolve", "then 1 onSuccess: true"), result);
   }
 
   @Test

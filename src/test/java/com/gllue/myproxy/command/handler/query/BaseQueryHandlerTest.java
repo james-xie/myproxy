@@ -4,6 +4,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
@@ -15,6 +17,10 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStateme
 import com.gllue.myproxy.AssertUtils;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.result.CommandResult;
+import com.gllue.myproxy.command.result.query.DefaultQueryResultMetaData;
+import com.gllue.myproxy.command.result.query.DefaultQueryResultMetaData.Column;
+import com.gllue.myproxy.command.result.query.QueryResultMetaData;
+import com.gllue.myproxy.command.result.query.SimpleQueryResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.util.RandomUtils;
@@ -28,11 +34,16 @@ import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
 import com.gllue.myproxy.sql.parser.SQLParser;
+import com.gllue.myproxy.transport.constant.MySQLColumnType;
 import com.gllue.myproxy.transport.core.service.TransportService;
+import com.gllue.myproxy.transport.frontend.connection.SessionContext;
+import com.gllue.myproxy.transport.frontend.connection.SessionContextImpl;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 
 public abstract class BaseQueryHandlerTest {
   protected static final int FRONTEND_CONNECTION_ID = 1;
@@ -40,6 +51,7 @@ public abstract class BaseQueryHandlerTest {
   protected static final String DATASOURCE = "ds";
   protected static final String DATABASE = "db";
   protected static final String ROOT_PATH = "/root";
+  protected static final String ENCRYPT_KEY = "key";
 
   @Mock protected Configurations configurations;
 
@@ -47,13 +59,15 @@ public abstract class BaseQueryHandlerTest {
 
   @Mock protected TransportService transportService;
 
+  @Mock protected SessionContext sessionContext;
+
   protected final SQLParser sqlParser = new SQLParser();
 
   protected TableMetaData prepareTable(String tableName, String... columnNames) {
     var builder = new TableMetaData.Builder();
     builder
         .setName(tableName)
-        .setType(TableType.PRIMARY)
+        .setType(TableType.STANDARD)
         .setIdentity(RandomUtils.randomShortUUID())
         .setVersion(1);
 
@@ -192,6 +206,10 @@ public abstract class BaseQueryHandlerTest {
         });
   }
 
+  protected void mockEncryptKey(String encryptKey) {
+    when(sessionContext.getEncryptKey()).thenReturn(encryptKey);
+  }
+
   protected MySqlCreateTableStatement parseCreateTableQuery(final String query) {
     return (MySqlCreateTableStatement) sqlParser.parse(query);
   }
@@ -231,9 +249,38 @@ public abstract class BaseQueryHandlerTest {
   protected QueryHandlerRequest newQueryHandlerRequest(
       final String query, final Map<SQLCommentAttributeKey, Object> attributes) {
     var request =
-        new QueryHandlerRequestImpl(FRONTEND_CONNECTION_ID, DATASOURCE, DATABASE, query, null);
+        new QueryHandlerRequestImpl(
+            FRONTEND_CONNECTION_ID, DATASOURCE, DATABASE, query, sessionContext);
     request.setCommentsAttributes(attributes);
     request.setStatement(sqlParser.parse(query));
     return request;
+  }
+
+  protected QueryResultMetaData newQueryResultMetaData(
+      List<String> columnNames, List<MySQLColumnType> columnTypes) {
+    var columns = new Column[columnNames.size()];
+    for (int i = 0; i < columns.length; i++) {
+      columns[i] = new Column(columnNames.get(i), columnTypes.get(i));
+    }
+    return new DefaultQueryResultMetaData(columns);
+  }
+
+  protected CommandResult newCommandResult(List<String> columnNames, String[][] result) {
+    var columnTypes =
+        columnNames.stream()
+            .map(x -> MySQLColumnType.MYSQL_TYPE_STRING)
+            .collect(Collectors.toList());
+    return newCommandResult(columnNames, columnTypes, result);
+  }
+
+  protected CommandResult newCommandResult(
+      List<String> columnNames, List<MySQLColumnType> columnTypes, String[][] result) {
+    return new CommandResult(
+        0,
+        0,
+        0,
+        0,
+        "",
+        new SimpleQueryResult(newQueryResultMetaData(columnNames, columnTypes), result));
   }
 }

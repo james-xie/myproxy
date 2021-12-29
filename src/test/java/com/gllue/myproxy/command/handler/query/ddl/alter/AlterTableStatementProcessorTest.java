@@ -9,12 +9,12 @@ import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgori
 import com.gllue.myproxy.common.exception.BadColumnException;
 import com.gllue.myproxy.common.exception.ColumnExistsException;
 import com.gllue.myproxy.common.util.RandomUtils;
+import com.gllue.myproxy.common.util.SQLStatementUtils;
+import com.gllue.myproxy.metadata.model.ColumnMetaData.Builder;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
-import com.gllue.myproxy.common.util.SQLStatementUtils;
-import com.gllue.myproxy.metadata.model.ColumnMetaData.Builder;
-import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
+import java.util.List;
 import java.util.Map;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,13 +22,14 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
+  static final String encryptKey = "123";
+  EncryptColumnProcessor encryptProcessor =
+      new EncryptColumnProcessor(
+          EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, encryptKey),
+          EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, encryptKey));
+
   AlterTableStatementProcessor prepareProcessor(
       TableMetaData tableMetaData, Map<String, SQLColumnDefinition> columnsInDatabase) {
-    var encryptKey = "123";
-    var encryptProcessor =
-        new EncryptColumnProcessor(
-            EncryptionHelper.newEncryptor(EncryptionAlgorithm.AES, encryptKey),
-            EncryptionHelper.newDecryptor(EncryptionAlgorithm.AES, encryptKey));
     return new AlterTableStatementProcessor(tableMetaData, columnsInDatabase, encryptProcessor);
   }
 
@@ -150,6 +151,12 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
             + "MODIFY COLUMN `col2` BIGINT NULL, "
             + "ADD COLUMN `$tmp_col3` VARCHAR NOT NULL",
         newStmt);
+    assertEquals(
+        encryptProcessor.encryptColumns,
+        List.of(new EncryptColumnInfo("col1", "col1", "$tmp_col1", null)));
+    assertEquals(
+        encryptProcessor.decryptColumns,
+        List.of(new EncryptColumnInfo("col3", "col3", "$tmp_col3", null)));
   }
 
   @Test(expected = BadColumnException.class)
@@ -207,6 +214,8 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
     var stmt = parseAlterTableQuery(alterSql);
     var newStmt = processor.processStatement(stmt);
     assertSQLEquals("ALTER TABLE `table` MODIFY COLUMN `col2` BIGINT NULL", newStmt);
+    assertEquals(encryptProcessor.encryptColumns, List.of());
+    assertEquals(encryptProcessor.decryptColumns, List.of());
   }
 
   @Test
@@ -247,6 +256,8 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
             + "MODIFY COLUMN `col2` BIGINT NULL, "
             + "MODIFY COLUMN `col3` VARCHAR NULL",
         newStmt);
+    assertEquals(encryptProcessor.encryptColumns, List.of());
+    assertEquals(encryptProcessor.decryptColumns, List.of());
   }
 
   @Test
@@ -288,6 +299,12 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
             + "CHANGE COLUMN `col2` `col_2` BIGINT NULL, "
             + "ADD COLUMN `$tmp_col_3` VARCHAR NOT NULL",
         newStmt);
+    assertEquals(
+        encryptProcessor.encryptColumns,
+        List.of(new EncryptColumnInfo("col1", "col_1", "$tmp_col_1", null)));
+    assertEquals(
+        encryptProcessor.decryptColumns,
+        List.of(new EncryptColumnInfo("col3", "col_3", "$tmp_col_3", null)));
   }
 
   @Test(expected = BadColumnException.class)
@@ -384,6 +401,8 @@ public class AlterTableStatementProcessorTest extends BaseQueryHandlerTest {
             + "MODIFY COLUMN `col_1` VARBINARY NULL,"
             + "MODIFY COLUMN `col_3` VARCHAR NULL,",
         newStmt);
+    assertEquals(encryptProcessor.encryptColumns, List.of());
+    assertEquals(encryptProcessor.decryptColumns, List.of());
   }
 
   @Test

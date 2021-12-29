@@ -4,11 +4,15 @@ import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
 import com.gllue.myproxy.common.Callback;
-import lombok.RequiredArgsConstructor;
+import com.google.common.base.Preconditions;
 
-@RequiredArgsConstructor
 public class WrappedHandlerResult implements HandlerResult {
   private final CommandResult commandResult;
+
+  public WrappedHandlerResult(final CommandResult commandResult) {
+    Preconditions.checkNotNull(commandResult);
+    this.commandResult = commandResult;
+  }
 
   @Override
   public long getAffectedRows() {

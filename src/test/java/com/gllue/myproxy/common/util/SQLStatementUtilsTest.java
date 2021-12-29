@@ -213,6 +213,11 @@ public class SQLStatementUtilsTest {
 
     assertFalse(
         SQLStatementUtils.isColumnDefinitionEquals(
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, true, null, null),
+            SQLStatementUtils.newColumnDefinition("col2", ColumnType.CHAR, true, null, null)));
+
+    assertFalse(
+        SQLStatementUtils.isColumnDefinitionEquals(
             SQLStatementUtils.newColumnDefinition("col1", ColumnType.INT, true, null, null),
             SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, true, null, null)));
 
@@ -231,9 +236,19 @@ public class SQLStatementUtilsTest {
             SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, false, "", null),
             SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, false, null, null)));
 
+    assertFalse(
+        SQLStatementUtils.isColumnDefinitionEquals(
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, false, null, "abc"),
+            SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, false, null, null)));
+
     var col1 = SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, false, "", null);
     var col2 = col1.clone();
     col1.setCollateExpr(new SQLIdentifierExpr("utf8mb4"));
+    assertFalse(SQLStatementUtils.isColumnDefinitionEquals(col1, col2));
+
+    col1 = SQLStatementUtils.newColumnDefinition("col1", ColumnType.CHAR, false, "", null);
+    col2 = col1.clone();
+    col2.setAutoIncrement(true);
     assertFalse(SQLStatementUtils.isColumnDefinitionEquals(col1, col2));
   }
 

@@ -2,6 +2,7 @@ package com.gllue.myproxy.command.handler.query;
 
 import com.alibaba.druid.sql.ast.expr.SQLBinaryOperator;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
+import com.google.common.base.Preconditions;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ public class EncryptionHelper {
     AES;
 
     public static EncryptionAlgorithm getAlgorithmByName(final String name) {
+      Preconditions.checkNotNull(name, "Encryption algorithm name cannot be null.");
       for (var value : EncryptionAlgorithm.values()) {
         if (value.name().equalsIgnoreCase(name)) {
           return value;

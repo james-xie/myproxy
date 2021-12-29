@@ -34,6 +34,7 @@ import com.alibaba.druid.sql.dialect.mysql.ast.MySqlPrimaryKey;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.constant.ServerConstants;
 import com.gllue.myproxy.metadata.model.ColumnType;
+import com.gllue.myproxy.sql.parser.SQLParser;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import java.util.ArrayList;
@@ -266,7 +267,19 @@ public class SQLStatementUtils {
     var collate2 = col2.getCollateExpr();
     if ((collate1 == null && collate2 != null)
         || (collate1 != null && collate2 == null)
-        || (collate1 != null && !collate1.toString().equals(collate2.toString()))) {
+        || (collate1 != null && !collate1.toString().equalsIgnoreCase(collate2.toString()))) {
+      return false;
+    }
+
+    if (col1.isAutoIncrement() != col2.isAutoIncrement()) {
+      return false;
+    }
+
+    var comment1 = col1.getComment();
+    var comment2 = col2.getComment();
+    if ((comment1 == null && comment2 != null)
+        || (comment1 != null && comment2 == null)
+        || (comment1 != null && !comment1.toString().equals(comment2.toString()))) {
       return false;
     }
 
@@ -443,5 +456,30 @@ public class SQLStatementUtils {
     Preconditions.checkArgument(alias != null, "alias cannot be null.");
     var expr = new SQLCharExpr(ServerConstants.getServerVersion());
     return new SQLSelectItem(expr, alias);
+  }
+
+  public static boolean isSQLEquals(final SQLStatement s1, final SQLStatement s2) {
+    if (s1 == s2) {
+      return true;
+    } else if (s1 == null || s2 == null) {
+      return false;
+    } else if (s1.getClass() != s2.getClass()) {
+      return false;
+    }
+
+    var sql1 = SQLStatementUtils.toSQLString(s1);
+    var sql2 = SQLStatementUtils.toSQLString(s2);
+    if (sql1.endsWith(";")) {
+      sql1 = sql1.substring(0, sql1.length() - 1);
+    }
+    if (sql2.endsWith(";")) {
+      sql2 = sql2.substring(0, sql2.length() - 1);
+    }
+    return sql1.equals(sql2);
+  }
+
+  public static boolean isSQLEquals(final String sql1, final String sql2) {
+    final SQLParser sqlParser = new SQLParser();
+    return isSQLEquals(sqlParser.parse(sql1), sqlParser.parse(sql2));
   }
 }
