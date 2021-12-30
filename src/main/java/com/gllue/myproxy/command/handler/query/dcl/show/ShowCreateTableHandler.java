@@ -27,6 +27,7 @@ import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.command.result.query.SingleRowQueryResult;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.metadata.model.ColumnType;
@@ -48,8 +49,11 @@ public class ShowCreateTableHandler extends AbstractQueryHandler {
   private final SQLParser sqlParser;
 
   public ShowCreateTableHandler(
-      TransportService transportService, ClusterState clusterState, SQLParser sqlParser) {
-    super(transportService);
+      final TransportService transportService,
+      final ClusterState clusterState,
+      final SQLParser sqlParser,
+      final ThreadPool threadPool) {
+    super(transportService, threadPool);
     this.clusterState = clusterState;
     this.sqlParser = sqlParser;
   }

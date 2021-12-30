@@ -11,6 +11,7 @@ import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.result.query.FilteredQueryResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
 import com.gllue.myproxy.metadata.model.DatabaseMetaData;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
@@ -24,8 +25,11 @@ public class ShowTablesHandler extends AbstractQueryHandler {
 
   private final ClusterState clusterState;
 
-  public ShowTablesHandler(TransportService transportService, ClusterState clusterState) {
-    super(transportService);
+  public ShowTablesHandler(
+      final TransportService transportService,
+      final ClusterState clusterState,
+      final ThreadPool threadPool) {
+    super(transportService, threadPool);
     this.clusterState = clusterState;
   }
 

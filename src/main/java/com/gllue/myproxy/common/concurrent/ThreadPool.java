@@ -24,7 +24,7 @@ import javax.annotation.Nonnull;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-public final class ThreadPool {
+public class ThreadPool {
   @Getter
   @RequiredArgsConstructor
   enum Type {

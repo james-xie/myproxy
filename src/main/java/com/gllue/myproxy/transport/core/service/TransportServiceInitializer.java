@@ -58,7 +58,9 @@ public class TransportServiceInitializer implements Initializer {
   public void initialize(ServerContext context) {
     var transportService =
         new TransportService(
-            context.getConfigurations(), preloadDataSources(context.getConfigurations()));
+            context.getConfigurations(),
+            context.getThreadPool(),
+            preloadDataSources(context.getConfigurations()));
     context.setTransportService(transportService);
   }
 

@@ -7,6 +7,7 @@ import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.command.handler.query.dml.AbstractDMLHandler;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.config.Configurations;
@@ -20,12 +21,13 @@ public class InsertQueryHandler extends AbstractDMLHandler {
   private final IdGenerator idGenerator;
 
   public InsertQueryHandler(
-      PersistRepository repository,
-      Configurations configurations,
-      ClusterState clusterState,
-      TransportService transportService,
-      IdGenerator idGenerator) {
-    super(repository, configurations, clusterState, transportService);
+      final PersistRepository repository,
+      final Configurations configurations,
+      final ClusterState clusterState,
+      final TransportService transportService,
+      final IdGenerator idGenerator,
+      final ThreadPool threadPool) {
+    super(repository, configurations, clusterState, transportService, threadPool);
     this.idGenerator = idGenerator;
   }
 

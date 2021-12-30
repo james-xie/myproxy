@@ -103,9 +103,13 @@ public class Promise<R> {
       this.exception = e;
       if (nextPromiseCallback != null) {
         invokeOnFailure();
+      } else {
+        log.error("Found an unhandled exception in the promise.", e);
       }
     } else {
-      log.warn("Promise state has already changed, ignore exception.", e);
+      if (log.isWarnEnabled()) {
+        log.warn("Promise state has already changed, ignore exception.", e);
+      }
     }
   }
 

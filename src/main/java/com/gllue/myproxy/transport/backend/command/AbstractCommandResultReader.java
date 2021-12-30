@@ -8,6 +8,7 @@ import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
+import com.google.common.base.Preconditions;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
@@ -57,11 +58,6 @@ public abstract class AbstractCommandResultReader implements CommandResultReader
   }
 
   @Override
-  public Executor executor() {
-    return ThreadPool.DIRECT_EXECUTOR_SERVICE;
-  }
-
-  @Override
   public void close() throws Exception {
     if (!getConnection().isAutoRead()) {
       getConnection().enableAutoRead();
@@ -72,18 +68,51 @@ public abstract class AbstractCommandResultReader implements CommandResultReader
     }
   }
 
+  private Executor getExecutor(Callback<?> callback) {
+    var executor = callback.executor();
+    if (executor == null) {
+      executor = ThreadPool.DIRECT_EXECUTOR_SERVICE;
+      if (log.isDebugEnabled()) {
+        log.debug("Callback[{}] is executed by direct executor service.", callback);
+      }
+    }
+    return executor;
+  }
+
+  private Runnable onSuccessRunnable(Callback<CommandResult> callback, CommandResult result) {
+    return () -> {
+      try {
+        callback.onSuccess(result);
+      } catch (Exception e) {
+        var msg = "An exception has occurred when invoking the callback [{}] onSuccess method.";
+        log.error(msg, callback, e);
+      }
+    };
+  }
+
+  private Runnable onFailureRunnable(Callback<CommandResult> callback, Throwable throwable) {
+    return () -> {
+      try {
+        callback.onFailure(throwable);
+      } catch (Exception e) {
+        var msg = "An exception has occurred when invoking the callback [{}] onSuccess method.";
+        log.error(msg, callback, e);
+      }
+    };
+  }
+
   @Override
   public void fireReadCompletedEvent() {
     if (commandResult != null) {
       for (var callback : callbacks) {
-        callback.onSuccess(commandResult);
+        getExecutor(callback).execute(onSuccessRunnable(callback, commandResult));
       }
     } else {
       if (throwable == null) {
         throwable = new BackendResultReadException(MySQLServerErrorCode.ER_NET_READ_ERROR);
       }
       for (var callback : callbacks) {
-        callback.onFailure(throwable);
+        getExecutor(callback).execute(onFailureRunnable(callback, throwable));
       }
     }
   }

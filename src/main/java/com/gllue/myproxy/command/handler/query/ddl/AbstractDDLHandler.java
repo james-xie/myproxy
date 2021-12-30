@@ -17,6 +17,7 @@ import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.util.SQLErrorUtils;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.metadata.command.AbstractTableUpdateCommand;
@@ -46,8 +47,9 @@ public abstract class AbstractDDLHandler extends SchemaRelatedQueryHandler {
       final Configurations configurations,
       final ClusterState clusterState,
       final TransportService transportService,
-      final SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService);
+      final SQLParser sqlParser,
+      final ThreadPool threadPool) {
+    super(repository, configurations, clusterState, transportService, threadPool);
     this.sqlParser = sqlParser;
   }
 

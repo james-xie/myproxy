@@ -503,4 +503,18 @@ public class SelectQueryRewriteVisitorTest extends BaseQueryHandlerTest {
     var stmt = parseSelectQuery(query);
     stmt.accept(rewriter);
   }
+
+  @Test(expected = AmbiguousColumnException.class)
+  public void testAmbiguousColumnInSql() {
+    var table1 = preparePartitionTable("table1");
+    var table2 = preparePartitionTable("table2");
+    var databasesMetaData = prepareMultiDatabasesMetaData(DATASOURCE, DATABASE, table1, table2);
+    var rewriter = newRewriteVisitor(databasesMetaData);
+    var query =
+        "select * from `table1` t1\n"
+            + "inner join `table2` t2 on t1.id = t2.id\n"
+            + "where id = 1";
+    var stmt = parseSelectQuery(query);
+    stmt.accept(rewriter);
+  }
 }

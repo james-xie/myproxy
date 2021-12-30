@@ -157,8 +157,4 @@ public abstract class AbstractQueryResultReader extends AbstractCommandResultRea
     return state == State.READ_COMPLETED || state == State.FAILED;
   }
 
-  @Override
-  public Executor executor() {
-    return ThreadPool.DIRECT_EXECUTOR_SERVICE;
-  }
 }

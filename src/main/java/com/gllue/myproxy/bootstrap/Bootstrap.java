@@ -19,8 +19,8 @@ public final class Bootstrap {
   private final Initializer[] initializers =
       new Initializer[] {
         new ZookeeperInitializer(),
-        new TransportServiceInitializer(),
         new ThreadPoolInitializer(),
+        new TransportServiceInitializer(),
         new ClusterStateInitializer(),
         new IdGeneratorInitializer(),
         backendServer,

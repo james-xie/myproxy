@@ -64,7 +64,13 @@ public class CommandExecutionEngine {
     this.handlerExecutor = new HandlerExecutor(threadPool);
     this.concreteQueryHandler =
         new ConcreteQueryHandler(
-            repository, configurations, clusterState, transportService, sqlParser, idGenerator);
+            repository,
+            configurations,
+            clusterState,
+            transportService,
+            sqlParser,
+            idGenerator,
+            threadPool);
   }
 
   @RequiredArgsConstructor
@@ -320,7 +326,11 @@ public class CommandExecutionEngine {
                 result.getQueryResult().close();
               }
             } catch (Exception e) {
-              frontendConnection.writeAndFlush(ExceptionResolver.resolve(e));
+              try {
+                frontendConnection.writeAndFlush(ExceptionResolver.resolve(e));
+              } catch (Exception e1) {
+                log.error("Failed to write error packet to the connection.", e1);
+              }
             }
 
             if (backendConnection.isClosed()) {
@@ -330,8 +340,11 @@ public class CommandExecutionEngine {
 
           @Override
           public void onFailure(Throwable e) {
-            var packet = ExceptionResolver.resolve(e);
-            frontendConnection.writeAndFlush(packet);
+            try {
+              frontendConnection.writeAndFlush(ExceptionResolver.resolve(e));
+            } catch (Exception e1) {
+              log.error("Failed to write error packet to the connection.", e1);
+            }
           }
         });
   }

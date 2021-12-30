@@ -23,6 +23,7 @@ import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.command.result.query.SimpleQueryResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
@@ -58,6 +59,8 @@ public abstract class BaseQueryHandlerTest {
   @Mock protected ClusterState clusterState;
 
   @Mock protected TransportService transportService;
+
+  protected ThreadPool threadPool;
 
   @Mock protected SessionContext sessionContext;
 

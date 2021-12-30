@@ -6,6 +6,8 @@ import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -17,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public abstract class AbstractQueryHandler implements CommandHandler<QueryHandlerRequest> {
   protected final TransportService transportService;
+  protected final ThreadPool threadPool;
 
   protected void submitQueryToBackendDatabase(
       int connectionId, String query, Callback<CommandResult> callback) {
@@ -34,7 +37,8 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
     transportService.submitQueryAndDirectTransferResult(
         connectionId,
         query,
-        QueryHandlerResult.wrappedCallbackWithDirectTransferredResult(callback));
+        QueryHandlerResult.wrappedCallbackWithDirectTransferredResult(
+            callback, threadPool.executor(Name.COMMAND)));
   }
 
   protected Promise<CommandResult> submitQueryToBackendDatabase(int connectionId, String query) {

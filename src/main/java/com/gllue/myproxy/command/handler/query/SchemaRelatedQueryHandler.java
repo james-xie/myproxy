@@ -5,6 +5,7 @@ import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgori
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
@@ -28,8 +29,9 @@ public abstract class SchemaRelatedQueryHandler extends AbstractQueryHandler {
       final PersistRepository repository,
       final Configurations configurations,
       final ClusterState clusterState,
-      final TransportService transportService) {
-    super(transportService);
+      final TransportService transportService,
+      final ThreadPool threadPool) {
+    super(transportService, threadPool);
 
     this.repository = repository;
     this.configurations = configurations;

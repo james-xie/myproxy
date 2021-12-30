@@ -19,6 +19,7 @@ import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.exception.BadDatabaseException;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.config.Configurations;
@@ -55,8 +56,9 @@ public class AlterTableHandler extends AbstractDDLHandler {
       final Configurations configurations,
       final ClusterState clusterState,
       final TransportService transportService,
-      final SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService, sqlParser);
+      final SQLParser sqlParser,
+      final ThreadPool threadPool) {
+    super(repository, configurations, clusterState, transportService, sqlParser, threadPool);
   }
 
   @Override

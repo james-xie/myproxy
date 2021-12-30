@@ -39,6 +39,7 @@ import com.gllue.myproxy.command.handler.query.dml.insert.InsertQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.select.SelectQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.update.UpdateQueryHandler;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.sql.parser.SQLParser;
@@ -70,37 +71,38 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
       final ClusterState clusterState,
       final TransportService transportService,
       final SQLParser sqlParser,
-      final IdGenerator idGenerator) {
-    super(repository, configurations, clusterState, transportService);
+      final IdGenerator idGenerator,
+      final ThreadPool threadPool) {
+    super(repository, configurations, clusterState, transportService, threadPool);
     this.sqlParser = sqlParser;
 
     // Init query handlers.
     this.alterTableHandler =
         new AlterTableHandler(
-            repository, configurations, clusterState, transportService, sqlParser);
+            repository, configurations, clusterState, transportService, sqlParser, threadPool);
     this.createTableHandler =
         new CreateTableHandler(
-            repository, configurations, clusterState, transportService, sqlParser);
+            repository, configurations, clusterState, transportService, sqlParser, threadPool);
     this.selectQueryHandler =
-        new SelectQueryHandler(repository, configurations, clusterState, transportService);
+        new SelectQueryHandler(repository, configurations, clusterState, transportService, threadPool);
     this.insertQueryHandler =
         new InsertQueryHandler(
-            repository, configurations, clusterState, transportService, idGenerator);
+            repository, configurations, clusterState, transportService, idGenerator, threadPool);
     this.updateQueryHandler =
-        new UpdateQueryHandler(repository, configurations, clusterState, transportService);
+        new UpdateQueryHandler(repository, configurations, clusterState, transportService, threadPool);
     this.deleteQueryHandler =
-        new DeleteQueryHandler(repository, configurations, clusterState, transportService);
+        new DeleteQueryHandler(repository, configurations, clusterState, transportService, threadPool);
     this.dropTableHandler =
-        new DropTableHandler(repository, configurations, clusterState, transportService, sqlParser);
+        new DropTableHandler(repository, configurations, clusterState, transportService, sqlParser, threadPool);
     this.truncateTableHandler =
         new TruncateTableHandler(
-            repository, configurations, clusterState, transportService, sqlParser);
+            repository, configurations, clusterState, transportService, sqlParser, threadPool);
 
-    this.setStatementHandler = new SetStatementHandler(transportService);
-    this.showTablesHandler = new ShowTablesHandler(transportService, clusterState);
+    this.setStatementHandler = new SetStatementHandler(transportService, threadPool);
+    this.showTablesHandler = new ShowTablesHandler(transportService, clusterState, threadPool);
     this.showCreateTableHandler =
-        new ShowCreateTableHandler(transportService, clusterState, sqlParser);
-    this.killStatementHandler = new KillStatementHandler(transportService);
+        new ShowCreateTableHandler(transportService, clusterState, sqlParser, threadPool);
+    this.killStatementHandler = new KillStatementHandler(transportService, threadPool);
   }
 
   @Override

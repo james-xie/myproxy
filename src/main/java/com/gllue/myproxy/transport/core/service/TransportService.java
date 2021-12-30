@@ -5,38 +5,35 @@ import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPa
 import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.ROLLBACK_COMMAND;
 
 import com.gllue.myproxy.command.result.CommandResult;
-import com.gllue.myproxy.command.result.query.QueryRowsConsumerPipeline;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
-import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.transport.backend.command.CachedQueryResultReader;
 import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
+import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultReader;
+import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
-import com.gllue.myproxy.transport.exception.ExceptionResolver;
-import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
-import com.gllue.myproxy.transport.backend.command.BufferedQueryResultReader;
-import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultReader;
-import com.gllue.myproxy.transport.backend.command.PipelineSupportedQueryResultReader;
-import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionManager;
-import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
+import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TransportService implements FrontendConnectionManager {
   private final Configurations configurations;
+  private final ThreadPool threadPool;
 
   @Getter
   private final DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
@@ -44,8 +41,11 @@ public class TransportService implements FrontendConnectionManager {
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
 
   public TransportService(
-      final Configurations configurations, final List<BackendDataSource> dataSources) {
+      final Configurations configurations,
+      final ThreadPool threadPool,
+      final List<BackendDataSource> dataSources) {
     this.configurations = configurations;
+    this.threadPool = threadPool;
     backendDataSourceManager = new DataSourceManager<>(dataSources);
     frontendConnectionMap = new ConcurrentHashMap<>();
   }
@@ -121,7 +121,8 @@ public class TransportService implements FrontendConnectionManager {
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
             (cb) -> {
-              var reader = new DefaultCommandResultReader().addCallback(cb);
+              var newCallback = wrappedCallback(frontendConnection, cb);
+              var reader = new DefaultCommandResultReader().addCallback(newCallback);
               backendConnection.sendCommand(BEGIN_COMMAND, reader);
             })
         .then(
@@ -137,7 +138,8 @@ public class TransportService implements FrontendConnectionManager {
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
             (cb) -> {
-              var reader = new DefaultCommandResultReader().addCallback(cb);
+              var newCallback = wrappedCallback(frontendConnection, cb);
+              var reader = new DefaultCommandResultReader().addCallback(newCallback);
               backendConnection.sendCommand(COMMIT_COMMAND, reader);
             })
         .then(
@@ -153,7 +155,8 @@ public class TransportService implements FrontendConnectionManager {
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
             (cb) -> {
-              var reader = new DefaultCommandResultReader().addCallback(cb);
+              var newCallback = wrappedCallback(frontendConnection, cb);
+              var reader = new DefaultCommandResultReader().addCallback(newCallback);
               backendConnection.sendCommand(ROLLBACK_COMMAND, reader);
             })
         .then(
@@ -186,6 +189,14 @@ public class TransportService implements FrontendConnectionManager {
               exception);
           connection.close();
         }
+      }
+
+      public Executor executor() {
+        var executor = callback.executor();
+        if (executor == null) {
+          executor = threadPool.executor(Name.COMMAND);
+        }
+        return executor;
       }
     };
   }

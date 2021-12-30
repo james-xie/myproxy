@@ -40,7 +40,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
 
   public AlterTableHandler newHandler() {
     return new AlterTableHandler(
-        repository, configurations, clusterState, transportService, sqlParser);
+        repository, configurations, clusterState, transportService, sqlParser, threadPool);
   }
 
   protected void mockConfigurations() {

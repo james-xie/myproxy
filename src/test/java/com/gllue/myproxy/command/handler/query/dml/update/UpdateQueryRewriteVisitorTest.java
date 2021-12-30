@@ -47,7 +47,7 @@ public class UpdateQueryRewriteVisitorTest extends BaseQueryHandlerTest {
         "update table1 "
             + "inner join table2 on table1.id = table2.id "
             + "set col1 = col2, table2.col2 = table2.col3 "
-            + "where id = 1 and col2 = 3";
+            + "where table1.id = 1 and col2 = 3";
     var stmt = parseUpdateQuery(query);
     stmt.accept(rewriter);
     assertFalse(rewriter.isQueryChanged());

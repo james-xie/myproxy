@@ -12,6 +12,7 @@ import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.QueryHandlerResult;
 import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import java.util.ArrayList;
@@ -20,8 +21,8 @@ public class SetStatementHandler extends AbstractQueryHandler {
   private static final String NAME = "Set statement handler";
   private static final String ENCRYPT_KEY = "ENCRYPT_KEY";
 
-  public SetStatementHandler(TransportService transportService) {
-    super(transportService);
+  public SetStatementHandler(final TransportService transportService, final ThreadPool threadPool) {
+    super(transportService, threadPool);
   }
 
   @Override

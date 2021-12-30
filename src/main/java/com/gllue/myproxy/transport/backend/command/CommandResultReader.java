@@ -23,6 +23,4 @@ public interface CommandResultReader extends AutoCloseable {
   void bindConnection(Connection connection);
 
   CommandResultReader addCallback(Callback<CommandResult> callback);
-
-  Executor executor();
 }

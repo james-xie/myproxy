@@ -13,6 +13,7 @@ import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
 import com.gllue.myproxy.command.handler.query.WrappedHandlerResult;
 import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.util.SQLErrorUtils;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.config.Configurations;
@@ -28,12 +29,13 @@ public class DropTableHandler extends AbstractDDLHandler {
   private static final String NAME = "Drop table handler";
 
   public DropTableHandler(
-      PersistRepository repository,
-      Configurations configurations,
-      ClusterState clusterState,
-      TransportService transportService,
-      SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService, sqlParser);
+      final PersistRepository repository,
+      final Configurations configurations,
+      final ClusterState clusterState,
+      final TransportService transportService,
+      final SQLParser sqlParser,
+      final ThreadPool threadPool) {
+    super(repository, configurations, clusterState, transportService, sqlParser, threadPool);
   }
 
   @Override

@@ -17,7 +17,6 @@ import java.util.Properties;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
-@Getter
 @RequiredArgsConstructor
 public final class ServerContext {
   private final Properties properties;
@@ -58,6 +57,46 @@ public final class ServerContext {
     Preconditions.checkArgument(idGenerator != null);
     Preconditions.checkState(this.idGenerator == null);
     this.idGenerator = idGenerator;
+  }
+
+  public Properties getProperties() {
+    Preconditions.checkNotNull(properties);
+    return properties;
+  }
+
+  public Configurations getConfigurations() {
+    Preconditions.checkNotNull(configurations);
+    return configurations;
+  }
+
+  public SQLParser getSqlParser() {
+    Preconditions.checkNotNull(sqlParser);
+    return sqlParser;
+  }
+
+  public ClusterState getClusterState() {
+    Preconditions.checkNotNull(clusterState);
+    return clusterState;
+  }
+
+  public TransportService getTransportService() {
+    Preconditions.checkNotNull(transportService);
+    return transportService;
+  }
+
+  public PersistRepository getPersistRepository() {
+    Preconditions.checkNotNull(persistRepository);
+    return persistRepository;
+  }
+
+  public IdGenerator getIdGenerator() {
+    Preconditions.checkNotNull(idGenerator);
+    return idGenerator;
+  }
+
+  public ThreadPool getThreadPool() {
+    Preconditions.checkNotNull(threadPool);
+    return threadPool;
   }
 
   public static class Builder {

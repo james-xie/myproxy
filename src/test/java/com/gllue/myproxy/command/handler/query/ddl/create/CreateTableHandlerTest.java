@@ -41,7 +41,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
 
   public CreateTableHandler newHandler() {
     return new CreateTableHandler(
-        repository, configurations, clusterState, transportService, sqlParser);
+        repository, configurations, clusterState, transportService, sqlParser, threadPool);
   }
 
   protected void mockConfigurations() {

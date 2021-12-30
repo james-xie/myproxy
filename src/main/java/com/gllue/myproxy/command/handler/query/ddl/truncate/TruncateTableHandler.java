@@ -1,12 +1,6 @@
 package com.gllue.myproxy.command.handler.query.ddl.truncate;
 
-import static com.gllue.myproxy.common.util.SQLStatementUtils.toSQLString;
-import static com.gllue.myproxy.common.util.SQLStatementUtils.unquoteName;
-
-import com.alibaba.druid.sql.ast.SQLStatement;
-import com.alibaba.druid.sql.ast.statement.SQLDropTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLTruncateStatement;
-import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.CommandHandlerException;
 import com.gllue.myproxy.command.handler.HandlerResult;
@@ -17,6 +11,7 @@ import com.gllue.myproxy.command.handler.query.ddl.AbstractDDLHandler;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.Promise;
+import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.util.SQLErrorUtils;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.config.Configurations;
@@ -37,12 +32,13 @@ public class TruncateTableHandler extends AbstractDDLHandler {
   private static final String NAME = "Truncate table handler";
 
   public TruncateTableHandler(
-      PersistRepository repository,
-      Configurations configurations,
-      ClusterState clusterState,
-      TransportService transportService,
-      SQLParser sqlParser) {
-    super(repository, configurations, clusterState, transportService, sqlParser);
+      final PersistRepository repository,
+      final Configurations configurations,
+      final ClusterState clusterState,
+      final TransportService transportService,
+      final SQLParser sqlParser,
+      final ThreadPool threadPool) {
+    super(repository, configurations, clusterState, transportService, sqlParser, threadPool);
   }
 
   @Override

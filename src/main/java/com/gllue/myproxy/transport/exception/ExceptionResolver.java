@@ -10,9 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExceptionResolver {
   public static ErrPacket resolve(final Throwable e) {
-    if (true) {
-      throw new RuntimeException();
-    }
     try {
       ErrPacket packet = null;
       if (e instanceof BaseServerException) {

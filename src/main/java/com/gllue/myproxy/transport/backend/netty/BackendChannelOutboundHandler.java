@@ -93,7 +93,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
   @Override
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
     log.info("Disconnect from backend database [{}]", ctx.channel().remoteAddress());
-    if (connection.getCommandResultReader() != null) {
+    if (connection != null && connection.getCommandResultReader() != null) {
       try {
         connection.setCommandExecutionDone();
       } catch (Exception e) {
@@ -353,23 +353,14 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
       throw new IllegalStateException("Command result reader is empty during receiving response.");
     }
 
-    commandResultReader
-        .executor()
-        .execute(
-            new AbstractRunnable() {
-              @Override
-              protected void doRun() throws Exception {
-                var readCompleted = commandResultReader.read(payload);
-                if (readCompleted) {
-                  connection.setCommandExecutionDone();
-                }
-              }
-
-              @Override
-              public void onFailure(Exception e) {
-                log.error("An error was occurred when reading the command result.", e);
-                NettyUtils.closeChannel(ctx.channel(), false);
-              }
-            });
+    try {
+      var readCompleted = commandResultReader.read(payload);
+      if (readCompleted) {
+        connection.setCommandExecutionDone();
+      }
+    } catch (Exception e) {
+      log.error("An error was occurred when reading the command result.", e);
+      NettyUtils.closeChannel(ctx.channel(), false);
+    }
   }
 }

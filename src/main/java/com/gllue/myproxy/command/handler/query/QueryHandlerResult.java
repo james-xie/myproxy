@@ -5,6 +5,7 @@ import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
 import com.gllue.myproxy.command.result.query.QueryResultDecorator;
 import com.gllue.myproxy.common.Callback;
+import java.util.concurrent.Executor;
 import javax.management.Query;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +41,7 @@ public class QueryHandlerResult implements HandlerResult {
   }
 
   public static Callback<CommandResult> wrappedCallbackWithDirectTransferredResult(
-      Callback<HandlerResult> callback) {
+      Callback<HandlerResult> callback, Executor executor) {
     return new Callback<>() {
       @Override
       public void onSuccess(CommandResult result) {
@@ -50,6 +51,11 @@ public class QueryHandlerResult implements HandlerResult {
       @Override
       public void onFailure(Throwable e) {
         callback.onSuccess(DIRECT_TRANSFERRED_RESULT);
+      }
+
+      @Override
+      public Executor executor() {
+        return executor;
       }
     };
   }
