@@ -3,7 +3,10 @@ package com.gllue.myproxy.transport.backend.command;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.transport.backend.BackendResultReadException;
 import com.gllue.myproxy.transport.core.connection.Connection;
+import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
+import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -64,22 +67,23 @@ public abstract class AbstractCommandResultReader implements CommandResultReader
       getConnection().enableAutoRead();
     }
     connectionRef = null;
+    if (!isReadCompleted()) {
+      throwable = new BackendResultReadException(ServerErrorCode.ER_LOST_BACKEND_CONNECTION);
+    }
   }
 
   @Override
   public void fireReadCompletedEvent() {
-    if (!isReadCompleted()) {
-      return;
-    }
-
-    if (throwable != null) {
-      for (var callback : callbacks) {
-        callback.onFailure(throwable);
-      }
-    } else {
-      assert commandResult != null;
+    if (commandResult != null) {
       for (var callback : callbacks) {
         callback.onSuccess(commandResult);
+      }
+    } else {
+      if (throwable == null) {
+        throwable = new BackendResultReadException(MySQLServerErrorCode.ER_NET_READ_ERROR);
+      }
+      for (var callback : callbacks) {
+        callback.onFailure(throwable);
       }
     }
   }

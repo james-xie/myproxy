@@ -20,8 +20,26 @@ public class CommandResult {
 
   private final QueryResult queryResult;
 
+  public CommandResult(
+      final long affectedRows,
+      final long lastInsertId,
+      final int statusFlag,
+      final int warnings,
+      QueryResult queryResult) {
+    this.affectedRows = affectedRows;
+    this.lastInsertId = lastInsertId;
+    this.statusFlag = statusFlag;
+    this.warnings = warnings;
+    this.info = "";
+    this.queryResult = queryResult;
+  }
+
   public static CommandResult newInstance(final OKPacket packet) {
     return newInstance(packet, null);
+  }
+
+  public static CommandResult newEmptyResult() {
+    return new CommandResult(0, 0, 0, 0, null);
   }
 
   public static CommandResult newInstance(final OKPacket packet, final QueryResult queryResult) {

@@ -2,6 +2,7 @@ package com.gllue.myproxy.transport.backend.netty;
 
 import com.gllue.myproxy.common.concurrent.AbstractRunnable;
 import com.gllue.myproxy.common.util.ReflectionUtils;
+import com.gllue.myproxy.transport.backend.BackendHandshakeException;
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionImpl;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionListener;
@@ -14,17 +15,16 @@ import com.gllue.myproxy.transport.constant.MySQLAuthenticationMethod;
 import com.gllue.myproxy.transport.constant.MySQLCapabilityFlag;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
+import com.gllue.myproxy.transport.core.connection.AuthenticationData;
 import com.gllue.myproxy.transport.core.connection.ConnectionIdGenerator;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
+import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthMoreDataPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchRequestPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.HandshakeResponsePacket41;
 import com.gllue.myproxy.transport.protocol.packet.handshake.InitialHandshakePacketV10;
-import com.gllue.myproxy.transport.core.connection.AuthenticationData;
-import com.gllue.myproxy.transport.backend.BackendHandshakeException;
-import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -34,8 +34,6 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter {
-
-  private static final ConnectionIdGenerator ID_GENERATOR = new ConnectionIdGenerator();
 
   private static final Map<String, Class<? extends AuthenticationPluginHandler>>
       authPluginHandlers = new HashMap<>();
@@ -65,6 +63,8 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
 
   private int statusFlags;
 
+  private int connectionId;
+
   private ConnectionPhase connectionPhase = ConnectionPhase.HANDSHAKE;
 
   private AuthenticationState authState;
@@ -93,6 +93,13 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
   @Override
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
     log.info("Disconnect from backend database [{}]", ctx.channel().remoteAddress());
+    if (connection.getCommandResultReader() != null) {
+      try {
+        connection.setCommandExecutionDone();
+      } catch (Exception e) {
+        log.error("An error was occurred when invoking connection.setCommandExecutionDone().", e);
+      }
+    }
     backendConnectionListener.onClosed(connection);
     connection = null;
   }
@@ -174,6 +181,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
     }
 
     statusFlags = initialHandshakePacket.getStatusFlags();
+    connectionId = initialHandshakePacket.getConnectionId();
     authData.setAuthResponse(initialHandshakePacket.getAuthPluginData());
 
     byte[] authResponse;
@@ -329,7 +337,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
     log.info("Backend connection has connected.");
     assert connection == null;
     connectionPhase = ConnectionPhase.CONNECTED;
-    connection = new BackendConnectionImpl(ID_GENERATOR.nextId(), ctx.channel());
+    connection = new BackendConnectionImpl(connectionId, ctx.channel());
     if (MySQLStatusFlag.SERVER_STATUS_AUTOCOMMIT.isBitSet(statusFlags)) {
       connection.enableAutoCommit();
     } else {

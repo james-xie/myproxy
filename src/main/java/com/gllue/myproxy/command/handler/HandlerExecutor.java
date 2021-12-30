@@ -34,7 +34,7 @@ public class HandlerExecutor {
     @Override
     public void onFailure(Exception e) {
       if (log.isDebugEnabled()) {
-        log.error("Failed to run command handler. [request={}, handler={}]", request, handler);
+        log.error("Failed to run command handler. [request={}, handler={}]", request, handler, e);
       }
       callback.onFailure(e);
     }

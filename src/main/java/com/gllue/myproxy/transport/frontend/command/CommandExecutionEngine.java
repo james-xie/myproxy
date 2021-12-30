@@ -322,6 +322,10 @@ public class CommandExecutionEngine {
             } catch (Exception e) {
               frontendConnection.writeAndFlush(ExceptionResolver.resolve(e));
             }
+
+            if (backendConnection.isClosed()) {
+              frontendConnection.close();
+            }
           }
 
           @Override

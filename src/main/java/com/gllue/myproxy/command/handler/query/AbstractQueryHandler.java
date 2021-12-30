@@ -56,6 +56,10 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
     return transportService.rollbackTransaction(connectionId);
   }
 
+  protected Promise<CommandResult> kill(int connectionId, int threadId, boolean killQuery) {
+    return transportService.kill(connectionId, threadId, killQuery);
+  }
+
   protected Promise<List<CommandResult>> executeQueries(
       QueryHandlerRequest request, List<String> queries) {
     var size = queries.size();

@@ -10,18 +10,25 @@ import lombok.extern.slf4j.Slf4j;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ExceptionResolver {
   public static ErrPacket resolve(final Throwable e) {
-    ErrPacket packet = null;
-    if (e instanceof BaseServerException) {
-      packet = resolveBaseServerException((BaseServerException) e);
-    } else if (e instanceof IllegalArgumentException) {
-      packet = resolveIllegalArgumentException((IllegalArgumentException) e);
+    if (true) {
+      throw new RuntimeException();
     }
-
-    if (packet != null) {
-      if (log.isDebugEnabled()) {
-        log.debug("Resolved exception.", e);
+    try {
+      ErrPacket packet = null;
+      if (e instanceof BaseServerException) {
+        packet = resolveBaseServerException((BaseServerException) e);
+      } else if (e instanceof IllegalArgumentException) {
+        packet = resolveIllegalArgumentException((IllegalArgumentException) e);
       }
-      return packet;
+
+      if (packet != null) {
+        if (log.isDebugEnabled()) {
+          log.debug("Resolved exception.", e);
+        }
+        return packet;
+      }
+    } catch (Exception e1) {
+      log.error("An exception has occurred when resolving exception.", e1);
     }
 
     log.error("Unable to resolve the exception.", e);

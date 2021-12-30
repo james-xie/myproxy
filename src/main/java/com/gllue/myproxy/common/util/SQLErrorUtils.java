@@ -28,4 +28,8 @@ public final class SQLErrorUtils {
   public static boolean isTableAlreadyExists(Throwable e) {
     return checkForExceptionMatchingErrorCode(e, MySQLServerErrorCode.ER_TABLE_EXISTS_ERROR);
   }
+
+  public static boolean isBadTable(Throwable e) {
+    return checkForExceptionMatchingErrorCode(e, MySQLServerErrorCode.ER_BAD_TABLE_ERROR);
+  }
 }

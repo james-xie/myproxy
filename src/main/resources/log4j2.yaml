@@ -17,7 +17,7 @@ Configuration:
       - name: com.gllue.myproxy
         level: INFO
       - name: com.gllue.myproxy.transport
-        level: DEBUG
+        level: INFO
       - name: com.gllue.myproxy.sql
         level: DEBUG
       - name: com.gllue.myproxy.command.handler

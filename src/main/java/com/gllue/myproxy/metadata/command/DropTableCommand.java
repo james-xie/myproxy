@@ -4,7 +4,9 @@ import com.gllue.myproxy.metadata.command.context.CommandExecutionContext;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import com.google.common.base.Preconditions;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public class DropTableCommand extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
   private final String datasource;
@@ -19,7 +21,12 @@ public class DropTableCommand extends AbstractMetaDataCommand<MultiDatabasesMeta
     Preconditions.checkArgument(database != null, "Unknown database name. [%s]", databaseName);
 
     var table = database.getTable(name);
-    Preconditions.checkArgument(table != null, "Unknown table name. [%s]", name);
+    if (table == null) {
+      if (log.isWarnEnabled()) {
+        log.warn("Table [{}.{}] does not exists.", databaseName, name);
+      }
+      return;
+    }
 
     database.removeTable(name);
 

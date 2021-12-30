@@ -42,9 +42,9 @@ public enum MySQLServerErrorCode implements SQLErrorCode {
 
   ER_ER_NONUNIQ_TABLE(1066, "42000", "Not unique table/alias: '%s'"),
 
-  ER_NO_SUCH_THREAD(1094, "HY000", "Unknown thread id: %lu"),
+  ER_NO_SUCH_THREAD(1094, "HY000", "Unknown thread id: %s"),
 
-  ER_WRONG_VALUE_COUNT_ON_ROW(1136, "21S01", "Column count doesn't match value count at row %ld"),
+  ER_WRONG_VALUE_COUNT_ON_ROW(1136, "21S01", "Column count doesn't match value count at row %s"),
 
   ER_NET_READ_ERROR(1158, "08S01", "Got an error reading communication packets"),
 

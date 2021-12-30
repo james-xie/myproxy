@@ -77,6 +77,8 @@ public class DirectTransferQueryResultReader extends AbstractQueryResultReader {
   @Override
   public void close() throws Exception {
     super.close();
-    pipe.close();
+    if (pipe != null) {
+      pipe.close();
+    }
   }
 }

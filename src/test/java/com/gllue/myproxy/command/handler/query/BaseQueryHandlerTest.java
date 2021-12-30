@@ -148,7 +148,7 @@ public abstract class BaseQueryHandlerTest {
   }
 
   protected CommandResult emptyCommandResult() {
-    return new CommandResult(0, 0, 0, 0, "", null);
+    return CommandResult.newEmptyResult();
   }
 
   protected void mockClusterState(MultiDatabasesMetaData databasesMetaData) {

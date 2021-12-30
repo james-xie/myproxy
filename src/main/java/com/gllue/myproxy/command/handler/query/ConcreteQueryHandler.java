@@ -20,16 +20,20 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlKillStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlRenameTableStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlShowProcessListStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlUpdateStatement;
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.CommandHandler;
 import com.gllue.myproxy.command.handler.HandlerRequest;
 import com.gllue.myproxy.command.handler.HandlerResult;
+import com.gllue.myproxy.command.handler.query.dcl.kill.KillStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.set.SetStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowCreateTableHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowTablesHandler;
 import com.gllue.myproxy.command.handler.query.ddl.alter.AlterTableHandler;
 import com.gllue.myproxy.command.handler.query.ddl.create.CreateTableHandler;
+import com.gllue.myproxy.command.handler.query.ddl.drop.DropTableHandler;
+import com.gllue.myproxy.command.handler.query.ddl.truncate.TruncateTableHandler;
 import com.gllue.myproxy.command.handler.query.dml.delete.DeleteQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.insert.InsertQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.select.SelectQueryHandler;
@@ -52,10 +56,13 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
   private final InsertQueryHandler insertQueryHandler;
   private final UpdateQueryHandler updateQueryHandler;
   private final DeleteQueryHandler deleteQueryHandler;
+  private final DropTableHandler dropTableHandler;
+  private final TruncateTableHandler truncateTableHandler;
 
   private final SetStatementHandler setStatementHandler;
   private final ShowTablesHandler showTablesHandler;
   private final ShowCreateTableHandler showCreateTableHandler;
+  private final KillStatementHandler killStatementHandler;
 
   public ConcreteQueryHandler(
       final PersistRepository repository,
@@ -83,11 +90,17 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
         new UpdateQueryHandler(repository, configurations, clusterState, transportService);
     this.deleteQueryHandler =
         new DeleteQueryHandler(repository, configurations, clusterState, transportService);
+    this.dropTableHandler =
+        new DropTableHandler(repository, configurations, clusterState, transportService, sqlParser);
+    this.truncateTableHandler =
+        new TruncateTableHandler(
+            repository, configurations, clusterState, transportService, sqlParser);
 
     this.setStatementHandler = new SetStatementHandler(transportService);
     this.showTablesHandler = new ShowTablesHandler(transportService, clusterState);
     this.showCreateTableHandler =
         new ShowCreateTableHandler(transportService, clusterState, sqlParser);
+    this.killStatementHandler = new KillStatementHandler(transportService);
   }
 
   @Override
@@ -127,9 +140,9 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     } else if (stmt instanceof MySqlCreateTableStatement) {
       invokeHandlerExecute(createTableHandler, request, callback);
     } else if (stmt instanceof SQLDropTableStatement) {
-
+      invokeHandlerExecute(dropTableHandler, request, callback);
     } else if (stmt instanceof SQLTruncateStatement) {
-
+      invokeHandlerExecute(truncateTableHandler, request, callback);
     } else if (stmt instanceof SQLCreateDatabaseStatement) {
 
     } else if (stmt instanceof SQLDropDatabaseStatement) {
@@ -149,6 +162,8 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     } else if (stmt instanceof SQLCommitStatement) {
 
     } else if (stmt instanceof MySqlKillStatement) {
+      invokeHandlerExecute(killStatementHandler, request, callback);
+    } else if (stmt instanceof MySqlShowProcessListStatement) {
 
     } else if (stmt instanceof SQLDescribeStatement) {
 

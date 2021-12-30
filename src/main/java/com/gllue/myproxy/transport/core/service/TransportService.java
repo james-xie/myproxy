@@ -223,4 +223,20 @@ public class TransportService implements FrontendConnectionManager {
           submitQueryToBackendDatabase(connectionId, query, cb);
         });
   }
+
+  public Promise<CommandResult> kill(
+      final int connectionId, final int threadId, final boolean killQuery) {
+    return new Promise<>(
+        (cb) -> {
+          int backendThreadId =
+              getFrontendConnection(threadId).getBackendConnection().connectionId();
+          String query;
+          if (killQuery) {
+            query = "KILL QUERY " + backendThreadId;
+          } else {
+            query = "KILL CONNECTION " + backendThreadId;
+          }
+          submitQueryToBackendDatabase(connectionId, query, cb);
+        });
+  }
 }
