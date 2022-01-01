@@ -96,6 +96,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
       return;
     }
 
+    // Release the ByteBuf in the message.
     try (var payload = (MySQLPayload) message) {
       if (clientCharset != null) {
         payload.setCharset(clientCharset);

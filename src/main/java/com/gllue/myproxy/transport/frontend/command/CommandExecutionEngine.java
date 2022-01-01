@@ -1,5 +1,8 @@
 package com.gllue.myproxy.transport.frontend.command;
 
+import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_MICRO;
+import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_SECOND;
+
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.HandlerExecutor;
 import com.gllue.myproxy.command.handler.HandlerResult;
@@ -38,6 +41,10 @@ import com.gllue.myproxy.transport.protocol.packet.command.SimpleCommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
 import com.google.common.base.Strings;
+import io.prometheus.client.Counter;
+import io.prometheus.client.Gauge;
+import io.prometheus.client.Histogram;
+import io.prometheus.client.Summary;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +52,23 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CommandExecutionEngine {
+  private static final Counter totalCommands =
+      Counter.build().name("total_commands").help("Total commands.").register();
+  private static final Gauge inprogressQueries =
+      Gauge.build().name("inprogress_queries").help("Inprogress queries.").register();
+  private static final Histogram queryLatency =
+      Histogram.build()
+          .name("query_latency")
+          .help("Query latency in microseconds.")
+          .unit("microsecond")
+          .register();
+  private static final Summary queryLatencySummary =
+      Summary.build()
+          .name("query_latency_summary")
+          .help("Query latency summary in seconds")
+          .unit("second")
+          .register();
+
   private final ThreadPool threadPool;
   private final TransportService transportService;
   private final HandlerExecutor handlerExecutor;
@@ -214,6 +238,8 @@ public class CommandExecutionEngine {
       log.debug("Executing command type: " + commandType.name());
     }
 
+    totalCommands.inc();
+
     switch (commandType) {
       case COM_QUIT:
         quit(frontendConnection);
@@ -301,6 +327,14 @@ public class CommandExecutionEngine {
     new HandlerResultWriter(result).write(connection);
   }
 
+  //  private void query(
+  //      final FrontendConnection frontendConnection,
+  //      final QueryCommandPacket packet,
+  //      final BackendConnection backendConnection) {
+  //    backendConnection.sendCommand(
+  //        packet, new DirectTransferQueryResultReader(frontendConnection));
+  //  }
+
   /** Execute text-based query immediately. */
   private void query(
       final FrontendConnection frontendConnection,
@@ -309,6 +343,9 @@ public class CommandExecutionEngine {
     if (log.isDebugEnabled()) {
       log.debug("Executing query command: " + packet.getQuery());
     }
+
+    inprogressQueries.inc();
+    var startTime = System.nanoTime();
 
     handlerExecutor.execute(
         concreteQueryHandler,
@@ -336,6 +373,7 @@ public class CommandExecutionEngine {
             if (backendConnection.isClosed()) {
               frontendConnection.close();
             }
+            observeDuration();
           }
 
           @Override
@@ -345,6 +383,14 @@ public class CommandExecutionEngine {
             } catch (Exception e1) {
               log.error("Failed to write error packet to the connection.", e1);
             }
+            observeDuration();
+          }
+
+          private void observeDuration() {
+            var duration = System.nanoTime() - startTime;
+            queryLatency.observe(duration / NANOS_PER_MICRO);
+            queryLatencySummary.observe(duration / NANOS_PER_SECOND);
+            inprogressQueries.dec();
           }
         });
   }

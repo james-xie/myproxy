@@ -17,7 +17,7 @@ public class DefaultQueryResultMetaData implements QueryResultMetaData {
     public final int columnLength;
 
     public Column(String columnName, MySQLColumnType columnType) {
-      this("", "", "", columnName, "", columnType, 255);
+      this("", "", "", "", columnName, columnType, 255);
     }
   }
 

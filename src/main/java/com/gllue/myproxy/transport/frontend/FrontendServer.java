@@ -6,10 +6,10 @@ import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.TransportConfigPropertyKey;
 import com.gllue.myproxy.transport.core.netty.MySQLPayloadCodecHandler;
-import com.gllue.myproxy.transport.frontend.netty.FrontendChannelInboundHandler;
-import com.gllue.myproxy.transport.frontend.netty.auth.MySQLNativePasswordAuthenticationHandler;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import com.gllue.myproxy.transport.frontend.command.CommandExecutionEngine;
+import com.gllue.myproxy.transport.frontend.netty.FrontendChannelInboundHandler;
+import com.gllue.myproxy.transport.frontend.netty.auth.MySQLNativePasswordAuthenticationHandler;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.channel.ChannelInitializer;
@@ -141,6 +141,7 @@ public final class FrontendServer implements Initializer {
         .option(ChannelOption.SO_BACKLOG, backlog)
         .option(ChannelOption.WRITE_BUFFER_WATER_MARK, writeBufferWaterMark)
         .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
+        .option(ChannelOption.TCP_NODELAY, true)
         .option(ChannelOption.SO_REUSEADDR, true)
         .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
         .childOption(ChannelOption.TCP_NODELAY, true)

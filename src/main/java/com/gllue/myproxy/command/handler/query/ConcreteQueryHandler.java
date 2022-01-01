@@ -29,6 +29,7 @@ import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.dcl.kill.KillStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.set.SetStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowCreateTableHandler;
+import com.gllue.myproxy.command.handler.query.dcl.show.ShowMetricsHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowTablesHandler;
 import com.gllue.myproxy.command.handler.query.ddl.alter.AlterTableHandler;
 import com.gllue.myproxy.command.handler.query.ddl.create.CreateTableHandler;
@@ -44,6 +45,7 @@ import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.repository.PersistRepository;
+import com.gllue.myproxy.sql.stmt.SQLShowMetricsStatement;
 import com.gllue.myproxy.transport.core.service.TransportService;
 
 public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
@@ -64,6 +66,9 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
   private final ShowTablesHandler showTablesHandler;
   private final ShowCreateTableHandler showCreateTableHandler;
   private final KillStatementHandler killStatementHandler;
+
+  // custom statement handlers.
+  private final ShowMetricsHandler showMetricsHandler;
 
   public ConcreteQueryHandler(
       final PersistRepository repository,
@@ -103,6 +108,8 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     this.showCreateTableHandler =
         new ShowCreateTableHandler(transportService, clusterState, sqlParser, threadPool);
     this.killStatementHandler = new KillStatementHandler(transportService, threadPool);
+
+    this.showMetricsHandler = new ShowMetricsHandler(transportService, threadPool);
   }
 
   @Override
@@ -171,6 +178,8 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
 
     } else if (stmt instanceof SQLSetStatement) {
       invokeHandlerExecute(setStatementHandler, request, callback);
+    } else if (stmt instanceof SQLShowMetricsStatement) {
+      invokeHandlerExecute(showMetricsHandler, request, callback);
     } else {
       submitQueryAndDirectTransferResult(request.getConnectionId(), request.getQuery(), callback);
     }

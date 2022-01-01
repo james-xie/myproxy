@@ -19,6 +19,8 @@ public interface BackendConnection extends Connection {
 
   CommandResultReader getCommandResultReader();
 
+  void onResponseReceived();
+
   void setCommandExecutionDone();
 
   void sendCommand(CommandPacket packet, CommandResultReader reader);

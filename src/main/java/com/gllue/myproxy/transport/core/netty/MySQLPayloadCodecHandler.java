@@ -1,9 +1,9 @@
 package com.gllue.myproxy.transport.core.netty;
 
-import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.exception.ServerErrorCode;
-import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
+import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
@@ -97,7 +97,7 @@ public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
       try {
         message.write(payload);
       } catch (final Exception ex) {
-        payload.getByteBuf().resetWriterIndex();
+        payloadBuf.resetWriterIndex();
         new ErrPacket(ServerErrorCode.ER_SERVER_ERROR, ex.getMessage()).write(payload);
       } finally {
         writePayload(payload, out);

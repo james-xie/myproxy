@@ -1,6 +1,7 @@
 package com.gllue.myproxy.transport.backend.netty;
 
-import com.gllue.myproxy.common.concurrent.AbstractRunnable;
+import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_SECOND;
+
 import com.gllue.myproxy.common.util.ReflectionUtils;
 import com.gllue.myproxy.transport.backend.BackendHandshakeException;
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
@@ -16,7 +17,6 @@ import com.gllue.myproxy.transport.constant.MySQLCapabilityFlag;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
 import com.gllue.myproxy.transport.core.connection.AuthenticationData;
-import com.gllue.myproxy.transport.core.connection.ConnectionIdGenerator;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
@@ -28,12 +28,20 @@ import com.gllue.myproxy.transport.protocol.packet.handshake.InitialHandshakePac
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
+import io.prometheus.client.Summary;
 import java.util.HashMap;
 import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter {
+
+  private static final Summary readCommandResultLatency =
+      Summary.build()
+          .name("read_command_result_latency_summary")
+          .help("Read command result latency summary in seconds.")
+          .unit("second")
+          .register();
 
   private static final Map<String, Class<? extends AuthenticationPluginHandler>>
       authPluginHandlers = new HashMap<>();
@@ -112,6 +120,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
       return;
     }
 
+    // Release the ByteBuf in the message.
     try (var payload = (MySQLPayload) message) {
       switch (connectionPhase) {
         case HANDSHAKE:
@@ -353,11 +362,17 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
       throw new IllegalStateException("Command result reader is empty during receiving response.");
     }
 
+    connection.onResponseReceived();
+
     try {
+      var startTime = System.nanoTime();
+
       var readCompleted = commandResultReader.read(payload);
       if (readCompleted) {
         connection.setCommandExecutionDone();
       }
+
+      readCommandResultLatency.observe((System.nanoTime() - startTime) / NANOS_PER_SECOND);
     } catch (Exception e) {
       log.error("An error was occurred when reading the command result.", e);
       NettyUtils.closeChannel(ctx.channel(), false);

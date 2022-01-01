@@ -40,6 +40,7 @@ dependencies {
         exclude group: "org.slf4j", module: "slf4j-log4j12"
     }
     implementation("org.apache.curator:curator-recipes:5.2.0")
+    implementation("io.prometheus:simpleclient:0.12.0")
 
     testImplementation("junit:junit:4.12")
     testImplementation("org.hamcrest:hamcrest-library:1.3")

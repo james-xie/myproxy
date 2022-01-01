@@ -1,5 +1,7 @@
 package com.gllue.myproxy.transport.backend.connection;
 
+import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_SECOND;
+
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
@@ -18,6 +20,7 @@ import com.gllue.myproxy.transport.protocol.packet.command.SimpleCommandPacket;
 import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.channel.Channel;
+import io.prometheus.client.Summary;
 import java.lang.ref.WeakReference;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
@@ -31,13 +34,28 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
     CLOSED
   }
 
+  private static final Summary backendProcessingLatency =
+      Summary.build()
+          .name("backend_processing_latency_summary")
+          .help("Backend processing latency summary in seconds.")
+          .unit("second")
+          .register();
+  private static final Summary receivingResponseLatency =
+      Summary.build()
+          .name("receiving_response_latency_summary")
+          .help("Receiving response latency summary in seconds.")
+          .unit("second")
+          .register();
+
   private volatile State state = State.INITIAL;
 
   private WeakReference<DataSource<BackendConnection>> dataSourceRef;
 
-  private volatile boolean lastCommandHasDone = true;
-
   private volatile CommandResultReader commandResultReader;
+  private volatile CommandResultReader newCommandResultReader;
+  private volatile boolean firstResponse;
+  private volatile long sendCommandTime;
+  private long receiveFirstResponseTime;
 
   public BackendConnectionImpl(final int connectionId, final Channel channel) {
     super(connectionId, channel);
@@ -66,13 +84,6 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
     return reference;
   }
 
-  private void executeNewCommand() {
-    if (!lastCommandHasDone) {
-      throw new IllegalStateException("The last command is in progress, cannot send a new one.");
-    }
-    lastCommandHasDone = false;
-  }
-
   @Override
   public void setCommandExecutionDone() {
     if (log.isDebugEnabled()) {
@@ -87,52 +98,70 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
       log.error("An error was occurred when closing the command result reader.", e1);
     } finally {
       commandResultReader = null;
-      lastCommandHasDone = true;
     }
 
     // We must invoke fireReadCompletedEvent at the end of the method.
     reader.fireReadCompletedEvent();
+
+    receivingResponseLatency.observe(
+        (System.nanoTime() - receiveFirstResponseTime) / NANOS_PER_SECOND);
+  }
+
+  @Override
+  public void onResponseReceived() {
+    if (firstResponse) {
+      receiveFirstResponseTime = System.nanoTime();
+      backendProcessingLatency.observe(
+          (receiveFirstResponseTime - sendCommandTime) / NANOS_PER_SECOND);
+      firstResponse = false;
+    }
   }
 
   @Override
   public void write(final MySQLPacket packet) {
     assert packet instanceof CommandPacket;
-    executeNewCommand();
     super.write(packet);
   }
 
   @Override
   public void writeAndFlush(final MySQLPacket packet) {
     assert packet instanceof CommandPacket;
-    executeNewCommand();
     super.writeAndFlush(packet);
   }
 
   @Override
   public void write(final MySQLPacket packet, final SettableFuture<Connection> future) {
     assert packet instanceof CommandPacket;
-    executeNewCommand();
     super.write(packet, future);
   }
 
   @Override
   public void writeAndFlush(final MySQLPacket packet, final SettableFuture<Connection> future) {
     assert packet instanceof CommandPacket;
-    executeNewCommand();
     super.writeAndFlush(packet, future);
   }
 
   @Override
   public void setCommandResultReader(CommandResultReader reader) {
-    if (commandResultReader != null) {
+    if (newCommandResultReader != null) {
       throw new IllegalStateException("Cannot override commandResultReader.");
     }
-    commandResultReader = reader;
+    newCommandResultReader = reader;
     reader.bindConnection(this);
+
+    firstResponse = true;
+    sendCommandTime = System.nanoTime();
   }
 
   @Override
   public CommandResultReader getCommandResultReader() {
+    if (commandResultReader != null && newCommandResultReader != null) {
+      throw new IllegalStateException("Cannot override commandResultReader.");
+    }
+    if (newCommandResultReader != null) {
+      commandResultReader = newCommandResultReader;
+      newCommandResultReader = null;
+    }
     return commandResultReader;
   }
 

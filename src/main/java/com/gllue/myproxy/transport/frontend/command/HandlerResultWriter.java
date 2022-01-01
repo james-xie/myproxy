@@ -8,6 +8,7 @@ import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
 import com.gllue.myproxy.transport.core.connection.Connection;
+import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.EofPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnCountPacket;
@@ -17,7 +18,9 @@ import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor
 public class HandlerResultWriter implements CommandResultWriter {
+  private static final int FLUSH_THRESHOLD = 100;
   private final HandlerResult handlerResult;
+  private int flushCount = 0;
 
   private int getStatusFlags(Connection connection) {
     int statusFlags = 0;
@@ -42,9 +45,10 @@ public class HandlerResultWriter implements CommandResultWriter {
   }
 
   private void writeColumns(Connection connection, QueryResultMetaData metaData) {
-    connection.write(new ColumnCountPacket(metaData.getColumnCount()));
+    doWrite(connection, new ColumnCountPacket(metaData.getColumnCount()));
     for (int i = 0; i < metaData.getColumnCount(); i++) {
-      connection.write(
+      doWrite(
+          connection,
           new ColumnDefinition41Packet(
               CATALOG,
               metaData.getSchemaName(i),
@@ -70,7 +74,7 @@ public class HandlerResultWriter implements CommandResultWriter {
       for (int i = 0; i < columnCount; i++) {
         row[i] = queryResult.getValue(i);
       }
-      connection.write(new TextResultSetRowPacket(row));
+      doWrite(connection, new TextResultSetRowPacket(row));
     }
   }
 
@@ -81,6 +85,15 @@ public class HandlerResultWriter implements CommandResultWriter {
     writeRows(connection, queryResult);
     writeEof(connection);
     connection.flush();
+  }
+
+  private void doWrite(Connection connection, MySQLPacket packet) {
+    if (++flushCount >= FLUSH_THRESHOLD) {
+      connection.writeAndFlush(packet);
+      flushCount = 0;
+    } else {
+      connection.write(packet);
+    }
   }
 
   @Override

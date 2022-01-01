@@ -27,6 +27,10 @@ public class QueryHandlerResult implements HandlerResult {
     this(0, 0, 0);
   }
 
+  public QueryHandlerResult(QueryResult queryResult) {
+    this(0, queryResult);
+  }
+
   public QueryHandlerResult(int warnings, QueryResult queryResult) {
     this(0, 0, warnings, queryResult, false);
   }
