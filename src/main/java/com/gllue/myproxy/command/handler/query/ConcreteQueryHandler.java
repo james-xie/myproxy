@@ -32,8 +32,11 @@ import com.gllue.myproxy.command.handler.query.dcl.show.ShowCreateTableHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowMetricsHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowTablesHandler;
 import com.gllue.myproxy.command.handler.query.ddl.alter.AlterTableHandler;
+import com.gllue.myproxy.command.handler.query.ddl.create.CreateDatabaseHandler;
 import com.gllue.myproxy.command.handler.query.ddl.create.CreateTableHandler;
+import com.gllue.myproxy.command.handler.query.ddl.drop.DropDatabaseHandler;
 import com.gllue.myproxy.command.handler.query.ddl.drop.DropTableHandler;
+import com.gllue.myproxy.command.handler.query.ddl.rename.RenameTableHandler;
 import com.gllue.myproxy.command.handler.query.ddl.truncate.TruncateTableHandler;
 import com.gllue.myproxy.command.handler.query.dml.delete.DeleteQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.insert.InsertQueryHandler;
@@ -43,8 +46,8 @@ import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.Configurations;
-import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.repository.PersistRepository;
+import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.sql.stmt.SQLShowMetricsStatement;
 import com.gllue.myproxy.transport.core.service.TransportService;
 
@@ -61,6 +64,9 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
   private final DeleteQueryHandler deleteQueryHandler;
   private final DropTableHandler dropTableHandler;
   private final TruncateTableHandler truncateTableHandler;
+  private final CreateDatabaseHandler createDatabaseHandler;
+  private final DropDatabaseHandler dropDatabaseHandler;
+  private final RenameTableHandler renameTableHandler;
 
   private final SetStatementHandler setStatementHandler;
   private final ShowTablesHandler showTablesHandler;
@@ -89,18 +95,29 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
         new CreateTableHandler(
             repository, configurations, clusterState, transportService, sqlParser, threadPool);
     this.selectQueryHandler =
-        new SelectQueryHandler(repository, configurations, clusterState, transportService, threadPool);
+        new SelectQueryHandler(
+            repository, configurations, clusterState, transportService, threadPool);
     this.insertQueryHandler =
         new InsertQueryHandler(
             repository, configurations, clusterState, transportService, idGenerator, threadPool);
     this.updateQueryHandler =
-        new UpdateQueryHandler(repository, configurations, clusterState, transportService, threadPool);
+        new UpdateQueryHandler(
+            repository, configurations, clusterState, transportService, threadPool);
     this.deleteQueryHandler =
-        new DeleteQueryHandler(repository, configurations, clusterState, transportService, threadPool);
+        new DeleteQueryHandler(
+            repository, configurations, clusterState, transportService, threadPool);
     this.dropTableHandler =
-        new DropTableHandler(repository, configurations, clusterState, transportService, sqlParser, threadPool);
+        new DropTableHandler(
+            repository, configurations, clusterState, transportService, sqlParser, threadPool);
     this.truncateTableHandler =
         new TruncateTableHandler(
+            repository, configurations, clusterState, transportService, sqlParser, threadPool);
+    this.createDatabaseHandler = new CreateDatabaseHandler(transportService, threadPool);
+    this.dropDatabaseHandler =
+        new DropDatabaseHandler(
+            repository, configurations, clusterState, transportService, sqlParser, threadPool);
+    this.renameTableHandler =
+        new RenameTableHandler(
             repository, configurations, clusterState, transportService, sqlParser, threadPool);
 
     this.setStatementHandler = new SetStatementHandler(transportService, threadPool);
@@ -153,11 +170,11 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     } else if (stmt instanceof SQLTruncateStatement) {
       invokeHandlerExecute(truncateTableHandler, request, callback);
     } else if (stmt instanceof SQLCreateDatabaseStatement) {
-
+      invokeHandlerExecute(createDatabaseHandler, request, callback);
     } else if (stmt instanceof SQLDropDatabaseStatement) {
-
+      invokeHandlerExecute(dropDatabaseHandler, request, callback);
     } else if (stmt instanceof MySqlRenameTableStatement) {
-
+      invokeHandlerExecute(renameTableHandler, request, callback);
     } else if (stmt instanceof SQLShowCreateTableStatement) {
       invokeHandlerExecute(showCreateTableHandler, request, callback);
     } else if (stmt instanceof SQLShowColumnsStatement) {

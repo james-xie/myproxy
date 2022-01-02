@@ -10,12 +10,14 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class RenameTableCommand extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
   private final String datasource;
-  private final String databaseName;
+  private final String oldDatabaseName;
+  private final String newDatabaseName;
   private final String oldName;
   private final String newName;
 
   @Override
   public void execute(CommandExecutionContext<MultiDatabasesMetaData> context) {
+    Preconditions.checkArgument(oldDatabaseName.equals(newDatabaseName));
     Preconditions.checkArgument(
         oldName != null && newName != null && !oldName.equals(newName),
         "Bad table name. [old:%s, new:%s]",
@@ -23,8 +25,8 @@ public class RenameTableCommand extends AbstractMetaDataCommand<MultiDatabasesMe
         newName);
 
     var metadata = context.getRootMetaData();
-    var database = metadata.getDatabase(datasource, databaseName);
-    Preconditions.checkArgument(database != null, "Unknown database name. [%s]", databaseName);
+    var database = metadata.getDatabase(datasource, oldDatabaseName);
+    Preconditions.checkArgument(database != null, "Unknown database name. [%s]", oldDatabaseName);
 
     var table = database.getTable(oldName);
     Preconditions.checkArgument(table != null, "Unknown table name. [%s]", oldName);

@@ -32,4 +32,8 @@ public final class SQLErrorUtils {
   public static boolean isBadTable(Throwable e) {
     return checkForExceptionMatchingErrorCode(e, MySQLServerErrorCode.ER_BAD_TABLE_ERROR);
   }
+
+  public static boolean isBadDB(Throwable e) {
+    return checkForExceptionMatchingErrorCode(e, MySQLServerErrorCode.ER_BAD_DB_ERROR);
+  }
 }
