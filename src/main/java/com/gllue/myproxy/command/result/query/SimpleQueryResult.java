@@ -1,6 +1,7 @@
 package com.gllue.myproxy.command.result.query;
 
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 public class SimpleQueryResult implements QueryResult {
@@ -15,6 +16,11 @@ public class SimpleQueryResult implements QueryResult {
     this.maxIndex = rows.length - 1;
   }
 
+  public SimpleQueryResult(
+      final QueryResultMetaData queryResultMetaData, final List<String[]> rows) {
+    this(queryResultMetaData, rows.toArray(new String[0][]));
+  }
+
   @Override
   public boolean next() {
     if (rowIndex >= maxIndex) {
@@ -27,7 +33,11 @@ public class SimpleQueryResult implements QueryResult {
 
   @Override
   public byte[] getValue(int columnIndex) {
-    return rows[rowIndex][columnIndex].getBytes(StandardCharsets.UTF_8);
+    var value = rows[rowIndex][columnIndex];
+    if (value == null) {
+      return null;
+    }
+    return value.getBytes(StandardCharsets.UTF_8);
   }
 
   @Override

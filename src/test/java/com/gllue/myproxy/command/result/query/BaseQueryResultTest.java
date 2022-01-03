@@ -38,11 +38,11 @@ public abstract class BaseQueryResultTest {
     while (queryResult.next()) {
       for (int col = 0; col < columnCount; col++) {
         assertArrayEquals(rows[i][col], queryResult.getValue(col));
+        var stringValue = rows[i][col] == null ? null : new String(rows[i][col]);
+        assertEquals(stringValue, queryResult.getStringValue(col));
       }
       i++;
     }
     assertEquals(rows.length, i);
   }
-
-
 }

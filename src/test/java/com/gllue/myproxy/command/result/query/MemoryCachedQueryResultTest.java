@@ -20,6 +20,18 @@ public class MemoryCachedQueryResultTest extends BaseQueryResultTest {
   }
 
   @Test
+  public void testNullValueInQueryResult() {
+    var columnCount = 3;
+    var rowCount = 100;
+    var queryResult = new MemoryCachedQueryResult(prepareMetaData(columnCount));
+    var rows = new byte[rowCount][columnCount][];
+    for (int i = 0; i < rowCount; i++) {
+      queryResult.addRow(rows[i]);
+    }
+    assertRowsEquals(rows, queryResult);
+  }
+
+  @Test
   public void testMaxCapacity() {
     var columnCount = 1;
     var rowCount = 10;

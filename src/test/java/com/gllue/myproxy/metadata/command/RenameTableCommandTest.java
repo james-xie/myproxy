@@ -23,7 +23,7 @@ public class RenameTableCommandTest extends BaseCommandTest {
     var oldTableName = "oldTable";
     var newTableName = "newTable";
     var context = buildContext();
-    var command = new RenameTableCommand(DATASOURCE, databaseName, oldTableName, newTableName);
+    var command = new RenameTableCommand(DATASOURCE, databaseName, databaseName, oldTableName, newTableName);
 
     var database = prepareDatabase(databaseName);
     var table = prepareTable(oldTableName);
@@ -56,7 +56,7 @@ public class RenameTableCommandTest extends BaseCommandTest {
     var databaseName = "db";
     var tableName = "table";
     var context = buildContext();
-    var command = new RenameTableCommand(DATASOURCE, databaseName, tableName, tableName);
+    var command = new RenameTableCommand(DATASOURCE, databaseName, databaseName, tableName, tableName);
     command.execute(context);
   }
 }

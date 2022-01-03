@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public abstract class AbstractQueryHandler implements CommandHandler<QueryHandlerRequest> {
-  protected final TransportService transportService;
+  private final TransportService transportService;
   protected final ThreadPool threadPool;
 
   protected void submitQueryToBackendDatabase(
@@ -48,20 +48,24 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
     return transportService.submitQueryToBackendDatabase(connectionId, query);
   }
 
-  protected Promise<Boolean> beginTransaction(int connectionId) {
+  protected Promise<CommandResult> beginTransaction(int connectionId) {
     return transportService.beginTransaction(connectionId);
   }
 
-  protected Promise<Boolean> commitTransaction(int connectionId) {
+  protected Promise<CommandResult> commitTransaction(int connectionId) {
     return transportService.commitTransaction(connectionId);
   }
 
-  protected Promise<Boolean> rollbackTransaction(int connectionId) {
+  protected Promise<CommandResult> rollbackTransaction(int connectionId) {
     return transportService.rollbackTransaction(connectionId);
   }
 
   protected Promise<CommandResult> kill(int connectionId, int threadId, boolean killQuery) {
     return transportService.kill(connectionId, threadId, killQuery);
+  }
+
+  protected Promise<CommandResult> useDatabase(final int connectionId, final String dbName) {
+    return transportService.useDatabase(connectionId, dbName);
   }
 
   protected Promise<List<CommandResult>> executeQueries(

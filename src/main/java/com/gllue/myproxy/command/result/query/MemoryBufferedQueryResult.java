@@ -97,7 +97,9 @@ public class MemoryBufferedQueryResult implements BufferedQueryResult {
   private int rowSize(byte[][] row) {
     int sizeInBytes = 0;
     for (var item : row) {
-      sizeInBytes += item.length;
+      if (item != null) {
+        sizeInBytes += item.length;
+      }
     }
     return sizeInBytes;
   }
@@ -213,7 +215,11 @@ public class MemoryBufferedQueryResult implements BufferedQueryResult {
 
   @Override
   public String getStringValue(int columnIndex) {
-    return new String(getValue(columnIndex));
+    var value = getValue(columnIndex);
+    if (value == null) {
+      return null;
+    }
+    return new String(value);
   }
 
   private synchronized void discardReadRows0() {

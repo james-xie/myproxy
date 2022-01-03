@@ -28,9 +28,11 @@ import com.gllue.myproxy.command.handler.HandlerRequest;
 import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.handler.query.dcl.kill.KillStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.set.SetStatementHandler;
+import com.gllue.myproxy.command.handler.query.dcl.show.ShowColumnsHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowCreateTableHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowMetricsHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowTablesHandler;
+import com.gllue.myproxy.command.handler.query.dcl.use.UseStatementHandler;
 import com.gllue.myproxy.command.handler.query.ddl.alter.AlterTableHandler;
 import com.gllue.myproxy.command.handler.query.ddl.create.CreateDatabaseHandler;
 import com.gllue.myproxy.command.handler.query.ddl.create.CreateTableHandler;
@@ -42,12 +44,16 @@ import com.gllue.myproxy.command.handler.query.dml.delete.DeleteQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.insert.InsertQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.select.SelectQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.update.UpdateQueryHandler;
+import com.gllue.myproxy.command.handler.query.tcl.BeginStatementHandler;
+import com.gllue.myproxy.command.handler.query.tcl.CommitStatementHandler;
+import com.gllue.myproxy.command.handler.query.tcl.RollbackStatementHandler;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.generator.IdGenerator;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
+import com.gllue.myproxy.sql.stmt.SQLBeginStatement;
 import com.gllue.myproxy.sql.stmt.SQLShowMetricsStatement;
 import com.gllue.myproxy.transport.core.service.TransportService;
 
@@ -72,6 +78,12 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
   private final ShowTablesHandler showTablesHandler;
   private final ShowCreateTableHandler showCreateTableHandler;
   private final KillStatementHandler killStatementHandler;
+  private final UseStatementHandler useStatementHandler;
+  private final ShowColumnsHandler showColumnsHandler;
+
+  private final BeginStatementHandler beginStatementHandler;
+  private final CommitStatementHandler commitStatementHandler;
+  private final RollbackStatementHandler rollbackStatementHandler;
 
   // custom statement handlers.
   private final ShowMetricsHandler showMetricsHandler;
@@ -125,6 +137,12 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     this.showCreateTableHandler =
         new ShowCreateTableHandler(transportService, clusterState, sqlParser, threadPool);
     this.killStatementHandler = new KillStatementHandler(transportService, threadPool);
+    this.useStatementHandler = new UseStatementHandler(transportService, threadPool);
+    this.showColumnsHandler = new ShowColumnsHandler(transportService, threadPool, clusterState);
+
+    this.beginStatementHandler = new BeginStatementHandler(transportService, threadPool);
+    this.commitStatementHandler = new CommitStatementHandler(transportService, threadPool);
+    this.rollbackStatementHandler = new RollbackStatementHandler(transportService, threadPool);
 
     this.showMetricsHandler = new ShowMetricsHandler(transportService, threadPool);
   }
@@ -178,15 +196,17 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     } else if (stmt instanceof SQLShowCreateTableStatement) {
       invokeHandlerExecute(showCreateTableHandler, request, callback);
     } else if (stmt instanceof SQLShowColumnsStatement) {
-
+      invokeHandlerExecute(showColumnsHandler, request, callback);
     } else if (stmt instanceof SQLShowTablesStatement) {
       invokeHandlerExecute(showTablesHandler, request, callback);
     } else if (stmt instanceof SQLUseStatement) {
-
-    } else if (stmt instanceof SQLRollbackStatement) {
-
+      invokeHandlerExecute(useStatementHandler, request, callback);
+    } else if (stmt instanceof SQLBeginStatement) {
+      invokeHandlerExecute(beginStatementHandler, request, callback);
     } else if (stmt instanceof SQLCommitStatement) {
-
+      invokeHandlerExecute(commitStatementHandler, request, callback);
+    } else if (stmt instanceof SQLRollbackStatement) {
+      invokeHandlerExecute(rollbackStatementHandler, request, callback);
     } else if (stmt instanceof MySqlKillStatement) {
       invokeHandlerExecute(killStatementHandler, request, callback);
     } else if (stmt instanceof MySqlShowProcessListStatement) {

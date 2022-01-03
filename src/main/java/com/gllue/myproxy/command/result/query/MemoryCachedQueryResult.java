@@ -70,7 +70,9 @@ public class MemoryCachedQueryResult implements QueryResult {
   private int rowSize(byte[][] row) {
     int sizeInBytes = 0;
     for (var item : row) {
-      sizeInBytes += item.length;
+      if (item != null) {
+        sizeInBytes += item.length;
+      }
     }
     return sizeInBytes;
   }
@@ -82,7 +84,11 @@ public class MemoryCachedQueryResult implements QueryResult {
 
   @Override
   public String getStringValue(int columnIndex) {
-    return new String(getValue(columnIndex));
+    var value = getValue(columnIndex);
+    if (value == null) {
+      return null;
+    }
+    return new String(value);
   }
 
   @Override

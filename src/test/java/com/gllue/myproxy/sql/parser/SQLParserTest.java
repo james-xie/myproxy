@@ -285,4 +285,13 @@ public class SQLParserTest {
 
     System.out.println(SQLStatementUtils.toSQLString(stmt));
   }
+
+  @Test
+  public void testParseShowColumns() {
+    var parser = newParser();
+    var stmt = parser.parse("SHOW COLUMNS FROM mytable FROM mydb;");
+    var stmt1 = parser.parse("SHOW COLUMNS FROM mydb.mytable;");
+    printStatement(stmt);
+  }
+
 }

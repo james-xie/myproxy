@@ -29,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.zookeeper.server.admin.Command;
 
 @Slf4j
 public class TransportService implements FrontendConnectionManager {
@@ -116,7 +117,7 @@ public class TransportService implements FrontendConnectionManager {
     return future;
   }
 
-  public Promise<Boolean> beginTransaction(final int connectionId) {
+  public Promise<CommandResult> beginTransaction(final int connectionId) {
     var frontendConnection = getFrontendConnection(connectionId);
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
@@ -129,11 +130,11 @@ public class TransportService implements FrontendConnectionManager {
             (result) -> {
               backendConnection.begin();
               frontendConnection.begin();
-              return true;
+              return result;
             });
   }
 
-  public Promise<Boolean> commitTransaction(final int connectionId) {
+  public Promise<CommandResult> commitTransaction(final int connectionId) {
     var frontendConnection = getFrontendConnection(connectionId);
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
@@ -146,11 +147,11 @@ public class TransportService implements FrontendConnectionManager {
             (result) -> {
               backendConnection.commit();
               frontendConnection.commit();
-              return true;
+              return result;
             });
   }
 
-  public Promise<Boolean> rollbackTransaction(final int connectionId) {
+  public Promise<CommandResult> rollbackTransaction(final int connectionId) {
     var frontendConnection = getFrontendConnection(connectionId);
     var backendConnection = frontendConnection.getBackendConnection();
     return new Promise<CommandResult>(
@@ -163,7 +164,7 @@ public class TransportService implements FrontendConnectionManager {
             (result) -> {
               backendConnection.rollback();
               frontendConnection.rollback();
-              return true;
+              return result;
             });
   }
 
@@ -249,5 +250,23 @@ public class TransportService implements FrontendConnectionManager {
           }
           submitQueryToBackendDatabase(connectionId, query, cb);
         });
+  }
+
+  public Promise<CommandResult> useDatabase(final int connectionId, final String dbName) {
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    return new Promise<CommandResult>(
+            (cb) -> {
+              var newCallback = wrappedCallback(frontendConnection, cb);
+              var reader = new DefaultCommandResultReader().addCallback(newCallback);
+              var query = String.format("USE `%s`", dbName);
+              backendConnection.sendCommand(new QueryCommandPacket(query), reader);
+            })
+        .then(
+            (result) -> {
+              backendConnection.changeDatabase(dbName);
+              frontendConnection.changeDatabase(dbName);
+              return result;
+            });
   }
 }

@@ -25,15 +25,12 @@ public interface QueryResult {
   String getStringValue(int columnIndex);
 
   /**
-   * Get the column definitions which is the meta data of the
-   * columns in the query result.
+   * Get the column definitions which is the meta data of the columns in the query result.
    *
    * @return the meta data describes columns
    */
   QueryResultMetaData getMetaData();
 
-  /**
-   * Close the query result, release the relevant resources.
-   */
+  /** Close the query result, release the relevant resources. */
   void close();
 }
