@@ -20,14 +20,20 @@ import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultRead
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
+import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionManager;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
+import com.google.common.base.Preconditions;
+import java.net.SocketAddress;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.zookeeper.server.admin.Command;
 
@@ -268,5 +274,36 @@ public class TransportService implements FrontendConnectionManager {
               frontendConnection.changeDatabase(dbName);
               return result;
             });
+  }
+
+  @Getter
+  @RequiredArgsConstructor
+  public static class ConnectionInfo {
+    private final int frontendConnectionId;
+    private final int backendConnectionId;
+    private final String user;
+    private final String database;
+    private final SocketAddress clientSocketAddress;
+  }
+
+  public List<ConnectionInfo> getConnectionInfoList(final String datasource) {
+    Preconditions.checkNotNull(datasource);
+
+    var result = new ArrayList<ConnectionInfo>();
+    for (var frontendConn : frontendConnectionMap.values()) {
+      if (!datasource.equals(frontendConn.getDataSourceName())) {
+        continue;
+      }
+
+      var backendConn = frontendConn.getBackendConnection();
+      result.add(
+          new ConnectionInfo(
+              frontendConn.connectionId(),
+              backendConn.connectionId(),
+              frontendConn.currentUser(),
+              frontendConn.currentDatabase(),
+              frontendConn.remoteAddress()));
+    }
+    return result;
   }
 }

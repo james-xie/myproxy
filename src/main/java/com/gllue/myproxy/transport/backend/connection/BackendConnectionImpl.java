@@ -57,15 +57,16 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   private volatile long sendCommandTime;
   private long receiveFirstResponseTime;
 
-  public BackendConnectionImpl(final int connectionId, final Channel channel) {
-    super(connectionId, channel);
+  public BackendConnectionImpl(final int connectionId, final String user, final Channel channel) {
+    super(connectionId, user, channel);
   }
 
   public BackendConnectionImpl(
       final int connectionId,
+      final String user,
       final Channel channel,
       final DataSource<BackendConnection> dataSource) {
-    this(connectionId, channel);
+    this(connectionId, user, channel);
     setDataSource(dataSource);
   }
 

@@ -294,4 +294,13 @@ public class SQLParserTest {
     printStatement(stmt);
   }
 
+  @Test
+  public void testParseDescribe() {
+    var parser = newParser();
+    var stmt = parser.parse("desc db.table1;");
+    var stmt1 = parser.parse("describe table1;");
+    var stmt2 = parser.parse("desc select * from table1;");
+    printStatement(stmt);
+  }
+
 }

@@ -234,7 +234,7 @@ public class BackendDataSourceTest {
 
   private BackendConnection prepareConnection(final BackendDataSource dataSource) {
     EmbeddedChannel ch = new EmbeddedChannel();
-    var connection = new BackendConnectionImpl(1, ch);
+    var connection = new BackendConnectionImpl(1, "root", ch);
     connection.setDataSource(dataSource);
     return connection;
   }

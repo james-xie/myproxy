@@ -17,6 +17,8 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class AbstractConnection implements Connection {
   protected final int connectionId;
 
+  protected final String user;
+
   protected final Channel channel;
 
   private final Queue<WritabilityChangedListener<Connection>> writabilityChangedListeners;
@@ -29,8 +31,9 @@ public abstract class AbstractConnection implements Connection {
 
   private volatile boolean autoCommit = true;
 
-  public AbstractConnection(final int connectionId, final Channel channel) {
+  public AbstractConnection(final int connectionId, final String user, final Channel channel) {
     this.connectionId = connectionId;
+    this.user = user;
     this.channel = channel;
     writabilityChangedListeners = new LinkedTransferQueue<>();
   }
@@ -58,6 +61,11 @@ public abstract class AbstractConnection implements Connection {
   @Override
   public int connectionId() {
     return connectionId;
+  }
+
+  @Override
+  public String currentUser() {
+    return user;
   }
 
   @Override

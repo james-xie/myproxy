@@ -45,7 +45,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAdapter {
 
-  private static final ConnectionIdGenerator ID_GENERATOR = new ConnectionIdGenerator();
+  private static final ConnectionIdGenerator ID_GENERATOR = new ConnectionIdGenerator(1);
 
   private enum ConnectionPhase {
     INITIAL_HANDSHAKE,
@@ -113,8 +113,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
           processCommand(payload);
           break;
         case FAILED:
-          sendErrorPacket(
-              ctx, ServerErrorCode.ER_SERVER_ERROR, "illegalConnectionState: FAILED");
+          sendErrorPacket(ctx, ServerErrorCode.ER_SERVER_ERROR, "illegalConnectionState: FAILED");
           NettyUtils.closeChannel(ctx.channel(), false);
           break;
       }
@@ -299,7 +298,8 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
       connectionPhase = ConnectionPhase.AUTHENTICATED;
       sendOkPacket(ctx);
       frontendConnection =
-          new FrontendConnectionImpl(connectionId, ctx.channel(), authData.getDataSource());
+          new FrontendConnectionImpl(
+              connectionId, authData.getUsername(), ctx.channel(), authData.getDataSource());
       frontendConnectionManager.registerFrontendConnection(frontendConnection);
 
       var database = authData.getDatabaseName();

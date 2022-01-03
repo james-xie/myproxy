@@ -346,7 +346,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
     log.info("Backend connection has connected.");
     assert connection == null;
     connectionPhase = ConnectionPhase.CONNECTED;
-    connection = new BackendConnectionImpl(connectionId, ctx.channel());
+    connection = new BackendConnectionImpl(connectionId, authData.getUsername(), ctx.channel());
     if (MySQLStatusFlag.SERVER_STATUS_AUTOCOMMIT.isBitSet(statusFlags)) {
       connection.enableAutoCommit();
     } else {

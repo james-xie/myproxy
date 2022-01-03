@@ -55,4 +55,16 @@ public final class NetworkUtils {
     }
     return socketAddress;
   }
+
+  public static String toAddressString(SocketAddress socketAddress) {
+    if (socketAddress == null) {
+      return null;
+    }
+
+    var value = socketAddress.toString();
+    if (value.startsWith("/")) {
+      return value.substring(1);
+    }
+    return value;
+  }
 }

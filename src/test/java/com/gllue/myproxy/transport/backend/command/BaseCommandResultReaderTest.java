@@ -16,10 +16,11 @@ public class BaseCommandResultReaderTest extends BaseTransportTest {
   }
 
   EmbeddedChannel backendChannel = new EmbeddedChannel();
-  BackendConnection backendConnection = new BackendConnectionImpl(2, backendChannel);
+  BackendConnection backendConnection = new BackendConnectionImpl(2, "root", backendChannel);
 
   EmbeddedChannel frontendChannel = new EmbeddedChannel();
-  FrontendConnection frontendConnection = new FrontendConnectionImpl(1, frontendChannel, "datasource");
+  FrontendConnection frontendConnection =
+      new FrontendConnectionImpl(1, "root", frontendChannel, "datasource");
 
   CommandResultReader prepareReader(CommandResultReader reader) {
     reader.bindConnection(backendConnection);
@@ -29,5 +30,4 @@ public class BaseCommandResultReaderTest extends BaseTransportTest {
   AtomicReference<CallbackExecutionState> newExecutionStateRef() {
     return new AtomicReference<>(CallbackExecutionState.NOT_DONE);
   }
-
 }

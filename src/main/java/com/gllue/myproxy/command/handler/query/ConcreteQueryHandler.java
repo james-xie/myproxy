@@ -4,7 +4,6 @@ import com.alibaba.druid.sql.ast.SQLStatement;
 import com.alibaba.druid.sql.ast.statement.SQLAlterTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLCommitStatement;
 import com.alibaba.druid.sql.ast.statement.SQLCreateDatabaseStatement;
-import com.alibaba.druid.sql.ast.statement.SQLDescribeStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDropDatabaseStatement;
 import com.alibaba.druid.sql.ast.statement.SQLDropTableStatement;
 import com.alibaba.druid.sql.ast.statement.SQLRollbackStatement;
@@ -17,6 +16,7 @@ import com.alibaba.druid.sql.ast.statement.SQLTruncateStatement;
 import com.alibaba.druid.sql.ast.statement.SQLUseStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlCreateTableStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlDeleteStatement;
+import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlExplainStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlInsertStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlKillStatement;
 import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlRenameTableStatement;
@@ -26,11 +26,13 @@ import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.command.handler.CommandHandler;
 import com.gllue.myproxy.command.handler.HandlerRequest;
 import com.gllue.myproxy.command.handler.HandlerResult;
+import com.gllue.myproxy.command.handler.query.dcl.desc.ExplainStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.kill.KillStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.set.SetStatementHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowColumnsHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowCreateTableHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowMetricsHandler;
+import com.gllue.myproxy.command.handler.query.dcl.show.ShowProcessListHandler;
 import com.gllue.myproxy.command.handler.query.dcl.show.ShowTablesHandler;
 import com.gllue.myproxy.command.handler.query.dcl.use.UseStatementHandler;
 import com.gllue.myproxy.command.handler.query.ddl.alter.AlterTableHandler;
@@ -80,6 +82,8 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
   private final KillStatementHandler killStatementHandler;
   private final UseStatementHandler useStatementHandler;
   private final ShowColumnsHandler showColumnsHandler;
+  private final ExplainStatementHandler explainStatementHandler;
+  private final ShowProcessListHandler showProcessListHandler;
 
   private final BeginStatementHandler beginStatementHandler;
   private final CommitStatementHandler commitStatementHandler;
@@ -139,6 +143,9 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     this.killStatementHandler = new KillStatementHandler(transportService, threadPool);
     this.useStatementHandler = new UseStatementHandler(transportService, threadPool);
     this.showColumnsHandler = new ShowColumnsHandler(transportService, threadPool, clusterState);
+    this.explainStatementHandler =
+        new ExplainStatementHandler(transportService, threadPool, showColumnsHandler);
+    this.showProcessListHandler = new ShowProcessListHandler(transportService, threadPool);
 
     this.beginStatementHandler = new BeginStatementHandler(transportService, threadPool);
     this.commitStatementHandler = new CommitStatementHandler(transportService, threadPool);
@@ -210,9 +217,9 @@ public class ConcreteQueryHandler extends SchemaRelatedQueryHandler {
     } else if (stmt instanceof MySqlKillStatement) {
       invokeHandlerExecute(killStatementHandler, request, callback);
     } else if (stmt instanceof MySqlShowProcessListStatement) {
-
-    } else if (stmt instanceof SQLDescribeStatement) {
-
+      invokeHandlerExecute(showProcessListHandler, request, callback);
+    } else if (stmt instanceof MySqlExplainStatement) {
+      invokeHandlerExecute(explainStatementHandler, request, callback);
     } else if (stmt instanceof SQLSetStatement) {
       invokeHandlerExecute(setStatementHandler, request, callback);
     } else if (stmt instanceof SQLShowMetricsStatement) {

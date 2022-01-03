@@ -50,12 +50,10 @@ public class ShowColumnsHandler extends AbstractQueryHandler {
   }
 
   private Promise<QueryResult> showPartitionTableColumns(
-      QueryHandlerRequest request, PartitionTableMetaData table) {
-    var stmt = (SQLShowColumnsStatement) request.getStatement();
+      int connectionId, SQLShowColumnsStatement stmt, PartitionTableMetaData table) {
     var tableNames = table.getTableNames();
     var size = tableNames.length;
     var index = new AtomicInteger(0);
-    var connectionId = request.getConnectionId();
     var promise =
         Promise.all(
             () -> {
@@ -83,8 +81,8 @@ public class ShowColumnsHandler extends AbstractQueryHandler {
     return columnType;
   }
 
-  private Promise<QueryResult> showColumns(QueryHandlerRequest request, TableMetaData table) {
-    var stmt = (SQLShowColumnsStatement) request.getStatement();
+  private Promise<QueryResult> doShowTableColumns(
+      int connectionId, SQLShowColumnsStatement stmt, TableMetaData table) {
     if (stmt.getWhere() != null) {
       throw new BadSQLException(
           String.format(
@@ -93,11 +91,11 @@ public class ShowColumnsHandler extends AbstractQueryHandler {
 
     Promise<QueryResult> promise;
     if (table.getType() == TableType.PARTITION) {
-      promise = showPartitionTableColumns(request, (PartitionTableMetaData) table);
+      promise = showPartitionTableColumns(connectionId, stmt, (PartitionTableMetaData) table);
     } else {
+      var query = toSQLString(stmt);
       promise =
-          submitQueryToBackendDatabase(request.getConnectionId(), request.getQuery())
-              .then(CommandResult::getQueryResult);
+          submitQueryToBackendDatabase(connectionId, query).then(CommandResult::getQueryResult);
     }
     return promise.then(
         (result) -> {
@@ -123,22 +121,24 @@ public class ShowColumnsHandler extends AbstractQueryHandler {
         });
   }
 
-  @Override
-  public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
-    var stmt = (SQLShowColumnsStatement) request.getStatement();
-    String databaseName = request.getDatabase();
+  public void showTableColumns(
+      int connectionId,
+      String datasource,
+      String databaseName,
+      SQLShowColumnsStatement stmt,
+      Callback<HandlerResult> callback) {
     var tableName = unquoteName(stmt.getTable().getSimpleName());
     if (stmt.getDatabase() != null) {
       databaseName = unquoteName(stmt.getDatabase().getSimpleName());
     }
 
-    var database = clusterState.getMetaData().getDatabase(request.getDatasource(), databaseName);
+    var database = clusterState.getMetaData().getDatabase(datasource, databaseName);
     if (database == null || !database.hasTable(tableName)) {
-      submitQueryAndDirectTransferResult(request.getConnectionId(), request.getQuery(), callback);
+      submitQueryAndDirectTransferResult(connectionId, toSQLString(stmt), callback);
       return;
     }
 
-    showColumns(request, database.getTable(tableName))
+    doShowTableColumns(connectionId, stmt, database.getTable(tableName))
         .then(
             (result) -> {
               callback.onSuccess(new QueryHandlerResult(result));
@@ -148,5 +148,12 @@ public class ShowColumnsHandler extends AbstractQueryHandler {
               callback.onFailure(e);
               return false;
             });
+  }
+
+  @Override
+  public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
+    var stmt = (SQLShowColumnsStatement) request.getStatement();
+    showTableColumns(
+        request.getConnectionId(), request.getDatasource(), request.getDatabase(), stmt, callback);
   }
 }

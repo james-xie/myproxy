@@ -14,8 +14,8 @@ public class FrontendConnectionImpl extends AbstractConnection implements Fronte
   private volatile WeakReference<BackendConnection> backendConnectionRef;
 
   public FrontendConnectionImpl(
-      final int connectionId, final Channel channel, final String dataSource) {
-    super(connectionId, channel);
+      final int connectionId, final String user, final Channel channel, final String dataSource) {
+    super(connectionId, user, channel);
     this.dataSourceName = dataSource;
     this.sessionContext = new SessionContextImpl(this);
   }

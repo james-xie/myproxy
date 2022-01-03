@@ -9,6 +9,7 @@ import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
 import com.gllue.myproxy.transport.core.service.TransportService;
+import com.gllue.myproxy.transport.core.service.TransportService.ConnectionInfo;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
@@ -66,6 +67,10 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
 
   protected Promise<CommandResult> useDatabase(final int connectionId, final String dbName) {
     return transportService.useDatabase(connectionId, dbName);
+  }
+
+  protected List<ConnectionInfo> getConnectionInfoList(final String datasource) {
+    return transportService.getConnectionInfoList(datasource);
   }
 
   protected Promise<List<CommandResult>> executeQueries(

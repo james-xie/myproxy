@@ -8,6 +8,8 @@ import java.util.function.Consumer;
 public interface Connection {
   int connectionId();
 
+  String currentUser();
+
   SocketAddress localAddress();
 
   SocketAddress remoteAddress();
