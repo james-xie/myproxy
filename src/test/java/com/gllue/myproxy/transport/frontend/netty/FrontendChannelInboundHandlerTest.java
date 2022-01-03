@@ -17,7 +17,7 @@ import com.gllue.myproxy.transport.frontend.netty.auth.AuthenticationHandler;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchRequestPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchResponsePacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.HandshakeResponsePacket41;
-import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionManager;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionListener;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import io.netty.channel.embedded.EmbeddedChannel;
 import java.util.List;
@@ -57,7 +57,8 @@ public class FrontendChannelInboundHandlerTest extends BaseTransportTest {
   AuthenticationHandler authHandler;
   @Mock
   CommandExecutionEngine commandExecutionEngine;
-  @Mock FrontendConnectionManager frontendConnectionManager;
+  @Mock
+  FrontendConnectionListener frontendConnectionListener;
 
   @Test
   public void testAuthenticateSuccess() {
@@ -176,7 +177,7 @@ public class FrontendChannelInboundHandlerTest extends BaseTransportTest {
     var ch =
         new EmbeddedChannel(
             new FrontendChannelInboundHandler(
-                authHandler, commandExecutionEngine, frontendConnectionManager));
+                authHandler, commandExecutionEngine, frontendConnectionListener));
     assertNotNull(ch.readOutbound());
     return ch;
   }

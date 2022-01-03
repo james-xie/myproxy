@@ -22,7 +22,7 @@ import com.gllue.myproxy.transport.exception.UnsupportedCommandException;
 import com.gllue.myproxy.transport.frontend.command.CommandExecutionEngine;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionImpl;
-import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionManager;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionListener;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.CreateDBCommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.DropDBCommandPacket;
@@ -61,7 +61,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
 
   private final CommandExecutionEngine commandExecuteEngine;
 
-  private final FrontendConnectionManager frontendConnectionManager;
+  private final FrontendConnectionListener frontendConnectionListener;
 
   private AuthenticationData authData;
 
@@ -74,10 +74,10 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
   public FrontendChannelInboundHandler(
       final AuthenticationHandler authHandler,
       final CommandExecutionEngine commandExecutionEngine,
-      final FrontendConnectionManager connectionManager) {
+      final FrontendConnectionListener connectionManager) {
     this.authHandler = authHandler;
     this.commandExecuteEngine = commandExecutionEngine;
-    this.frontendConnectionManager = connectionManager;
+    this.frontendConnectionListener = connectionManager;
   }
 
   @Override
@@ -146,7 +146,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
   public void channelInactive(ChannelHandlerContext ctx) throws Exception {
     if (frontendConnection != null) {
       frontendConnection.close();
-      frontendConnectionManager.removeFrontendConnection(frontendConnection.connectionId());
+      frontendConnectionListener.onClosed(frontendConnection);
       frontendConnection = null;
     }
 
@@ -300,7 +300,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
       frontendConnection =
           new FrontendConnectionImpl(
               connectionId, authData.getUsername(), ctx.channel(), authData.getDataSource());
-      frontendConnectionManager.registerFrontendConnection(frontendConnection);
+      frontendConnectionListener.onConnected(frontendConnection);
 
       var database = authData.getDatabaseName();
       if (!Strings.isNullOrEmpty(database)) {

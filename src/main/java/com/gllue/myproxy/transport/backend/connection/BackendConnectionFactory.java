@@ -4,6 +4,7 @@ import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.backend.BackendServer;
+import com.gllue.myproxy.transport.core.service.TransportService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RequiredArgsConstructor
 public class BackendConnectionFactory {
+  private final TransportService transportService;
 
   private BackendServer backendServer() {
     return BackendServer.getInstance();
@@ -54,6 +56,7 @@ public class BackendConnectionFactory {
 
             if (connection != null) {
               connection.close();
+              transportService.removeBackendConnection(connection.connectionId());
             }
           }
         };

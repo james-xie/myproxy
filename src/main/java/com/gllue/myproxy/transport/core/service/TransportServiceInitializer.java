@@ -6,24 +6,29 @@ import com.gllue.myproxy.config.ConfigurationException;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
+import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionFactory;
+import com.gllue.myproxy.transport.backend.connection.BackendConnectionListener;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceConfig;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
 public class TransportServiceInitializer implements Initializer {
 
-  private List<BackendDataSource> preloadDataSources(Configurations configurations) {
+  private List<BackendDataSource> preloadDataSources(
+      Configurations configurations, TransportService transportService) {
     List<String> dataSourceConfigs =
         configurations.getValue(Type.GENERIC, GenericConfigPropertyKey.DATA_SOURCE_CONFIGS);
     if (dataSourceConfigs.size() == 0) {
       throw new ConfigurationException("Missing data source configuration.");
     }
 
-    var backendConnectionFactory = new BackendConnectionFactory();
+    var backendConnectionFactory = new BackendConnectionFactory(transportService);
     var parser = new DataSourceConfig.Parser();
     Set<String> nameSet = new HashSet<>();
     List<BackendDataSource> dataSources = new ArrayList<>();
@@ -57,10 +62,9 @@ public class TransportServiceInitializer implements Initializer {
   @Override
   public void initialize(ServerContext context) {
     var transportService =
-        new TransportService(
-            context.getConfigurations(),
-            context.getThreadPool(),
-            preloadDataSources(context.getConfigurations()));
+        new TransportService(context.getConfigurations(), context.getThreadPool());
+    var dataSources = preloadDataSources(context.getConfigurations(), transportService);
+    transportService.initialize(dataSources);
     context.setTransportService(transportService);
   }
 

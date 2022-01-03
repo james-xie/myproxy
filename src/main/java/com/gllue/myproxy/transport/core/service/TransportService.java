@@ -20,9 +20,8 @@ import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultRead
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
-import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
-import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionManager;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionListener;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.google.common.base.Preconditions;
 import java.net.SocketAddress;
@@ -31,30 +30,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.zookeeper.server.admin.Command;
 
 @Slf4j
-public class TransportService implements FrontendConnectionManager {
+public class TransportService {
   private final Configurations configurations;
   private final ThreadPool threadPool;
 
-  @Getter
-  private final DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
+  @Getter private DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
 
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
 
-  public TransportService(
-      final Configurations configurations,
-      final ThreadPool threadPool,
-      final List<BackendDataSource> dataSources) {
+  public TransportService(final Configurations configurations, final ThreadPool threadPool) {
     this.configurations = configurations;
     this.threadPool = threadPool;
-    backendDataSourceManager = new DataSourceManager<>(dataSources);
     frontendConnectionMap = new ConcurrentHashMap<>();
+  }
+
+  public void initialize(final List<BackendDataSource> dataSources) {
+    if (this.backendDataSourceManager != null) {
+      throw new IllegalStateException("Cannot override backendDataSourceManager");
+    }
+    this.backendDataSourceManager = new DataSourceManager<>(dataSources);
   }
 
   public void registerFrontendConnection(final FrontendConnection connection) {
@@ -65,7 +64,7 @@ public class TransportService implements FrontendConnectionManager {
     }
   }
 
-  public FrontendConnection removeFrontendConnection(final int connectionId) {
+  public void removeFrontendConnection(final int connectionId) {
     var connection = frontendConnectionMap.remove(connectionId);
     if (connection != null) {
       var backendConnection = connection.getBackendConnection();
@@ -81,7 +80,15 @@ public class TransportService implements FrontendConnectionManager {
         }
       }
     }
-    return connection;
+  }
+
+  public void removeBackendConnection(final int connectionId) {
+    for (var frontendConn: frontendConnectionMap.values()) {
+      var backendConn = frontendConn.getBackendConnection();
+      if (backendConn.connectionId() == connectionId) {
+        frontendConn.close();
+      }
+    }
   }
 
   public FrontendConnection getFrontendConnection(final int connectionId) {

@@ -8,6 +8,8 @@ import com.gllue.myproxy.config.TransportConfigPropertyKey;
 import com.gllue.myproxy.transport.core.netty.MySQLPayloadCodecHandler;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import com.gllue.myproxy.transport.frontend.command.CommandExecutionEngine;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionListener;
 import com.gllue.myproxy.transport.frontend.netty.FrontendChannelInboundHandler;
 import com.gllue.myproxy.transport.frontend.netty.auth.MySQLNativePasswordAuthenticationHandler;
 import io.netty.bootstrap.ServerBootstrap;
@@ -84,6 +86,20 @@ public final class FrontendServer implements Initializer {
     private final TransportService transportService;
     private final CommandExecutionEngine commandExecutionEngine;
 
+    private FrontendConnectionListener newListener() {
+      return new FrontendConnectionListener() {
+        @Override
+        public void onConnected(FrontendConnection connection) {
+          transportService.registerFrontendConnection(connection);
+        }
+
+        @Override
+        public void onClosed(FrontendConnection connection) {
+          transportService.removeFrontendConnection(connection.connectionId());
+        }
+      };
+    }
+
     @Override
     protected void initChannel(SocketChannel ch) throws Exception {
       var authHandler = new MySQLNativePasswordAuthenticationHandler();
@@ -95,7 +111,7 @@ public final class FrontendServer implements Initializer {
       ch.pipeline()
           .addLast(
               new FrontendChannelInboundHandler(
-                  authHandler, commandExecutionEngine, transportService));
+                  authHandler, commandExecutionEngine, newListener()));
     }
   }
 

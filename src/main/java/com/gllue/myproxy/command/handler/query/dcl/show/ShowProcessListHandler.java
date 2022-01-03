@@ -68,20 +68,18 @@ public class ShowProcessListHandler extends AbstractQueryHandler {
 
   @Override
   public void execute(QueryHandlerRequest request, Callback<HandlerResult> callback) {
-    submitQueryAndDirectTransferResult(request.getConnectionId(), request.getQuery(), callback);
-    //    submitQueryToBackendDatabase(request.getConnectionId(), request.getQuery())
-    //        .then(
-    //            (result) -> {
-    //              var queryResult =
-    //                  updateShowProcessListResult(request.getDatasource(),
-    // result.getQueryResult());
-    //              callback.onSuccess(new QueryHandlerResult(queryResult));
-    //              return true;
-    //            })
-    //        .doCatch(
-    //            (e) -> {
-    //              callback.onFailure(e);
-    //              return false;
-    //            });
+    submitQueryToBackendDatabase(request.getConnectionId(), request.getQuery())
+        .then(
+            (result) -> {
+              var queryResult =
+                  updateShowProcessListResult(request.getDatasource(), result.getQueryResult());
+              callback.onSuccess(new QueryHandlerResult(queryResult));
+              return true;
+            })
+        .doCatch(
+            (e) -> {
+              callback.onFailure(e);
+              return false;
+            });
   }
 }

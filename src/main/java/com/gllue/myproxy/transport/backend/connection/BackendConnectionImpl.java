@@ -235,6 +235,10 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
 
   @Override
   public void releaseOrClose() {
+    if (isClosed()) {
+      return;
+    }
+
     // If the command is being executed, we should close the backend connection
     // because the state is undefined. Otherwise the backend connection can be reused.
     if (commandResultReader != null) {
