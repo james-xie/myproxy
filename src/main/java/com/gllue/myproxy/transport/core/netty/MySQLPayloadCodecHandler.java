@@ -5,6 +5,7 @@ import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
+import com.gllue.myproxy.transport.protocol.payload.WrappedPayloadPacket;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandlerContext;
@@ -85,6 +86,12 @@ public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
   @Override
   public void encode(
       final ChannelHandlerContext context, final MySQLPacket message, final ByteBuf out) {
+    // Fast path for direct transferred query result.
+    if (message instanceof WrappedPayloadPacket) {
+      writePayload(((WrappedPayloadPacket) message).getPayload(), out);
+      return;
+    }
+
     var payload = new MySQLPayload(context.alloc().buffer());
     var payloadBuf = payload.getByteBuf();
 

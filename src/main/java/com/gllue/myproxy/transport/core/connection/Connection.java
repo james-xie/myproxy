@@ -2,6 +2,7 @@ package com.gllue.myproxy.transport.core.connection;
 
 import com.gllue.myproxy.common.concurrent.SettableFuture;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import java.net.SocketAddress;
 import java.util.function.Consumer;
 
@@ -35,6 +36,10 @@ public interface Connection {
   void write(MySQLPacket packet);
 
   void writeAndFlush(MySQLPacket packet);
+
+  void write(MySQLPayload payload);
+
+  void writeAndFlush(MySQLPayload payload);
 
   void write(MySQLPacket packet, SettableFuture<Connection> future);
 

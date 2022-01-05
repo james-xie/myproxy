@@ -127,12 +127,12 @@ public abstract class AbstractQueryResultReader extends AbstractCommandResultRea
 
   protected void afterReadRows() {}
 
-  private void handleErrPacket(final ErrPacket packet) {
+  void handleErrPacket(final ErrPacket packet) {
     state = State.FAILED;
     onFailure(new BackendResultReadException(CustomErrorCode.newInstance(packet)));
   }
 
-  private void handleEofPacket(final EofPacket packet) {
+  void handleEofPacket(final EofPacket packet) {
     state = State.READ_COMPLETED;
     onSuccess(
         new CommandResult(
@@ -143,7 +143,7 @@ public abstract class AbstractQueryResultReader extends AbstractCommandResultRea
     return null;
   }
 
-  private void handleOkPacket(final OKPacket packet) {
+  void handleOkPacket(final OKPacket packet) {
     state = State.READ_COMPLETED;
     onSuccess(CommandResult.newInstance(packet, getQueryResult()));
   }

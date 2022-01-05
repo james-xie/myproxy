@@ -528,6 +528,14 @@ public class MySQLPayload implements AutoCloseable {
     return byteBuf.getUnsignedByte(byteBuf.readerIndex());
   }
 
+  public void retain() {
+    byteBuf.retain();
+  }
+
+  public void release() {
+    byteBuf.release();
+  }
+
   /**
    * Release the payload holden resources.
    */

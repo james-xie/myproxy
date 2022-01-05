@@ -10,19 +10,22 @@ public class ColumnDefinitionPacketWrapper extends AbstractPacketWrapper {
     super(packet);
   }
 
-  public static MySQLPacket tryMatch(final MySQLPayload payload, final boolean isCommandFieldList) {
+  public static MySQLPacket tryMatch(final MySQLPayload payload) {
     var packet = AbstractPacketWrapper.tryMatch(payload);
     if (packet != null) {
       return packet;
     } else if (EofPacket.match(payload)) {
       return new EofPacket(payload);
     }
-    return new ColumnDefinition41Packet(payload, isCommandFieldList);
+    return null;
   }
 
   public static ColumnDefinitionPacketWrapper newInstance(
       final MySQLPayload payload, final boolean isCommandFieldList) {
-    var packet = tryMatch(payload, isCommandFieldList);
+    var packet = tryMatch(payload);
+    if (packet == null) {
+      packet = new ColumnDefinition41Packet(payload, isCommandFieldList);
+    }
     return new ColumnDefinitionPacketWrapper(packet);
   }
 

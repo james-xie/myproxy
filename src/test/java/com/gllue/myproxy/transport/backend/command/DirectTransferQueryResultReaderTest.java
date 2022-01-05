@@ -19,6 +19,7 @@ import com.gllue.myproxy.transport.backend.BackendResultReadException;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnCountPacket;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
+import com.gllue.myproxy.transport.protocol.payload.WrappedPayloadPacket;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Assert;
 import org.junit.Test;
@@ -156,8 +157,10 @@ public class DirectTransferQueryResultReaderTest extends BaseCommandResultReader
 
     for (String columnName : columnNames) {
       packet = frontendChannel.readOutbound();
-      assertThat(packet, instanceOf(ColumnDefinition41Packet.class));
-      var columnDefPacket = (ColumnDefinition41Packet) packet;
+      assertThat(packet, instanceOf(WrappedPayloadPacket.class));
+      var wrappedPacket = (WrappedPayloadPacket) packet;
+      assertEquals(2, wrappedPacket.getPayload().getByteBuf().refCnt());
+      var columnDefPacket = new ColumnDefinition41Packet(wrappedPacket.getPayload(), false);
       assertEquals(columnName, columnDefPacket.getName());
     }
 
@@ -165,8 +168,10 @@ public class DirectTransferQueryResultReaderTest extends BaseCommandResultReader
 
     for (var row : rows) {
       packet = frontendChannel.readOutbound();
-      assertThat(packet, instanceOf(TextResultSetRowPacket.class));
-      var rowPacket = (TextResultSetRowPacket) packet;
+      assertThat(packet, instanceOf(WrappedPayloadPacket.class));
+      var wrappedPacket = (WrappedPayloadPacket) packet;
+      assertEquals(2, wrappedPacket.getPayload().getByteBuf().refCnt());
+      var rowPacket = new TextResultSetRowPacket(wrappedPacket.getPayload(), columnCount);
       assertArrayEquals(row, rowPacket.getRowData());
     }
 

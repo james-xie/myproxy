@@ -21,7 +21,7 @@ public abstract class AbstractPacketWrapper implements PacketWrapper {
 
   @Override
   public boolean isErrPacket() {
-    return packet != null && packet instanceof ErrPacket;
+    return packet instanceof ErrPacket;
   }
 
   @Override

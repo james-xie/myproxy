@@ -4,6 +4,7 @@ import com.gllue.myproxy.common.concurrent.AbstractRunnable;
 import com.gllue.myproxy.common.concurrent.SettableFuture;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
 import io.netty.channel.Channel;
@@ -111,6 +112,16 @@ public abstract class AbstractConnection implements Connection {
   @Override
   public void writeAndFlush(final MySQLPacket packet) {
     channel.writeAndFlush(packet);
+  }
+
+  @Override
+  public void write(MySQLPayload payload) {
+    channel.write(payload);
+  }
+
+  @Override
+  public void writeAndFlush(MySQLPayload payload) {
+    channel.writeAndFlush(payload);
   }
 
   @Override

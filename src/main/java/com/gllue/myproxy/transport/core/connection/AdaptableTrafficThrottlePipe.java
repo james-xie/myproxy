@@ -2,6 +2,7 @@ package com.gllue.myproxy.transport.core.connection;
 
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import com.google.common.base.Preconditions;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
@@ -53,13 +54,7 @@ public class AdaptableTrafficThrottlePipe implements TrafficThrottlePipe {
     }
   }
 
-  @Override
-  public void transfer(final MySQLPacket packet, final boolean forceFlush) {
-    if (out.isClosed()) {
-      return;
-    }
-
-    out.write(packet);
+  private void tryFlush() {
     if (!out.isWritable() && in.isAutoRead()) {
       in.disableAutoRead();
       out.flush();
@@ -82,9 +77,22 @@ public class AdaptableTrafficThrottlePipe implements TrafficThrottlePipe {
         flushThreshold++;
       }
       flushThreshold = Math.max(1, flushThreshold);
-    } else if (forceFlush) {
-      out.flush();
     }
+  }
+
+  @Override
+  public boolean transfer(final MySQLPacket packet, final boolean forceFlush) {
+    if (out.isClosed()) {
+      return false;
+    }
+
+    out.write(packet);
+    if (forceFlush) {
+      out.flush();
+    } else {
+      tryFlush();
+    }
+    return true;
   }
 
   @Override

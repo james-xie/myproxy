@@ -12,7 +12,7 @@ public class TextResultSetRowPacketWrapper extends AbstractPacketWrapper {
     super(packet);
   }
 
-  public static MySQLPacket tryMatch(final MySQLPayload payload, final int columns) {
+  public static MySQLPacket tryMatch(final MySQLPayload payload) {
     var packet = AbstractPacketWrapper.tryMatch(payload);
     if (packet != null) {
       return packet;
@@ -21,12 +21,14 @@ public class TextResultSetRowPacketWrapper extends AbstractPacketWrapper {
     } else if (OKPacket.match(payload)) {
       return new OKPacket(payload);
     }
-
-    return new TextResultSetRowPacket(payload, columns);
+    return null;
   }
 
   public static TextResultSetRowPacketWrapper newInstance(MySQLPayload payload, final int columns) {
-    var packet = tryMatch(payload, columns);
+    var packet = tryMatch(payload);
+    if (packet == null) {
+      packet = new TextResultSetRowPacket(payload, columns);
+    }
     return new TextResultSetRowPacketWrapper(packet);
   }
 

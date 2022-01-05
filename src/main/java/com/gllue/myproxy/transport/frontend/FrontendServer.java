@@ -157,7 +157,6 @@ public final class FrontendServer implements Initializer {
         .option(ChannelOption.SO_BACKLOG, backlog)
         .option(ChannelOption.WRITE_BUFFER_WATER_MARK, writeBufferWaterMark)
         .option(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
-        .option(ChannelOption.TCP_NODELAY, true)
         .option(ChannelOption.SO_REUSEADDR, true)
         .childOption(ChannelOption.ALLOCATOR, PooledByteBufAllocator.DEFAULT)
         .childOption(ChannelOption.TCP_NODELAY, true)

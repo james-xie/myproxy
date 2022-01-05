@@ -327,14 +327,6 @@ public class CommandExecutionEngine {
     new HandlerResultWriter(result).write(connection);
   }
 
-  //  private void query(
-  //      final FrontendConnection frontendConnection,
-  //      final QueryCommandPacket packet,
-  //      final BackendConnection backendConnection) {
-  //    backendConnection.sendCommand(
-  //        packet, new DirectTransferQueryResultReader(frontendConnection));
-  //  }
-
   /** Execute text-based query immediately. */
   private void query(
       final FrontendConnection frontendConnection,
