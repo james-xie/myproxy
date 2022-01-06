@@ -1,5 +1,7 @@
 package com.gllue.myproxy.transport.core.netty;
 
+import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_SECOND;
+
 import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
@@ -10,11 +12,18 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.CompositeByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageCodec;
+import io.prometheus.client.Summary;
 import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
+  private static final Summary proxyLatencySummary =
+      Summary.build()
+          .name("proxy_latency_summary")
+          .help("Proxy latency summary in seconds")
+          .unit("second")
+          .register();
 
   public static final int PAYLOAD_BYTES = 3;
 
@@ -25,6 +34,8 @@ public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
   private int sequenceId = 0;
 
   private CompositeByteBuf cumulation = null;
+
+  private long encodeFirstPayloadTime;
 
   public boolean isValidHeader(final int readableBytes) {
     return readableBytes >= PAYLOAD_BYTES + SEQUENCE_BYTES;
@@ -51,6 +62,7 @@ public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
 
     if (readSeqId == 0) {
       sequenceId = 0;
+      encodeFirstPayloadTime = System.nanoTime();
     } else {
       validateSequenceId(readSeqId, context);
     }
@@ -100,6 +112,11 @@ public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
       message.write(payload);
       writePayload(payload, out);
     } else {
+      if (encodeFirstPayloadTime > 0) {
+        proxyLatencySummary.observe((System.nanoTime() - encodeFirstPayloadTime) / NANOS_PER_SECOND);
+        encodeFirstPayloadTime = 0;
+      }
+
       payloadBuf.markWriterIndex();
       try {
         message.write(payload);

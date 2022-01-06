@@ -9,7 +9,6 @@ import com.gllue.myproxy.transport.core.service.TransportServiceInitializer;
 import com.gllue.myproxy.transport.frontend.FrontendServer;
 import com.gllue.myproxy.transport.backend.BackendServer;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.zookeeper.data.Id;
 
 @Slf4j
 public final class Bootstrap {

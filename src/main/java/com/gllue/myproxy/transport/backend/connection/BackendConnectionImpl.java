@@ -149,9 +149,6 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
     }
     newCommandResultReader = reader;
     reader.bindConnection(this);
-
-    firstResponse = true;
-    sendCommandTime = System.nanoTime();
   }
 
   @Override
@@ -168,6 +165,8 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
 
   @Override
   public void sendCommand(CommandPacket packet, CommandResultReader reader) {
+    firstResponse = true;
+    sendCommandTime = System.nanoTime();
     setCommandResultReader(reader);
     writeAndFlush(packet);
   }
