@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class DropTableCommand extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
+public class DropTableCommand extends SchemaRelatedMetaDataCommand {
   private final String datasource;
   private final String databaseName;
   private final String name;
@@ -28,9 +28,7 @@ public class DropTableCommand extends AbstractMetaDataCommand<MultiDatabasesMeta
       return;
     }
 
-    database.removeTable(name);
-
-    var path = getPersistPathForMetaData(context, database, table);
-    deleteMetaData(context, path);
+    var newDatabase = dropTable(database, table.getIdentity());
+    refreshAndSaveDatabase(context, newDatabase);
   }
 }

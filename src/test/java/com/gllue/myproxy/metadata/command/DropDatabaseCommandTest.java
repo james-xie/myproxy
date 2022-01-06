@@ -26,5 +26,6 @@ public class DropDatabaseCommandTest extends BaseCommandTest {
     command.execute(context);
 
     verify(repository).delete(eq(getPersistPath(dbKey(databaseName))));
+    verify(rootMetaData).removeDatabase(eq(DATASOURCE), eq(databaseName));
   }
 }

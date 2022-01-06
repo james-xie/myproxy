@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class CreateDatabaseCommand extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
+public class CreateDatabaseCommand extends SchemaRelatedMetaDataCommand {
   private final String datasource;
   private final String name;
 
@@ -23,10 +23,6 @@ public class CreateDatabaseCommand extends AbstractMetaDataCommand<MultiDatabase
     builder.setDatasource(datasource);
     builder.setName(name);
     var database = builder.build();
-    var path = getPersistPathForMetaData(context, database);
-    metadata.addDatabase(database, false);
-    saveMetaData(context, path, database);
-
-    log.info("Create database. [{}]", name);
+    refreshAndSaveDatabase(context, database);
   }
 }

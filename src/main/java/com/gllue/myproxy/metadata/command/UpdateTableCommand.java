@@ -53,9 +53,7 @@ public class UpdateTableCommand extends AbstractTableUpdateCommand {
     }
 
     var newTable = builder.build();
-    database.addTable(newTable, true);
-
-    var path = getPersistPathForMetaData(context, database, newTable);
-    saveMetaData(context, path, newTable);
+    var newDatabase = updateTable(database, newTable);
+    refreshAndSaveDatabase(context, newDatabase);
   }
 }

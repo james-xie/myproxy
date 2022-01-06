@@ -7,8 +7,6 @@ import io.netty.channel.Channel;
 public interface FrontendConnection extends Connection {
   String getDataSourceName();
 
-  Channel getChannel();
-
   void bindBackendConnection(BackendConnection backendConnection);
 
   BackendConnection getBackendConnection();

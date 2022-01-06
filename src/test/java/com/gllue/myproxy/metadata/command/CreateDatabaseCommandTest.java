@@ -19,6 +19,7 @@ public class CreateDatabaseCommandTest extends BaseCommandTest {
   @Test
   public void testAddDatabase() {
     mockConfigurations();
+    mockRootMetaData();
 
     var databaseName = "db";
     var context = buildContext();
@@ -37,11 +38,13 @@ public class CreateDatabaseCommandTest extends BaseCommandTest {
     command.execute(context);
 
     verify(repository).save(eq(getPersistPath(dbKey(databaseName))), any(byte[].class));
+    verify(rootMetaData).addDatabase(any(), eq(true));
   }
 
   @Test(expected = IllegalArgumentException.class)
   public void testAddExistsDatabase() {
     mockConfigurations();
+
     var databaseName = "db";
     var context = buildContext();
     var command = new CreateDatabaseCommand(DATASOURCE, databaseName);

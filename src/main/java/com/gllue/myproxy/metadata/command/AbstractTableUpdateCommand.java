@@ -7,8 +7,7 @@ import com.google.common.base.Preconditions;
 import java.util.HashSet;
 import lombok.AllArgsConstructor;
 
-public abstract class AbstractTableUpdateCommand
-    extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
+public abstract class AbstractTableUpdateCommand extends SchemaRelatedMetaDataCommand {
   @AllArgsConstructor
   public static class Column {
     public String name;

@@ -26,11 +26,6 @@ public class FrontendConnectionImpl extends AbstractConnection implements Fronte
   }
 
   @Override
-  public Channel getChannel() {
-    return channel;
-  }
-
-  @Override
   public void bindBackendConnection(final BackendConnection backendConnection) {
     backendConnectionRef = new WeakReference<>(backendConnection);
   }

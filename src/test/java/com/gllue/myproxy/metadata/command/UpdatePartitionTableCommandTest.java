@@ -3,6 +3,7 @@ package com.gllue.myproxy.metadata.command;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -10,8 +11,9 @@ import static org.mockito.Mockito.when;
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.metadata.command.AbstractTableUpdateCommand.Column;
 import com.gllue.myproxy.metadata.model.ColumnType;
-import com.gllue.myproxy.metadata.model.TableType;
+import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData.Builder;
+import com.gllue.myproxy.metadata.model.TableType;
 import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,6 +26,7 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
   @Test
   public void testUpdatePartitionTable() {
     mockConfigurations();
+    mockRootMetaData();
 
     var databaseName = "db";
     var tableName = "table";
@@ -75,9 +78,11 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
             invocation -> {
               Object[] args = invocation.getArguments();
               var path = (String) args[0];
-              var newTable = bytesToPartitionTableMetaData((byte[]) args[1]);
 
-              assertEquals(getPersistPath(database.getIdentity(), newTable.getIdentity()), path);
+              var newDatabase = bytesToDatabaseMetaData((byte[]) args[1]);
+              var newTable = (PartitionTableMetaData) newDatabase.getTable(tableName);
+
+              assertEquals(getPersistPath(database.getIdentity()), path);
               Assert.assertEquals(tableName, newTable.getName());
               assertEquals(TableType.PARTITION, newTable.getType());
               Assert.assertEquals(5, newTable.getNumberOfColumns());
@@ -93,11 +98,13 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
     command.execute(context);
 
     verify(repository).save(anyString(), any(byte[].class));
+    verify(rootMetaData).addDatabase(any(), eq(true));
   }
 
   @Test
   public void testUpdateStandardTableToPartitionTable() {
     mockConfigurations();
+    mockRootMetaData();
 
     var databaseName = "db";
     var tableName = "table";
@@ -124,9 +131,10 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
             invocation -> {
               Object[] args = invocation.getArguments();
               var path = (String) args[0];
-              var newTable = bytesToPartitionTableMetaData((byte[]) args[1]);
+              var newDatabase = bytesToDatabaseMetaData((byte[]) args[1]);
+              var newTable = (PartitionTableMetaData) newDatabase.getTable(tableName);
 
-              assertEquals(getPersistPath(database.getIdentity(), newTable.getIdentity()), path);
+              assertEquals(getPersistPath(database.getIdentity()), path);
               Assert.assertEquals(tableName, newTable.getName());
               assertEquals(TableType.PARTITION, newTable.getType());
               Assert.assertEquals(1, newTable.getNumberOfColumns());
@@ -141,5 +149,6 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
     command.execute(context);
 
     verify(repository).save(anyString(), any(byte[].class));
+    verify(rootMetaData).addDatabase(any(), eq(true));
   }
 }

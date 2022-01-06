@@ -6,8 +6,7 @@ import com.gllue.myproxy.metadata.AbstractMetaData;
 import com.gllue.myproxy.metadata.AbstractMetaDataBuilder;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Strings;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import lombok.Getter;
@@ -117,22 +116,42 @@ public class DatabaseMetaData extends AbstractMetaData {
 
     output.writeStringNul(datasource);
     output.writeStringNul(name);
+
+    output.writeInt(tableIdMap.size());
+    for (var table : getTables()) {
+      output.writeInt(table.getType().getId());
+      table.writeTo(output);
+    }
   }
 
   @Accessors(chain = true)
   public static class Builder extends AbstractMetaDataBuilder<DatabaseMetaData> {
     @Setter private String datasource;
     @Setter private String name;
-    private List<TableMetaData> tables = new ArrayList<>();
+    private final Map<String, TableMetaData> tableMap = new HashMap<>();
+
+    public Builder setNextVersion(final int version) {
+      this.version = version + 1;
+      return this;
+    }
 
     public Builder addTable(final TableMetaData table) {
-      this.tables.add(table);
+      var old = tableMap.put(table.getIdentity(), table);
+      if (old != null) {
+        throw new IllegalArgumentException(
+            String.format("TableMetaData [%s] has already exists.", table.getName()));
+      }
+      return this;
+    }
+
+    public Builder removeTable(final String tableIdentity) {
+      tableMap.remove(tableIdentity);
       return this;
     }
 
     public Builder copyTables(DatabaseMetaData metadata) {
       for (var table : metadata.getTables()) {
-        this.tables.add(table);
+        this.addTable(table);
       }
       return this;
     }
@@ -142,6 +161,22 @@ public class DatabaseMetaData extends AbstractMetaData {
       super.readStream(input);
       datasource = input.readStringNul();
       name = input.readStringNul();
+      int tables = input.readInt();
+      for (int i = 0; i < tables; i++) {
+        var tableType = TableType.getTableType(input.readInt());
+        if (tableType == TableType.STANDARD) {
+          var builder = new TableMetaData.Builder();
+          builder.readStream(input);
+          addTable(builder.build());
+        } else if (tableType == TableType.PARTITION) {
+          var builder = new PartitionTableMetaData.Builder();
+          builder.readStream(input);
+          addTable(builder.build());
+        } else {
+          throw new IllegalArgumentException(
+              String.format("Unknown table type [%s]", tableType.name()));
+        }
+      }
     }
 
     @Override
@@ -150,16 +185,18 @@ public class DatabaseMetaData extends AbstractMetaData {
       this.name = metadata.getName();
       this.datasource = metadata.getDatasource();
       if (options == CopyOptions.COPY_CHILDREN) {
-        this.tables = new ArrayList<>(metadata.getNumberOfTables());
-        for (var table : metadata.getTables()) {
-          this.tables.add(table);
-        }
+        copyTables(metadata);
       }
     }
 
     @Override
     public DatabaseMetaData build() {
-      return new DatabaseMetaData(datasource, name, tables.toArray(new TableMetaData[0]), version);
+      var tables = new TableMetaData[tableMap.size()];
+      int index = 0;
+      for (var table : tableMap.values()) {
+        tables[index++] = table;
+      }
+      return new DatabaseMetaData(datasource, name, tables, version);
     }
   }
 }

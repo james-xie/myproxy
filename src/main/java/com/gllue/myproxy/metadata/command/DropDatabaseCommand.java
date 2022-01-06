@@ -2,13 +2,12 @@ package com.gllue.myproxy.metadata.command;
 
 import com.gllue.myproxy.metadata.command.context.CommandExecutionContext;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
-import com.google.common.base.Preconditions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RequiredArgsConstructor
-public class DropDatabaseCommand extends AbstractMetaDataCommand<MultiDatabasesMetaData> {
+public class DropDatabaseCommand extends SchemaRelatedMetaDataCommand {
   private final String datasource;
   private final String name;
 
@@ -20,11 +19,9 @@ public class DropDatabaseCommand extends AbstractMetaDataCommand<MultiDatabasesM
       if (log.isWarnEnabled()) {
         log.warn("Database [{}] does not exists.", name);
       }
+      return;
     }
 
-    metadata.removeDatabase(datasource, name);
-
-    var path = getPersistPathForMetaData(context, database);
-    deleteMetaData(context, path);
+    refreshAndDropDatabase(context, database);
   }
 }

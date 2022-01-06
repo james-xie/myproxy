@@ -17,6 +17,7 @@ import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.metadata.model.ColumnType;
+import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
 import com.gllue.myproxy.transport.exception.CustomErrorCode;
@@ -184,7 +185,9 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
 
     // Verify the correctness of the metadata
     verify(repository).save(anyString(), any(byte[].class));
-    var table = TestHelper.bytesToPartitionTableMetaData(metaDataBytes.get());
+    var database = TestHelper.bytesToMetaData(metaDataBytes.get());
+    var table = (PartitionTableMetaData) database.getTable("table");
+    Assert.assertNotNull(table);
     Assert.assertEquals("table", table.getName());
     Assert.assertEquals(3, table.getNumberOfTables());
     Assert.assertEquals(
@@ -248,8 +251,9 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
 
     // Verify the correctness of the metadata
     verify(repository).save(anyString(), any(byte[].class));
-    var table = TestHelper.bytesToTableMetaData(metaDataBytes.get());
-    Assert.assertEquals("table", table.getName());
+    var database = TestHelper.bytesToMetaData(metaDataBytes.get());
+    var table = database.getTable("table");
+    Assert.assertNotNull(table);
     Assert.assertEquals(List.of("id", "p_col_1", "p_col_2", "p_col_3"), table.getColumnNames());
     Assert.assertEquals(ColumnType.ENCRYPT, table.getColumn("p_col_2").getType());
   }

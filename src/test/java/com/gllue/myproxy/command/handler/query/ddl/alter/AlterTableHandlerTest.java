@@ -19,6 +19,7 @@ import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
+import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.repository.PersistRepository;
@@ -139,8 +140,9 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
 
     // Verify the correctness of the metadata
     verify(repository).save(anyString(), any(byte[].class));
-    var table = TestHelper.bytesToTableMetaData(metaDataBytes.get());
-    Assert.assertEquals("table1", table.getName());
+    var database = TestHelper.bytesToMetaData(metaDataBytes.get());
+    var table = database.getTable("table1");
+    Assert.assertNotNull(table);
     Assert.assertEquals(
         List.of("id", "name", "name3", "value", "create_time", "name2"), table.getColumnNames());
 
@@ -212,8 +214,9 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
 
     // Verify the correctness of the metadata
     verify(repository, times(2)).save(anyString(), any(byte[].class));
-    var table = TestHelper.bytesToTableMetaData(metaDataBytes.get());
-    Assert.assertEquals("table1", table.getName());
+    var database = TestHelper.bytesToMetaData(metaDataBytes.get());
+    var table = database.getTable("table1");
+    Assert.assertNotNull(table);
     Assert.assertEquals(List.of("id", "name", "value"), table.getColumnNames());
 
     var name = table.getColumn("name");
@@ -315,8 +318,9 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
     // Verify the correctness of the metadata
     verify(repository, times(1)).save(anyString(), any(byte[].class));
 
-    var table = TestHelper.bytesToTableMetaData(metaDataBytes.get());
-    Assert.assertEquals("table1", table.getName());
+    var database = TestHelper.bytesToMetaData(metaDataBytes.get());
+    var table = database.getTable("table1");
+    Assert.assertNotNull(table);
     Assert.assertEquals(List.of("id", "name", "value", "name1"), table.getColumnNames());
 
     var name = table.getColumn("name");

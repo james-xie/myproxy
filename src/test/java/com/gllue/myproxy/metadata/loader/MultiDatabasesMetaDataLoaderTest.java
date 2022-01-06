@@ -5,12 +5,12 @@ import static org.mockito.Mockito.when;
 
 import com.gllue.myproxy.common.io.stream.ByteArrayStreamOutput;
 import com.gllue.myproxy.common.util.PathUtils;
-import com.gllue.myproxy.metadata.MetaData;
+import com.gllue.myproxy.metadata.codec.DatabaseMetaDataCodec;
+import com.gllue.myproxy.metadata.model.ColumnMetaData.Builder;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.DatabaseMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
-import com.gllue.myproxy.metadata.model.ColumnMetaData.Builder;
 import com.gllue.myproxy.repository.PersistRepository;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -35,22 +35,11 @@ public class MultiDatabasesMetaDataLoaderTest {
 
   final String db1Path = concatPath(BASE_PATH, "db1");
   final String db2Path = concatPath(BASE_PATH, "db2");
-  final String table1Path = concatPath(BASE_PATH, "db1", "table1");
-  final String table2Path = concatPath(BASE_PATH, "db1", "table2");
-  final String table3Path = concatPath(BASE_PATH, "db2", "table3");
 
   {
     childrenKeysMap.put(concatPath(BASE_PATH), List.of("db1", "db2"));
-    childrenKeysMap.put(db1Path, List.of("table1", "table2"));
-    childrenKeysMap.put(db2Path, List.of("table3"));
-    dbMap.put(db1Path, prepareDatabase("db1"));
-    dbMap.put(db2Path, prepareDatabase("db2"));
-    tableMap.put(table1Path, prepareTable("table1"));
-    tableMap.put(table2Path, prepareTable("table2"));
-    tableMap.put(table3Path, prepareTable("table3"));
-    dbMap.get(db1Path).addTable(tableMap.get(table1Path));
-    dbMap.get(db1Path).addTable(tableMap.get(table2Path));
-    dbMap.get(db2Path).addTable(tableMap.get(table3Path));
+    dbMap.put(db1Path, prepareDatabase("db1", "table1", "table2"));
+    dbMap.put(db2Path, prepareDatabase("db2", "table3"));
   }
 
   String concatPath(String... path) {
@@ -59,23 +48,29 @@ public class MultiDatabasesMetaDataLoaderTest {
 
   TableMetaData prepareTable(String name) {
     var builder = new TableMetaData.Builder();
-    builder.setName(name).setType(TableType.PRIMARY).setIdentity(name).setVersion(1);
-    builder.addColumn(
-        new Builder().setName("col").setType(ColumnType.VARCHAR).build());
-    return builder.build();
+    builder.setName(name).setType(TableType.STANDARD).setIdentity(name).setVersion(1);
+    builder.addColumn(new Builder().setName("col").setType(ColumnType.VARCHAR).build());
+    var table = builder.build();
+    tableMap.put(name, table);
+    return table;
   }
 
-  DatabaseMetaData prepareDatabase(String name) {
+  DatabaseMetaData prepareDatabase(String name, String... tableNames) {
     var builder = new DatabaseMetaData.Builder();
     builder.setDatasource(DATASOURCE);
     builder.setName(name);
+    for (var tableName : tableNames) {
+      var table = prepareTable(tableName);
+      builder.addTable(table);
+    }
     return builder.build();
   }
 
-  byte[] metaDataToBytes(MetaData metaData) {
-    var output = new ByteArrayStreamOutput();
-    metaData.writeTo(output);
-    return output.getTrimmedByteArray();
+  byte[] metaDataToBytes(DatabaseMetaData metaData) {
+    var codec = DatabaseMetaDataCodec.getInstance();
+    var stream = new ByteArrayStreamOutput();
+    codec.encode(stream, metaData);
+    return stream.getTrimmedByteArray();
   }
 
   void mockRepository() {
@@ -84,9 +79,6 @@ public class MultiDatabasesMetaDataLoaderTest {
       when(repository.getChildrenKeys(entry.getKey())).thenReturn(entry.getValue());
     }
     for (var entry : dbMap.entrySet()) {
-      when(repository.get(entry.getKey())).thenReturn(metaDataToBytes(entry.getValue()));
-    }
-    for (var entry : tableMap.entrySet()) {
       when(repository.get(entry.getKey())).thenReturn(metaDataToBytes(entry.getValue()));
     }
   }
@@ -112,7 +104,7 @@ public class MultiDatabasesMetaDataLoaderTest {
   }
 
   @Test
-  public void testLoad() throws InterruptedException {
+  public void testLoad() {
     var loader = new MultiDatabasesMetaDataLoader(repository);
     mockRepository();
 
@@ -121,8 +113,8 @@ public class MultiDatabasesMetaDataLoaderTest {
     var db2 = multiDatabases.getDatabase(DATASOURCE, "db2");
     assertDatabaseEquals(dbMap.get(db1Path), db1);
     assertDatabaseEquals(dbMap.get(db2Path), db2);
-    assertTableEquals(tableMap.get(table1Path), db1.getTable("table1"));
-    assertTableEquals(tableMap.get(table2Path), db1.getTable("table2"));
-    assertTableEquals(tableMap.get(table3Path), db2.getTable("table3"));
+    assertTableEquals(tableMap.get("table1"), db1.getTable("table1"));
+    assertTableEquals(tableMap.get("table2"), db1.getTable("table2"));
+    assertTableEquals(tableMap.get("table3"), db2.getTable("table3"));
   }
 }

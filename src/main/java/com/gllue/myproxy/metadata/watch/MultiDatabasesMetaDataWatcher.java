@@ -2,9 +2,10 @@ package com.gllue.myproxy.metadata.watch;
 
 import com.gllue.myproxy.common.io.stream.ByteArrayStreamInput;
 import com.gllue.myproxy.constant.ServerConstants;
+import com.gllue.myproxy.metadata.codec.DatabaseMetaDataCodec;
+import com.gllue.myproxy.metadata.codec.MetaDataCodec;
 import com.gllue.myproxy.metadata.model.DatabaseMetaData;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
-import com.gllue.myproxy.metadata.model.TableMetaData.Builder;
 import com.gllue.myproxy.repository.ClusterPersistRepository;
 import com.gllue.myproxy.repository.DataChangedEvent;
 import com.gllue.myproxy.repository.DataChangedEvent.Type;
@@ -30,10 +31,7 @@ public class MultiDatabasesMetaDataWatcher {
     var items = splitEventPath(path);
     if (items.size() == 1) {
       watchForDatabaseMetaDataChanged(items.get(0), event.getType(), (byte[]) event.getValue());
-    } else if (items.size() == 2) {
-      watchForTableMetaDataChanged(
-          items.get(0), items.get(1), event.getType(), (byte[]) event.getValue());
-    } else if (items.size() > 2) {
+    } else if (items.size() > 1) {
       throw new IllegalStateException(
           String.format("Got an invalid data change event. [path:%s]", path));
     }
@@ -51,69 +49,27 @@ public class MultiDatabasesMetaDataWatcher {
         .collect(Collectors.toList());
   }
 
+  private MetaDataCodec<DatabaseMetaData> getCodec() {
+    return DatabaseMetaDataCodec.getInstance();
+  }
+
   private void watchForDatabaseMetaDataChanged(
       final String dbKey, final Type eventType, final byte[] data) {
     var items = DatabaseMetaData.splitJoinedDatasourceAndName(dbKey);
     var datasource = items[0];
     var dbName = items[1];
+    var codec = getCodec();
+    var stream = ByteArrayStreamInput.wrap(data);
     switch (eventType) {
       case CREATED:
-        {
-          var builder = new DatabaseMetaData.Builder();
-          builder.readStream(ByteArrayStreamInput.wrap(data));
-          metaData.addDatabase(builder.build(), false);
-          break;
-        }
+        metaData.addDatabase(codec.decode(stream), false);
+        break;
       case UPDATED:
-        {
-          var builder = new DatabaseMetaData.Builder();
-          builder.readStream(ByteArrayStreamInput.wrap(data));
-          var previous = metaData.getDatabase(datasource, dbName);
-          if (previous != null) {
-            builder.copyTables(previous);
-          }
-          metaData.addDatabase(builder.build(), true);
-          break;
-        }
+        metaData.addDatabase(codec.decode(stream), true);
+        break;
       case DELETED:
-        {
-          metaData.removeDatabase(datasource, dbName);
-          break;
-        }
-    }
-  }
-
-  private void watchForTableMetaDataChanged(
-      final String dbKey, final String tableId, final Type eventType, final byte[] data) {
-    var items = DatabaseMetaData.splitJoinedDatasourceAndName(dbKey);
-    var datasource = items[0];
-    var dbName = items[1];
-    var database = metaData.getDatabase(datasource, dbName);
-    if (database == null) {
-      throw new IllegalStateException(
-          String.format("Cannot find the database by name. [%s]", dbName));
-    }
-
-    switch (eventType) {
-      case CREATED:
-        {
-          var builder = new Builder();
-          builder.readStream(ByteArrayStreamInput.wrap(data));
-          database.addTable(builder.build(), false);
-          break;
-        }
-      case UPDATED:
-        {
-          var builder = new Builder();
-          builder.readStream(ByteArrayStreamInput.wrap(data));
-          database.addTable(builder.build(), true);
-          break;
-        }
-      case DELETED:
-        {
-          database.removeTable(tableId);
-          break;
-        }
+        metaData.removeDatabase(datasource, dbName);
+        break;
     }
   }
 }

@@ -91,10 +91,7 @@ public class UpdatePartitionTableCommand extends AbstractTableUpdateCommand {
       builder.addExtensionTable(buildTableMetaData(extensionTable, TableType.EXTENSION));
     }
 
-    var newTable = builder.build();
-    database.addTable(newTable, true);
-
-    var path = getPersistPathForMetaData(context, database, newTable);
-    saveMetaData(context, path, newTable);
+    var newDatabase = updateTable(database, builder.build());
+    refreshAndSaveDatabase(context, newDatabase);
   }
 }

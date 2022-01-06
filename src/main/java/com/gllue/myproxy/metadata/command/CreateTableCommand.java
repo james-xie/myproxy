@@ -13,15 +13,13 @@ public class CreateTableCommand extends AbstractTableUpdateCommand {
   private final String datasource;
   private final String databaseName;
   private final String name;
-  private final TableType type;
   private final Column[] columns;
 
   public CreateTableCommand(
-      String datasource, String databaseName, String name, TableType type, Column[] columns) {
+      String datasource, String databaseName, String name, Column[] columns) {
     this.datasource = datasource;
     this.databaseName = databaseName;
     this.name = name;
-    this.type = type;
     this.columns = columns;
     validateColumnNames(columns);
   }
@@ -35,7 +33,7 @@ public class CreateTableCommand extends AbstractTableUpdateCommand {
     Preconditions.checkArgument(!database.hasTable(name), "Table already exists. [%s]", name);
 
     var builder = new Builder();
-    builder.setName(name).setType(type);
+    builder.setName(name).setType(TableType.STANDARD);
 
     for (var column : columns) {
       var colBuilder = new ColumnMetaData.Builder();
@@ -47,16 +45,8 @@ public class CreateTableCommand extends AbstractTableUpdateCommand {
       builder.addColumn(colBuilder.build());
     }
 
-    do {
-      builder.setIdentity(RandomUtils.randomShortUUID());
-      var table = builder.build();
-      var path = getPersistPathForMetaData(context, database, table);
-      if (context.getRepository().exists(path)) {
-        continue;
-      }
-
-      database.addTable(table);
-      saveMetaData(context, path, table);
-    } while (false);
+    builder.setIdentity(RandomUtils.randomShortUUID());
+    var newDatabase = createTable(database, builder.build());
+    refreshAndSaveDatabase(context, newDatabase);
   }
 }

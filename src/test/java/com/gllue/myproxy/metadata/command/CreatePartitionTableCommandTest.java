@@ -3,12 +3,14 @@ package com.gllue.myproxy.metadata.command;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.gllue.myproxy.metadata.command.AbstractTableUpdateCommand.Column;
 import com.gllue.myproxy.metadata.model.ColumnType;
+import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
 import org.junit.Assert;
 import org.junit.Test;
@@ -22,6 +24,7 @@ public class CreatePartitionTableCommandTest extends BaseCommandTest {
   @Test
   public void testCreatePartitionTable() {
     mockConfigurations();
+    mockRootMetaData();
 
     var databaseName = "db";
     var tableName = "table";
@@ -65,9 +68,10 @@ public class CreatePartitionTableCommandTest extends BaseCommandTest {
             invocation -> {
               Object[] args = invocation.getArguments();
               var path = (String) args[0];
-              var newTable = bytesToPartitionTableMetaData((byte[]) args[1]);
+              var newDatabase = bytesToDatabaseMetaData((byte[]) args[1]);
+              var newTable = (PartitionTableMetaData) newDatabase.getTable(tableName);
 
-              assertEquals(getPersistPath(database.getIdentity(), newTable.getIdentity()), path);
+              assertEquals(getPersistPath(database.getIdentity()), path);
               Assert.assertEquals(tableName, newTable.getName());
               Assert.assertEquals(TableType.PARTITION, newTable.getType());
               Assert.assertEquals(5, newTable.getNumberOfColumns());
@@ -83,5 +87,6 @@ public class CreatePartitionTableCommandTest extends BaseCommandTest {
     command.execute(context);
 
     verify(repository).save(anyString(), any(byte[].class));
+    verify(rootMetaData).addDatabase(any(), eq(true));
   }
 }

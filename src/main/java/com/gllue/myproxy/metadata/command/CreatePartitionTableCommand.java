@@ -73,16 +73,8 @@ public class CreatePartitionTableCommand extends AbstractTableUpdateCommand {
       builder.addExtensionTable(buildTableMetaData(extensionTable, TableType.EXTENSION));
     }
 
-    do {
-      builder.setIdentity(RandomUtils.randomShortUUID());
-      var table = builder.build();
-      var path = getPersistPathForMetaData(context, database, table);
-      if (context.getRepository().exists(path)) {
-        continue;
-      }
-
-      database.addTable(table);
-      saveMetaData(context, path, table);
-    } while (false);
+    builder.setIdentity(RandomUtils.randomShortUUID());
+    var newDatabase = createTable(database, builder.build());
+    refreshAndSaveDatabase(context, newDatabase);
   }
 }

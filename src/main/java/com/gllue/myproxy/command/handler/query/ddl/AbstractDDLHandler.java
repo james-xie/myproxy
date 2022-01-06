@@ -71,7 +71,7 @@ public abstract class AbstractDDLHandler extends SchemaRelatedQueryHandler {
       var columnDef = columnDefs.get(i);
       columns[i] = buildCommandColumn(columnDef);
     }
-    return new CreateTableCommand(datasource, database, table, TableType.STANDARD, columns);
+    return new CreateTableCommand(datasource, database, table, columns);
   }
 
   protected MetaDataCommand<MultiDatabasesMetaData> buildCreatePartitionTableCommand(
