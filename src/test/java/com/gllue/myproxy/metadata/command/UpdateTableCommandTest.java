@@ -31,9 +31,8 @@ public class UpdateTableCommandTest extends BaseCommandTest {
     var databaseName = "db";
     var tableName = "table";
 
-    var database = prepareDatabase(databaseName);
     var table = prepareTable(tableName);
-    database.addTable(table);
+    var database = prepareDatabase(databaseName, table);
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     var newTableName = "new_table";
@@ -85,14 +84,13 @@ public class UpdateTableCommandTest extends BaseCommandTest {
     var tableName = "table";
     var identity = RandomUtils.randomShortUUID();
 
-    var database = prepareDatabase(databaseName);
     var partitionTableBuilder =
         new Builder()
             .setName(tableName)
             .setIdentity(identity)
             .setPrimaryTable(prepareTable(tableName));
     var partitionTable = partitionTableBuilder.build();
-    database.addTable(partitionTable);
+    var database = prepareDatabase(databaseName, partitionTable);
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     var newTableName = "new_table";

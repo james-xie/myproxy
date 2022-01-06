@@ -125,20 +125,21 @@ public abstract class BaseQueryHandlerTest {
     return builder.build();
   }
 
-  protected DatabaseMetaData prepareDatabase(String datasource, String database) {
+  protected DatabaseMetaData prepareDatabase(
+      String datasource, String database, TableMetaData... tables) {
     var builder = new DatabaseMetaData.Builder();
     builder.setDatasource(datasource);
     builder.setName(database);
+    for (var table : tables) {
+      builder.addTable(table);
+    }
     return builder.build();
   }
 
   protected MultiDatabasesMetaData prepareMultiDatabasesMetaData(
-      String datasource, String database, TableMetaData... tableMetaData) {
+      String datasource, String database, TableMetaData... tables) {
     var builder = new MultiDatabasesMetaData.Builder();
-    var databaseMetaData = prepareDatabase(datasource, database);
-    for (var table : tableMetaData) {
-      databaseMetaData.addTable(table);
-    }
+    var databaseMetaData = prepareDatabase(datasource, database, tables);
     builder.addDatabase(databaseMetaData);
     return builder.build();
   }

@@ -38,9 +38,8 @@ public class RenameTableCommandTest extends BaseCommandTest {
     var command =
         new RenameTableCommand(DATASOURCE, databaseName, databaseName, oldTableName, newTableName);
 
-    var database = prepareDatabase(databaseName);
     var table = prepareTable(oldTableName);
-    database.addTable(table);
+    var database = prepareDatabase(databaseName, table);
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     doAnswer(
@@ -78,8 +77,6 @@ public class RenameTableCommandTest extends BaseCommandTest {
     var command =
         new RenameTableCommand(DATASOURCE, databaseName, databaseName, oldTableName, newTableName);
 
-    var database = prepareDatabase(databaseName);
-
     var builder =
         new PartitionTableMetaData.Builder()
             .setName(oldTableName)
@@ -87,7 +84,7 @@ public class RenameTableCommandTest extends BaseCommandTest {
             .setIdentity(RandomUtils.randomShortUUID())
             .setVersion(1);
     var table = builder.build();
-    database.addTable(table);
+    var database = prepareDatabase(databaseName, table);
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     doAnswer(
@@ -126,9 +123,8 @@ public class RenameTableCommandTest extends BaseCommandTest {
     var command =
         new RenameTableCommand(DATASOURCE, oldDatabaseName, newDatabaseName, oldTableName, newTableName);
 
-    var oldDatabase = prepareDatabase(oldDatabaseName);
     var table = prepareTable(oldTableName);
-    oldDatabase.addTable(table);
+    var oldDatabase = prepareDatabase(oldDatabaseName, table);
     var newDatabase = prepareDatabase(newDatabaseName);
 
     when(rootMetaData.getDatabase(DATASOURCE, oldDatabaseName)).thenReturn(oldDatabase);

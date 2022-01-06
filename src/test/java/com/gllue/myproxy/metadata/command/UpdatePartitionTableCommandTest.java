@@ -64,14 +64,13 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
         new UpdatePartitionTableCommand(
             DATASOURCE, databaseName, identity, tableName, primaryTable, extensionTables);
 
-    var database = prepareDatabase(databaseName);
     var partitionTableBuilder =
         new Builder()
             .setName(tableName)
             .setIdentity(identity)
             .setPrimaryTable(prepareTable(tableName));
     var partitionTable = partitionTableBuilder.build();
-    database.addTable(partitionTable);
+    var database = prepareDatabase(databaseName, partitionTable);
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     doAnswer(
@@ -109,9 +108,8 @@ public class UpdatePartitionTableCommandTest extends BaseCommandTest {
     var databaseName = "db";
     var tableName = "table";
 
-    var database = prepareDatabase(databaseName);
     var standardTable = prepareTable(tableName);
-    database.addTable(standardTable);
+    var database = prepareDatabase(databaseName, standardTable);
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     var identity = standardTable.getIdentity();

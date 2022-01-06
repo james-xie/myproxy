@@ -27,9 +27,7 @@ public class DropTableCommandTest extends BaseCommandTest {
     var context = buildContext();
     var command = new DropTableCommand(DATASOURCE, databaseName, tableName);
 
-    var database = prepareDatabase(databaseName);
-    var table = prepareTable(tableName);
-    database.addTable(table);
+    var database = prepareDatabase(databaseName, prepareTable(tableName));
     when(rootMetaData.getDatabase(DATASOURCE, databaseName)).thenReturn(database);
 
     doAnswer(

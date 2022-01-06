@@ -73,41 +73,12 @@ public class DatabaseMetaData extends AbstractMetaData {
     return tableIdMap.get(id);
   }
 
-  public int getNumberOfTables() {
-    return tableIdMap.size();
-  }
-
   public Iterable<String> getTableNames() {
     return tableNameMap.keySet();
   }
 
   public Iterable<TableMetaData> getTables() {
     return tableIdMap.values();
-  }
-
-  public synchronized boolean addTable(final TableMetaData table, final boolean autoUpdate) {
-    var previous = tableIdMap.putIfAbsent(table.getIdentity(), table);
-    if (previous != null) {
-      if (!autoUpdate || previous.getVersion() >= table.getVersion()) {
-        return false;
-      }
-      tableIdMap.put(table.getIdentity(), table);
-    }
-    tableNameMap.put(table.getName(), table);
-    return true;
-  }
-
-  public boolean addTable(final TableMetaData table) {
-    return addTable(table, false);
-  }
-
-  public synchronized TableMetaData removeTable(final String identity) {
-    var table = tableIdMap.remove(identity);
-    if (table == null) {
-      return null;
-    }
-    tableNameMap.remove(table.getName());
-    return table;
   }
 
   @Override

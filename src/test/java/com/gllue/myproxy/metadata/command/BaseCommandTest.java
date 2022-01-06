@@ -66,10 +66,13 @@ public abstract class BaseCommandTest {
     return builder.build();
   }
 
-  DatabaseMetaData prepareDatabase(String name) {
+  DatabaseMetaData prepareDatabase(String name, TableMetaData... tables) {
     var builder = new DatabaseMetaData.Builder();
     builder.setDatasource(DATASOURCE);
     builder.setName(name);
+    for (var table: tables) {
+      builder.addTable(table);
+    }
     return builder.build();
   }
 
