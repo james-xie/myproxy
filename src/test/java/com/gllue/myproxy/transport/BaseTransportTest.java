@@ -12,11 +12,33 @@ import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import java.util.LinkedList;
+import java.util.List;
+import org.junit.After;
+import org.junit.Before;
 
 public class BaseTransportTest {
+  private final List<MySQLPayload> createdPayloads = new LinkedList<>();
+
+  @Before
+  public void setUp() {
+
+  }
+
+  @After
+  public void tearDown() {
+    for (var payload: createdPayloads) {
+      if (!payload.isClosed()) {
+        payload.close();
+      }
+    }
+  }
+
   protected MySQLPayload createEmptyPayload() {
     var byteBuf = Unpooled.buffer();
-    return new MySQLPayload(byteBuf);
+    var payload = new MySQLPayload(byteBuf);
+    createdPayloads.add(payload);
+    return payload;
   }
 
   protected MySQLPayload packetToPayload(MySQLPacket packet) {

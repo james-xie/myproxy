@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class AdaptableTrafficThrottlePipe implements TrafficThrottlePipe {
-  private static final int INITIAL_FLUSH_THRESHOLD = 4;
+  private static final int INITIAL_FLUSH_THRESHOLD = 16;
   private static final int INITIAL_SLOW_START_THRESHOLD = 128;
 
   private final Connection in;
