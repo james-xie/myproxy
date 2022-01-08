@@ -1,6 +1,5 @@
 package com.gllue.myproxy.constant;
 
-import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

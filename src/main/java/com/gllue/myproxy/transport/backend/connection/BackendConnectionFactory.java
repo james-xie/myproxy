@@ -2,8 +2,8 @@ package com.gllue.myproxy.transport.backend.connection;
 
 import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
-import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.backend.BackendServer;
+import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

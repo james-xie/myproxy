@@ -1,7 +1,5 @@
 package com.gllue.myproxy.metadata.model;
 
-import com.gllue.myproxy.common.io.stream.StreamInput;
-import com.gllue.myproxy.common.io.stream.StreamOutput;
 import com.gllue.myproxy.metadata.AbstractMetaDataBuilder;
 import java.lang.ref.WeakReference;
 import lombok.Getter;

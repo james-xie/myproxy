@@ -1,7 +1,5 @@
 package com.gllue.myproxy.metadata.model;
 
-import com.gllue.myproxy.common.io.stream.StreamInput;
-import com.gllue.myproxy.common.io.stream.StreamOutput;
 import com.gllue.myproxy.metadata.AbstractMetaData;
 import com.gllue.myproxy.metadata.AbstractMetaDataBuilder;
 import com.google.common.base.Preconditions;

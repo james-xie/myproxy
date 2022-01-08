@@ -1,7 +1,7 @@
 package com.gllue.myproxy.common.util;
 
-import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.backend.BackendResultReadException;
+import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.exception.SQLErrorCode;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;

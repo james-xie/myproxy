@@ -1,7 +1,6 @@
 package com.gllue.myproxy.metadata;
 
 import com.gllue.myproxy.common.io.stream.StreamInput;
-import com.gllue.myproxy.common.io.stream.StreamOutput;
 
 public interface MetaData {
   int DEFAULT_VERSION = 0;

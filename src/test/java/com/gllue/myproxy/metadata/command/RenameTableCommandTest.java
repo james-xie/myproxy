@@ -2,7 +2,6 @@ package com.gllue.myproxy.metadata.command;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -12,12 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.gllue.myproxy.common.util.RandomUtils;
-import com.gllue.myproxy.metadata.command.AbstractTableUpdateCommand.Column;
-import com.gllue.myproxy.metadata.model.ColumnMetaData;
-import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
-import com.gllue.myproxy.metadata.model.TableMetaData;
-import com.gllue.myproxy.metadata.model.TableType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;

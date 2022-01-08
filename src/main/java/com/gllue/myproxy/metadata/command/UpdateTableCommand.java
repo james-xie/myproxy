@@ -3,8 +3,8 @@ package com.gllue.myproxy.metadata.command;
 import com.gllue.myproxy.metadata.command.context.CommandExecutionContext;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
-import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.metadata.model.TableMetaData.Builder;
+import com.gllue.myproxy.metadata.model.TableType;
 import com.google.common.base.Preconditions;
 
 public class UpdateTableCommand extends AbstractTableUpdateCommand {

@@ -2,7 +2,6 @@ package com.gllue.myproxy.metadata.command;
 
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
-import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import com.google.common.base.Preconditions;
 import java.util.HashSet;
 import lombok.AllArgsConstructor;

@@ -2,11 +2,11 @@ package com.gllue.myproxy.metadata.command;
 
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.metadata.command.context.CommandExecutionContext;
+import com.gllue.myproxy.metadata.model.ColumnMetaData.Builder;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
-import com.gllue.myproxy.metadata.model.ColumnMetaData.Builder;
 import com.google.common.base.Preconditions;
 import lombok.RequiredArgsConstructor;
 

@@ -6,17 +6,13 @@ import com.gllue.myproxy.config.ConfigurationException;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
-import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionFactory;
-import com.gllue.myproxy.transport.backend.connection.BackendConnectionListener;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceConfig;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 
 public class TransportServiceInitializer implements Initializer {
 

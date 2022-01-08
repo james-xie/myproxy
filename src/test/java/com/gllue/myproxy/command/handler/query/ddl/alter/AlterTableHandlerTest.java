@@ -19,7 +19,6 @@ import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
-import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.repository.PersistRepository;

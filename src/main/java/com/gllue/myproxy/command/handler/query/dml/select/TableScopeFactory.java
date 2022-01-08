@@ -4,9 +4,9 @@ import com.alibaba.druid.sql.ast.statement.SQLExprTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLJoinTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
 import com.gllue.myproxy.common.exception.NoDatabaseException;
+import com.gllue.myproxy.common.util.SQLStatementUtils;
 import com.gllue.myproxy.metadata.model.DatabaseMetaData;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
-import com.gllue.myproxy.common.util.SQLStatementUtils;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

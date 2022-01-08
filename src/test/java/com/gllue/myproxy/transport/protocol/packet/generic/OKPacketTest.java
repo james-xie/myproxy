@@ -1,11 +1,11 @@
 package com.gllue.myproxy.transport.protocol.packet.generic;
 
-import com.gllue.myproxy.transport.BaseTransportTest;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
 
+import com.gllue.myproxy.transport.BaseTransportTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.junit.Assert.assertThat;
-import static org.hamcrest.core.IsEqual.equalTo;
 import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)

@@ -1,15 +1,15 @@
 package com.gllue.myproxy.transport.backend.netty.auth;
 
 import com.gllue.myproxy.common.util.SecurityUtils;
+import com.gllue.myproxy.transport.core.connection.AuthenticationData;
+import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.packet.PacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.generic.GenericPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.generic.RawPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthMoreDataPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchRequestPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchResponsePacket;
-import com.gllue.myproxy.transport.core.connection.AuthenticationData;
-import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
-import com.gllue.myproxy.transport.protocol.packet.PacketWrapper;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import com.google.common.primitives.Bytes;
 import io.netty.channel.ChannelHandlerContext;

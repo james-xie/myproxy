@@ -1,9 +1,9 @@
 package com.gllue.myproxy.transport.core.connection;
 
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionImpl;
-import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionImpl;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
 import io.netty.channel.embedded.EmbeddedChannel;
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,8 +1,6 @@
 package com.gllue.myproxy.transport.core.connection;
 
 import com.google.common.base.Preconditions;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 
 /** Connection ID generator. */
 public final class ConnectionIdGenerator {

@@ -2,7 +2,6 @@ package com.gllue.myproxy.command.result.query;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import lombok.RequiredArgsConstructor;
 
 public class SimpleQueryResult implements QueryResult {
   private final QueryResultMetaData queryResultMetaData;

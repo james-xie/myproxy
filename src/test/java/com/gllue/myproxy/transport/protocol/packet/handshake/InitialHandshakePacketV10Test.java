@@ -2,6 +2,7 @@ package com.gllue.myproxy.transport.protocol.packet.handshake;
 
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
+
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.constant.ServerConstants;
 import com.gllue.myproxy.transport.BaseTransportTest;

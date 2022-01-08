@@ -1,6 +1,5 @@
 package com.gllue.myproxy.common.concurrent;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.common.concurrent.ThreadPool.Name;

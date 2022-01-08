@@ -2,7 +2,6 @@ package com.gllue.myproxy.transport.core.connection;
 
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
-import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import com.google.common.base.Preconditions;
 import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;

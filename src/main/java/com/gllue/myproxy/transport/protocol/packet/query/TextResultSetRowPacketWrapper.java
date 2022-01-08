@@ -1,10 +1,10 @@
 package com.gllue.myproxy.transport.protocol.packet.query;
 
+import com.gllue.myproxy.transport.protocol.packet.AbstractPacketWrapper;
+import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.EofPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
 import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
-import com.gllue.myproxy.transport.protocol.packet.AbstractPacketWrapper;
-import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 
 public class TextResultSetRowPacketWrapper extends AbstractPacketWrapper {

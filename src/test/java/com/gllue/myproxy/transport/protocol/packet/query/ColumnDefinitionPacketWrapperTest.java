@@ -8,8 +8,8 @@ import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.transport.BaseTransportTest;
 import com.gllue.myproxy.transport.constant.MySQLColumnType;
-import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
+import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import org.junit.Test;
 import org.junit.runner.RunWith;

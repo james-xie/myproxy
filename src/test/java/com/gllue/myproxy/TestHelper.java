@@ -4,8 +4,6 @@ import com.gllue.myproxy.common.io.stream.ByteArrayStreamInput;
 import com.gllue.myproxy.metadata.codec.DatabaseMetaDataCodec;
 import com.gllue.myproxy.metadata.codec.MetaDataCodec;
 import com.gllue.myproxy.metadata.model.DatabaseMetaData;
-import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
-import com.gllue.myproxy.metadata.model.TableMetaData;
 import lombok.AccessLevel;
 import lombok.NoArgsConstructor;
 

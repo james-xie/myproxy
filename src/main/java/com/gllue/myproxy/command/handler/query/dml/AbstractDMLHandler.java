@@ -1,14 +1,13 @@
 package com.gllue.myproxy.command.handler.query.dml;
 
 import com.gllue.myproxy.cluster.ClusterState;
-import com.gllue.myproxy.command.handler.HandlerResult;
-import com.gllue.myproxy.command.handler.query.SchemaRelatedQueryHandler;
 import com.gllue.myproxy.command.handler.query.QueryHandlerRequest;
+import com.gllue.myproxy.command.handler.query.SchemaRelatedQueryHandler;
 import com.gllue.myproxy.command.handler.query.dml.select.TableScopeFactory;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.config.Configurations;
-import com.gllue.myproxy.transport.core.service.TransportService;
 import com.gllue.myproxy.repository.PersistRepository;
+import com.gllue.myproxy.transport.core.service.TransportService;
 
 public abstract class AbstractDMLHandler extends SchemaRelatedQueryHandler {
   protected AbstractDMLHandler(

@@ -1,7 +1,6 @@
 package com.gllue.myproxy.transport.protocol.packet.query.text;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 import com.gllue.myproxy.transport.BaseTransportTest;
 import java.util.ArrayList;

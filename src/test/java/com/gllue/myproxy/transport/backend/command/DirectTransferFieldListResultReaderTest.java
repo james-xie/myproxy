@@ -8,12 +8,12 @@ import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.transport.backend.BackendResultReadException;
 import com.gllue.myproxy.transport.constant.MySQLColumnType;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.generic.EofPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
-import com.gllue.myproxy.transport.backend.BackendResultReadException;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import org.hamcrest.core.IsInstanceOf;
 import org.junit.Assert;

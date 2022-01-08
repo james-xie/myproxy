@@ -2,7 +2,6 @@ package com.gllue.myproxy.transport.backend.connection;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketAddress;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

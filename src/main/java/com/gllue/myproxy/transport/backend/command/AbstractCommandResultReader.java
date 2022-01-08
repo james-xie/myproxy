@@ -8,7 +8,6 @@ import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
 import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
-import com.google.common.base.Preconditions;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;

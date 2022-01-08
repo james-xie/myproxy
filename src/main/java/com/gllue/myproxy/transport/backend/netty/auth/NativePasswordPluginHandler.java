@@ -1,11 +1,11 @@
 package com.gllue.myproxy.transport.backend.netty.auth;
 
 import com.gllue.myproxy.common.util.SecurityUtils;
+import com.gllue.myproxy.transport.core.connection.AuthenticationData;
+import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.GenericPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchRequestPacket;
 import com.gllue.myproxy.transport.protocol.packet.handshake.AuthSwitchResponsePacket;
-import com.gllue.myproxy.transport.core.connection.AuthenticationData;
-import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import io.netty.channel.ChannelHandlerContext;
 import lombok.Getter;

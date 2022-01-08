@@ -21,7 +21,6 @@ import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
-import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionListener;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.google.common.base.Preconditions;
 import java.net.SocketAddress;

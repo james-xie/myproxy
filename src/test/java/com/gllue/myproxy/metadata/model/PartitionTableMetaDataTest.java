@@ -5,8 +5,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.gllue.myproxy.common.io.stream.ByteArrayStreamInput;
-import com.gllue.myproxy.common.io.stream.ByteArrayStreamOutput;
 import com.gllue.myproxy.metadata.MetaDataBuilder.CopyOptions;
 import java.util.ArrayList;
 import java.util.Arrays;

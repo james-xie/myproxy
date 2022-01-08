@@ -1,8 +1,6 @@
 package com.gllue.myproxy.common.properties;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;

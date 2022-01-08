@@ -1,7 +1,6 @@
 package com.gllue.myproxy.transport.backend.command;
 
 import com.gllue.myproxy.command.result.CommandResult;
-import com.gllue.myproxy.command.result.query.MemoryBufferedQueryResult;
 import com.gllue.myproxy.command.result.query.MemoryCachedQueryResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
 import com.gllue.myproxy.common.Callback;

@@ -1,7 +1,6 @@
 package com.gllue.myproxy.command.handler.query.dml.select;
 
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 

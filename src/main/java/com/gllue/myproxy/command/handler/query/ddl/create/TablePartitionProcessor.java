@@ -2,8 +2,8 @@ package com.gllue.myproxy.command.handler.query.ddl.create;
 
 import static com.gllue.myproxy.command.handler.query.TablePartitionHelper.generateExtensionTableName;
 import static com.gllue.myproxy.command.handler.query.TablePartitionHelper.generatePrimaryTableName;
-import static com.gllue.myproxy.command.handler.query.TablePartitionHelper.newExtensionTablePrimaryKey;
 import static com.gllue.myproxy.command.handler.query.TablePartitionHelper.newExtensionTableIdColumn;
+import static com.gllue.myproxy.command.handler.query.TablePartitionHelper.newExtensionTablePrimaryKey;
 import static com.gllue.myproxy.command.handler.query.TablePartitionHelper.newKeyForExtensionTableIdColumn;
 import static com.gllue.myproxy.common.util.SQLStatementUtils.getForeignKeyReferencingColumns;
 import static com.gllue.myproxy.common.util.SQLStatementUtils.getIndexColumns;

@@ -26,7 +26,6 @@ import com.gllue.myproxy.metadata.command.CreateTableCommand;
 import com.gllue.myproxy.metadata.command.MetaDataCommand;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
-import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;

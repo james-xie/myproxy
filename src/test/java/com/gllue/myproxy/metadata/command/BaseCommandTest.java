@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
-import com.gllue.myproxy.TestHelper;
 import com.gllue.myproxy.common.io.stream.ByteArrayStreamInput;
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.config.Configurations;
@@ -20,7 +19,6 @@ import com.gllue.myproxy.metadata.model.ColumnMetaData;
 import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.metadata.model.DatabaseMetaData;
 import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
-import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
 import com.gllue.myproxy.repository.PersistRepository;

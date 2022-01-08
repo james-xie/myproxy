@@ -1,8 +1,8 @@
 package com.gllue.myproxy.common.properties;
 
 import com.gllue.myproxy.common.exception.BaseServerException;
-import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.exception.SQLErrorCode;
+import com.gllue.myproxy.transport.exception.ServerErrorCode;
 
 public class TypedPropertyValueConvertorInstantiationException extends BaseServerException {
   public TypedPropertyValueConvertorInstantiationException(Class<?> convertorClass) {

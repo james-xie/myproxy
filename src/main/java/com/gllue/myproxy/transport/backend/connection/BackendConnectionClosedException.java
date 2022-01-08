@@ -1,8 +1,8 @@
 package com.gllue.myproxy.transport.backend.connection;
 
-import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.backend.BackendConnectionException;
 import com.gllue.myproxy.transport.exception.SQLErrorCode;
+import com.gllue.myproxy.transport.exception.ServerErrorCode;
 
 public class BackendConnectionClosedException extends BackendConnectionException {
   @Override

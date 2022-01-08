@@ -5,9 +5,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import com.gllue.myproxy.command.result.query.DefaultQueryResultMetaData.Column;
-import com.gllue.myproxy.common.util.RandomUtils;
-import com.gllue.myproxy.transport.constant.MySQLColumnType;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;

@@ -4,10 +4,10 @@ import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.BaseIntegrationTest;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
+import com.gllue.myproxy.transport.backend.BackendServer;
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.connection.BackendConnectionListener;
 import com.gllue.myproxy.transport.backend.datasource.DataSource;
-import com.gllue.myproxy.transport.backend.BackendServer;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;

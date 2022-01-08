@@ -3,10 +3,8 @@ package com.gllue.myproxy.command.handler.query;
 import com.gllue.myproxy.command.handler.HandlerResult;
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
-import com.gllue.myproxy.command.result.query.QueryResultDecorator;
 import com.gllue.myproxy.common.Callback;
 import java.util.concurrent.Executor;
-import javax.management.Query;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 

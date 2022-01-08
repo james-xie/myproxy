@@ -5,8 +5,6 @@ import com.gllue.myproxy.common.concurrent.SettableFuture;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
-import com.google.common.base.Preconditions;
-import com.google.common.base.Strings;
 import io.netty.channel.Channel;
 import java.net.SocketAddress;
 import java.util.Queue;

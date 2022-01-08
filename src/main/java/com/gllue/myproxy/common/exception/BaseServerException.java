@@ -1,7 +1,7 @@
 package com.gllue.myproxy.common.exception;
 
-import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.exception.SQLErrorCode;
+import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

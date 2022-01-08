@@ -1,8 +1,8 @@
 package com.gllue.myproxy.transport.backend.datasource;
 
-import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.backend.BackendConnectionException;
 import com.gllue.myproxy.transport.exception.SQLErrorCode;
+import com.gllue.myproxy.transport.exception.ServerErrorCode;
 
 public class TooManyBackendConnectionException extends BackendConnectionException {
   private final int maxCapacity;

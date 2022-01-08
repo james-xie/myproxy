@@ -4,7 +4,6 @@ import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
-import java.util.concurrent.Executor;
 
 public interface CommandResultReader extends AutoCloseable {
 

@@ -1,8 +1,8 @@
 package com.gllue.myproxy.config;
 
 import com.gllue.myproxy.common.exception.BaseServerException;
-import com.gllue.myproxy.transport.exception.ServerErrorCode;
 import com.gllue.myproxy.transport.exception.SQLErrorCode;
+import com.gllue.myproxy.transport.exception.ServerErrorCode;
 
 public class ConfigurationException extends BaseServerException {
   public ConfigurationException(Throwable cause) {

@@ -1,9 +1,9 @@
 package com.gllue.myproxy.transport.backend.command;
 
-import com.gllue.myproxy.transport.core.connection.TrafficThrottlePipe;
-import com.gllue.myproxy.transport.protocol.packet.generic.GenericPacketWrapper;
 import com.gllue.myproxy.transport.core.connection.AdaptableTrafficThrottlePipe;
+import com.gllue.myproxy.transport.core.connection.TrafficThrottlePipe;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
+import com.gllue.myproxy.transport.protocol.packet.generic.GenericPacketWrapper;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 
 public class DirectTransferCommandResultReader extends DefaultCommandResultReader {

@@ -4,7 +4,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.alibaba.druid.sql.ast.SQLStatement;
@@ -38,13 +37,11 @@ import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.constant.MySQLColumnType;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import com.gllue.myproxy.transport.frontend.connection.SessionContext;
-import com.gllue.myproxy.transport.frontend.connection.SessionContextImpl;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 
 public abstract class BaseQueryHandlerTest {
   protected static final int FRONTEND_CONNECTION_ID = 1;

@@ -1,8 +1,8 @@
 package com.gllue.myproxy.transport.protocol.packet.query.binary.value;
 
 import com.gllue.myproxy.transport.constant.MySQLColumnType;
-import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import com.gllue.myproxy.transport.exception.MalformedPacketException;
+import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import java.sql.Timestamp;
 import java.util.Calendar;
 import java.util.HashSet;

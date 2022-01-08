@@ -2,7 +2,6 @@ package com.gllue.myproxy.command.handler.query.ddl.alter;
 
 import com.alibaba.druid.sql.ast.statement.SQLColumnDefinition;
 import java.util.Objects;
-import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 @RequiredArgsConstructor

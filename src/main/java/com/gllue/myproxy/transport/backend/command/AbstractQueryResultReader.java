@@ -2,21 +2,19 @@ package com.gllue.myproxy.transport.backend.command;
 
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.command.result.query.QueryResult;
-import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.transport.backend.BackendResultReadException;
+import com.gllue.myproxy.transport.exception.CustomErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.generic.EofPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.GenericPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.generic.OKPacket;
-import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
-import com.gllue.myproxy.transport.backend.BackendResultReadException;
-import com.gllue.myproxy.transport.exception.CustomErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnCountPacket;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnCountPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinitionPacketWrapper;
 import com.gllue.myproxy.transport.protocol.packet.query.TextResultSetRowPacketWrapper;
+import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
-import java.util.concurrent.Executor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j

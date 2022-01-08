@@ -1,11 +1,7 @@
 package com.gllue.myproxy.command.handler.query.dml.select;
 
 import static com.gllue.myproxy.common.util.SQLStatementUtils.quoteName;
-import static com.gllue.myproxy.common.util.SQLStatementUtils.unquoteName;
 
-import com.alibaba.druid.sql.ast.expr.SQLIdentifierExpr;
-import com.alibaba.druid.sql.ast.expr.SQLPropertyExpr;
-import com.alibaba.druid.sql.ast.statement.SQLSelect;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectQuery;
 import com.alibaba.druid.sql.ast.statement.SQLSelectStatement;

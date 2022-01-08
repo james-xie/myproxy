@@ -2,8 +2,6 @@ package com.gllue.myproxy.metadata.model;
 
 import static org.junit.Assert.assertEquals;
 
-import com.gllue.myproxy.common.io.stream.ByteArrayStreamInput;
-import com.gllue.myproxy.common.io.stream.ByteArrayStreamOutput;
 import com.gllue.myproxy.metadata.MetaDataBuilder.CopyOptions;
 import java.util.ArrayList;
 import java.util.List;

@@ -1,9 +1,9 @@
 package com.gllue.myproxy.transport.protocol.packet.handshake;
 
 import com.gllue.myproxy.transport.constant.MySQLCapabilityFlag;
+import com.gllue.myproxy.transport.exception.MalformedPacketException;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
-import com.gllue.myproxy.transport.exception.MalformedPacketException;
 import com.google.common.base.Preconditions;
 import java.util.HashMap;
 import java.util.Map;

@@ -9,10 +9,8 @@ import com.alibaba.druid.sql.dialect.mysql.ast.statement.MySqlAlterTableModifyCo
 import com.gllue.myproxy.command.handler.query.BaseQueryHandlerTest;
 import com.gllue.myproxy.command.handler.query.EncryptionHelper;
 import com.gllue.myproxy.command.handler.query.EncryptionHelper.EncryptionAlgorithm;
-import com.gllue.myproxy.metadata.model.ColumnType;
 import com.gllue.myproxy.common.util.SQLStatementUtils;
-import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
-import java.util.Map;
+import com.gllue.myproxy.metadata.model.ColumnType;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;

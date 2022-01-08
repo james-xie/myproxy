@@ -1,11 +1,11 @@
 package com.gllue.myproxy.transport.backend.command;
 
 import com.gllue.myproxy.command.result.CommandResult;
+import com.gllue.myproxy.transport.backend.BackendResultReadException;
+import com.gllue.myproxy.transport.exception.CustomErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.generic.EofPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
-import com.gllue.myproxy.transport.backend.BackendResultReadException;
-import com.gllue.myproxy.transport.exception.CustomErrorCode;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinitionPacketWrapper;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 

@@ -1,8 +1,8 @@
 package com.gllue.myproxy.transport.backend.command;
 
 import com.gllue.myproxy.transport.BaseTransportTest;
-import com.gllue.myproxy.transport.backend.connection.BackendConnectionImpl;
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
+import com.gllue.myproxy.transport.backend.connection.BackendConnectionImpl;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnectionImpl;
 import io.netty.channel.embedded.EmbeddedChannel;

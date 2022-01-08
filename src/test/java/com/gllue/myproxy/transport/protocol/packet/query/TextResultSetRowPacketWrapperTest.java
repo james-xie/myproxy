@@ -7,8 +7,8 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.gllue.myproxy.transport.BaseTransportTest;
-import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.exception.MySQLServerErrorCode;
+import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
 import com.gllue.myproxy.transport.protocol.packet.query.text.TextResultSetRowPacket;
 import java.util.ArrayList;
 import java.util.List;

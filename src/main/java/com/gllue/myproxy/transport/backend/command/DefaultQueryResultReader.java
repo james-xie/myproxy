@@ -1,7 +1,7 @@
 package com.gllue.myproxy.transport.backend.command;
 
-import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.command.result.query.ColumnDefQueryResultMetaData;
+import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import java.util.ArrayList;
 import java.util.List;

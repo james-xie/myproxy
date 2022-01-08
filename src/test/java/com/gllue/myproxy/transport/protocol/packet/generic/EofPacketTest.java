@@ -1,10 +1,10 @@
 package com.gllue.myproxy.transport.protocol.packet.generic;
 
-import com.gllue.myproxy.transport.BaseTransportTest;
-import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
-
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
+
+import com.gllue.myproxy.transport.BaseTransportTest;
+import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;

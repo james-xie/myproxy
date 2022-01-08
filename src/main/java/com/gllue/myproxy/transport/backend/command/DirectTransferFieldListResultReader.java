@@ -1,10 +1,10 @@
 package com.gllue.myproxy.transport.backend.command;
 
-import com.gllue.myproxy.transport.core.connection.TrafficThrottlePipe;
-import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import com.gllue.myproxy.transport.core.connection.AdaptableTrafficThrottlePipe;
+import com.gllue.myproxy.transport.core.connection.TrafficThrottlePipe;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
+import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinition41Packet;
 import com.gllue.myproxy.transport.protocol.packet.query.ColumnDefinitionPacketWrapper;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import lombok.extern.slf4j.Slf4j;

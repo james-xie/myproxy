@@ -2,13 +2,11 @@ package com.gllue.myproxy.transport.backend.connection;
 
 import com.gllue.myproxy.command.result.CommandResult;
 import com.gllue.myproxy.common.Callback;
-import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
+import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
-import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.google.common.util.concurrent.ListenableFuture;
-import java.util.concurrent.Future;
 
 public interface BackendConnection extends Connection {
   DataSource<BackendConnection> dataSource();
