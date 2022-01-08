@@ -92,35 +92,6 @@ public class PartitionTableMetaDataTest {
   }
 
   @Test
-  public void testReadAndWriteStream() {
-    var table = prepareTable();
-    var output = new ByteArrayStreamOutput();
-    table.writeTo(output);
-    var input = new ByteArrayStreamInput(output.getTrimmedByteArray());
-    var builder = new PartitionTableMetaData.Builder();
-    builder.readStream(input);
-    var newTable = builder.build();
-
-    assertEquals(table.getName(), newTable.getName());
-    assertEquals(table.getIdentity(), newTable.getIdentity());
-    assertEquals(table.getType(), newTable.getType());
-    assertEquals(table.getVersion(), newTable.getVersion());
-    assertEquals(table.getNumberOfColumns(), newTable.getNumberOfColumns());
-    assertEquals(getColumnNames(table), getColumnNames(newTable));
-    assertEquals(
-        getColumnNames(table.getPrimaryTable()), getColumnNames(newTable.getPrimaryTable()));
-    assertEquals(
-        getColumnNames(table.getTableByOrdinalValue(1)),
-        getColumnNames(newTable.getTableByOrdinalValue(1)));
-    assertEquals(
-        getColumnNames(table.getTableByOrdinalValue(2)),
-        getColumnNames(newTable.getTableByOrdinalValue(2)));
-    assertEquals(
-        getColumnNames(table.getTableByOrdinalValue(3)),
-        getColumnNames(newTable.getTableByOrdinalValue(3)));
-  }
-
-  @Test
   public void testCopyFrom() {
     var table = prepareTable();
     var builder = new TableMetaData.Builder();

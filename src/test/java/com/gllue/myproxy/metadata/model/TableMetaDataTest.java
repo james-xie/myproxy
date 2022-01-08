@@ -65,24 +65,6 @@ public class TableMetaDataTest {
   }
 
   @Test
-  public void testReadAndWriteStream() {
-    var table = prepareTable();
-    var output = new ByteArrayStreamOutput();
-    table.writeTo(output);
-    var input = new ByteArrayStreamInput(output.getTrimmedByteArray());
-    var builder = new TableMetaData.Builder();
-    builder.readStream(input);
-    var newTable = builder.build();
-
-    assertEquals(table.getName(), newTable.getName());
-    assertEquals(table.getIdentity(), newTable.getIdentity());
-    assertEquals(table.getType(), newTable.getType());
-    assertEquals(table.getVersion(), newTable.getVersion());
-    assertEquals(table.getNumberOfColumns(), newTable.getNumberOfColumns());
-    assertEquals(getColumnNames(table), getColumnNames(newTable));
-  }
-
-  @Test
   public void testCopyFrom() {
     var table = prepareTable();
     var builder = new TableMetaData.Builder();

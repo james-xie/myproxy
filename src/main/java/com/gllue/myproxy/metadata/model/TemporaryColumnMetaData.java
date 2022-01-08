@@ -32,10 +32,6 @@ public class TemporaryColumnMetaData extends ColumnMetaData {
     return table;
   }
 
-  public void writeTo(final StreamOutput output) {
-    throw new UnsupportedOperationException();
-  }
-
   @Accessors(chain = true)
   public static class Builder extends AbstractMetaDataBuilder<TemporaryColumnMetaData> {
     @Setter private TableMetaData originTable;
@@ -44,11 +40,6 @@ public class TemporaryColumnMetaData extends ColumnMetaData {
     @Setter private ColumnType type;
     @Setter private boolean nullable;
     @Setter private String defaultValue;
-
-    @Override
-    public void readStream(StreamInput input) {
-      throw new UnsupportedOperationException();
-    }
 
     @Override
     public void copyFrom(TemporaryColumnMetaData metadata, CopyOptions options) {

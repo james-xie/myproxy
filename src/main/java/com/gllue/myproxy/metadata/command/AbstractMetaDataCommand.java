@@ -29,16 +29,6 @@ public abstract class AbstractMetaDataCommand<T extends MetaData> implements Met
     repository.save(path, data);
   }
 
-  //  void saveMetaData(CommandExecutionContext<T> context, String path, MetaData metaData) {
-  //    var stream = new ByteArrayStreamOutput();
-  //    var repository = context.getRepository();
-  //    metaData.writeTo(stream);
-  //    if (log.isDebugEnabled()) {
-  //      log.debug("Persist meta data for path [{}].", path);
-  //    }
-  //    repository.save(path, stream.getTrimmedByteArray());
-  //  }
-
   void deleteMetaData(CommandExecutionContext<T> context, String path) {
     context.getRepository().delete(path);
   }

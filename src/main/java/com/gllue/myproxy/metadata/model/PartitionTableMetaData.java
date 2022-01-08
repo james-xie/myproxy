@@ -120,19 +120,6 @@ public class PartitionTableMetaData extends TableMetaData {
     return tableNames;
   }
 
-  @Override
-  public void writeTo(StreamOutput output) {
-    doWrite(output);
-
-    output.writeStringNul(getName());
-    primaryTable.writeTo(output);
-
-    output.writeInt(extensionTables.length);
-    for (var extensionTable : extensionTables) {
-      extensionTable.writeTo(output);
-    }
-  }
-
   @Accessors(chain = true)
   public static class Builder extends AbstractMetaDataBuilder<PartitionTableMetaData> {
     @Setter private String name;
@@ -160,22 +147,6 @@ public class PartitionTableMetaData extends TableMetaData {
       return this;
     }
 
-    @Override
-    public void readStream(StreamInput input) {
-      super.readStream(input);
-      this.name = input.readStringNul();
-
-      var primaryTableBuilder = new TableMetaData.Builder();
-      primaryTableBuilder.readStream(input);
-      this.primaryTable = primaryTableBuilder.build();
-
-      int extensionTableCount = input.readInt();
-      for (int i = 0; i < extensionTableCount; i++) {
-        var extensionTableBuilder = new TableMetaData.Builder();
-        extensionTableBuilder.readStream(input);
-        this.extensionTables.add(extensionTableBuilder.build());
-      }
-    }
 
     @Override
     public void copyFrom(PartitionTableMetaData metadata, CopyOptions options) {

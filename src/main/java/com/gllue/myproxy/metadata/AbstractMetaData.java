@@ -19,13 +19,4 @@ public abstract class AbstractMetaData implements MetaData {
     this(input.readStringNul(), input.readInt());
   }
 
-  protected void doWrite(StreamOutput output) {
-    output.writeStringNul(identity);
-    output.writeInt(version);
-  }
-
-  @Override
-  public void writeTo(StreamOutput output) {
-    doWrite(output);
-  }
 }

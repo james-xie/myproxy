@@ -94,9 +94,6 @@ public class MultiDatabasesMetaData implements MetaData {
     return VERSION;
   }
 
-  @Override
-  public void writeTo(StreamOutput output) {}
-
   @Accessors(chain = true)
   public static class Builder implements MetaDataBuilder<MultiDatabasesMetaData> {
     private List<DatabaseMetaData> databases = new ArrayList<>();
@@ -104,11 +101,6 @@ public class MultiDatabasesMetaData implements MetaData {
     public Builder addDatabase(final DatabaseMetaData database) {
       this.databases.add(database);
       return this;
-    }
-
-    @Override
-    public void readStream(StreamInput input) {
-      throw new UnsupportedOperationException();
     }
 
     @Override

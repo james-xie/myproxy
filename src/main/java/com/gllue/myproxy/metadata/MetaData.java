@@ -10,10 +10,6 @@ public interface MetaData {
 
   int getVersion();
 
-  /** Write this object's fields to a {@linkplain StreamOutput}. */
-  void writeTo(StreamOutput output);
-
-
   interface Builder<M> {
     void readStream(StreamInput input);
 

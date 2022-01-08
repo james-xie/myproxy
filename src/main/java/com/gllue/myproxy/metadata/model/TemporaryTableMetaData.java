@@ -1,6 +1,5 @@
 package com.gllue.myproxy.metadata.model;
 
-import com.gllue.myproxy.common.io.stream.StreamInput;
 import com.gllue.myproxy.metadata.AbstractMetaDataBuilder;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,11 +24,6 @@ public class TemporaryTableMetaData extends TableMetaData {
     @Setter private String name;
     private List<String> allColumnNames = new ArrayList<>();
     private List<TemporaryColumnMetaData> columns = new ArrayList<>();
-
-    @Override
-    public void readStream(StreamInput input) {
-      throw new UnsupportedOperationException();
-    }
 
     @Override
     public void copyFrom(TemporaryTableMetaData metadata, CopyOptions options) {

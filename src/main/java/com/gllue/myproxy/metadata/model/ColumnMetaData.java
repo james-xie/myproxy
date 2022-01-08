@@ -62,15 +62,6 @@ public class ColumnMetaData extends AbstractMetaData {
     return table;
   }
 
-  public void writeTo(final StreamOutput output) {
-    super.writeTo(output);
-    output.writeStringNul(name);
-    output.writeByte((byte) type.getId());
-    output.writeBoolean(nullable);
-    output.writeNullableString(defaultValue);
-    output.writeBoolean(builtin);
-  }
-
   @Accessors(chain = true)
   public static class Builder extends AbstractMetaDataBuilder<ColumnMetaData> {
     @Setter private String name;
@@ -78,21 +69,6 @@ public class ColumnMetaData extends AbstractMetaData {
     @Setter private boolean nullable;
     @Setter private String defaultValue;
     @Setter private boolean builtin = false;
-
-    public Builder setVersion(final int version) {
-      this.version = version;
-      return this;
-    }
-
-    @Override
-    public void readStream(StreamInput input) {
-      super.readStream(input);
-      this.name = input.readStringNul();
-      this.type = ColumnType.getColumnType(input.readByte());
-      this.nullable = input.readBoolean();
-      this.defaultValue = input.readNullableString();
-      this.builtin = input.readBoolean();
-    }
 
     @Override
     public void copyFrom(ColumnMetaData metadata, CopyOptions options) {

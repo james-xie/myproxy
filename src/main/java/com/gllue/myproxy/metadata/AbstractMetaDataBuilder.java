@@ -1,16 +1,8 @@
 package com.gllue.myproxy.metadata;
 
-import com.gllue.myproxy.common.io.stream.StreamInput;
-
 public abstract class AbstractMetaDataBuilder<M> implements MetaDataBuilder<M> {
   protected String identity;
   protected int version = MetaData.DEFAULT_VERSION;
-
-  @Override
-  public void readStream(StreamInput input) {
-    identity = input.readStringNul();
-    version = input.readInt();
-  }
 
   @Override
   public void copyFrom(M metadata, CopyOptions options) {

@@ -81,18 +81,8 @@ public class DatabaseMetaData extends AbstractMetaData {
     return tableIdMap.values();
   }
 
-  @Override
-  public void writeTo(StreamOutput output) {
-    super.writeTo(output);
-
-    output.writeStringNul(datasource);
-    output.writeStringNul(name);
-
-    output.writeInt(tableIdMap.size());
-    for (var table : getTables()) {
-      output.writeInt(table.getType().getId());
-      table.writeTo(output);
-    }
+  public int getNumberOfTables() {
+    return tableIdMap.size();
   }
 
   @Accessors(chain = true)
@@ -100,6 +90,11 @@ public class DatabaseMetaData extends AbstractMetaData {
     @Setter private String datasource;
     @Setter private String name;
     private final Map<String, TableMetaData> tableMap = new HashMap<>();
+
+    public Builder setVersion(final int version) {
+      this.version = version;
+      return this;
+    }
 
     public Builder setNextVersion(final int version) {
       this.version = version + 1;
@@ -125,29 +120,6 @@ public class DatabaseMetaData extends AbstractMetaData {
         this.addTable(table);
       }
       return this;
-    }
-
-    @Override
-    public void readStream(StreamInput input) {
-      super.readStream(input);
-      datasource = input.readStringNul();
-      name = input.readStringNul();
-      int tables = input.readInt();
-      for (int i = 0; i < tables; i++) {
-        var tableType = TableType.getTableType(input.readInt());
-        if (tableType == TableType.STANDARD) {
-          var builder = new TableMetaData.Builder();
-          builder.readStream(input);
-          addTable(builder.build());
-        } else if (tableType == TableType.PARTITION) {
-          var builder = new PartitionTableMetaData.Builder();
-          builder.readStream(input);
-          addTable(builder.build());
-        } else {
-          throw new IllegalArgumentException(
-              String.format("Unknown table type [%s]", tableType.name()));
-        }
-      }
     }
 
     @Override

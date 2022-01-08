@@ -44,24 +44,6 @@ public class ColumnMetaDataTest {
   }
 
   @Test
-  public void testReadAndWriteStream() {
-    var column = prepareColumn();
-    var output = new ByteArrayStreamOutput();
-    column.writeTo(output);
-    var input = new ByteArrayStreamInput(output.getTrimmedByteArray());
-    var builder = new ColumnMetaData.Builder();
-    builder.readStream(input);
-    var newColumn = builder.build();
-
-    assertEquals(column.getIdentity(), newColumn.getIdentity());
-    assertEquals(column.getVersion(), newColumn.getVersion());
-    assertEquals(column.getName(), newColumn.getName());
-    assertEquals(column.getType(), newColumn.getType());
-    assertEquals(column.getDefaultValue(), newColumn.getDefaultValue());
-    assertEquals(column.isNullable(), newColumn.isNullable());
-  }
-
-  @Test
   public void testCopyFrom() {
     var column = prepareColumn();
     var builder = new ColumnMetaData.Builder();

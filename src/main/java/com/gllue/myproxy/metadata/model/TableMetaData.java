@@ -96,18 +96,6 @@ public class TableMetaData extends AbstractMetaData {
     return names;
   }
 
-  @Override
-  public void writeTo(StreamOutput output) {
-    super.writeTo(output);
-
-    output.writeStringNul(name);
-    output.writeByte((byte) type.getId());
-    output.writeInt(columns.length);
-    for (var column : columns) {
-      column.writeTo(output);
-    }
-  }
-
   @Accessors(chain = true)
   public static class Builder extends AbstractMetaDataBuilder<TableMetaData> {
     @Setter private String name;
@@ -150,20 +138,6 @@ public class TableMetaData extends AbstractMetaData {
     }
 
     @Override
-    public void readStream(StreamInput input) {
-      super.readStream(input);
-      name = input.readStringNul();
-      type = TableType.getTableType(input.readByte());
-      int columnsSize = input.readInt();
-      columns = new ArrayList<>(columnsSize);
-      for (int i = 0; i < columnsSize; i++) {
-        var columnBuilder = new ColumnMetaData.Builder();
-        columnBuilder.readStream(input);
-        columns.add(columnBuilder.build());
-      }
-    }
-
-    @Override
     public void copyFrom(TableMetaData metadata, CopyOptions options) {
       super.copyFrom(metadata, options);
       this.name = metadata.getName();
@@ -176,7 +150,6 @@ public class TableMetaData extends AbstractMetaData {
               new ColumnMetaData.Builder()
                   .setName(column.getName())
                   .setType(column.getType())
-                  .setVersion(column.getVersion())
                   .setNullable(column.isNullable())
                   .setDefaultValue(column.getDefaultValue())
                   .setBuiltin(column.isBuiltin());
