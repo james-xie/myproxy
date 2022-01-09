@@ -19,7 +19,7 @@ public class MySQLPayload implements AutoCloseable {
 
   private final ByteBuf byteBuf;
 
-  private boolean closed;
+  private boolean closed = false;
 
   public void setCharset(Charset charset) {
     Preconditions.checkNotNull(charset, "Argument charset cannot be null");
@@ -547,11 +547,14 @@ public class MySQLPayload implements AutoCloseable {
    */
   @Override
   public void close() {
-    if (closed) {
+    var refCnt = byteBuf.refCnt();
+    if (refCnt == 0) {
       throw new IllegalStateException("MySQLPayload has already closed.");
     }
 
-    closed = true;
+    if (refCnt == 1) {
+      closed = true;
+    }
     byteBuf.release();
   }
 
