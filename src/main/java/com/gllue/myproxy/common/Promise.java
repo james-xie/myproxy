@@ -103,7 +103,9 @@ public class Promise<R> {
       if (nextPromiseCallback != null) {
         invokeOnFailure();
       } else {
-        log.error("Found an unhandled exception in the promise.", e);
+        if (log.isDebugEnabled()) {
+          log.debug("Found an unhandled exception in the promise.", e);
+        }
       }
     } else {
       if (log.isWarnEnabled()) {

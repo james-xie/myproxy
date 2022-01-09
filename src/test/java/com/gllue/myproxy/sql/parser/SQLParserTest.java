@@ -303,4 +303,15 @@ public class SQLParserTest {
     printStatement(stmt);
   }
 
+  @Test
+  public void testParseSetStatement() {
+    var parser = newParser();
+    var stmt = parser.parse("set autocommit=1;");
+    var stmt1 = parser.parse("set autocommit=ON;");
+    var stmt2 = parser.parse("set autocommit=true;");
+    var stmt3 = parser.parse("set global autocommit=1");
+    var stmt4 = parser.parse("set session autocommit=1");
+    printStatement(stmt);
+  }
+
 }

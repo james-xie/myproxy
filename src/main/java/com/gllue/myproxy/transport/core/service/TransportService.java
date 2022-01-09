@@ -2,6 +2,8 @@ package com.gllue.myproxy.transport.core.service;
 
 import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.BEGIN_COMMAND;
 import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.COMMIT_COMMAND;
+import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.DISABLE_AUTO_COMMIT_COMMAND;
+import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.ENABLE_AUTO_COMMIT_COMMAND;
 import static com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket.ROLLBACK_COMMAND;
 
 import com.gllue.myproxy.command.result.CommandResult;
@@ -82,7 +84,7 @@ public class TransportService {
   }
 
   public void removeBackendConnection(final int connectionId) {
-    for (var frontendConn: frontendConnectionMap.values()) {
+    for (var frontendConn : frontendConnectionMap.values()) {
       var backendConn = frontendConn.getBackendConnection();
       if (backendConn.connectionId() == connectionId) {
         frontendConn.close();
@@ -176,6 +178,30 @@ public class TransportService {
             (result) -> {
               backendConnection.rollback();
               frontendConnection.rollback();
+              return result;
+            });
+  }
+
+  public Promise<CommandResult> setAutoCommit(final int connectionId, final boolean autoCommit) {
+    var frontendConnection = getFrontendConnection(connectionId);
+    var backendConnection = frontendConnection.getBackendConnection();
+    return new Promise<CommandResult>(
+            (cb) -> {
+              var newCallback = wrappedCallback(frontendConnection, cb);
+              var reader = new DefaultCommandResultReader().addCallback(newCallback);
+              QueryCommandPacket command =
+                  autoCommit ? ENABLE_AUTO_COMMIT_COMMAND : DISABLE_AUTO_COMMIT_COMMAND;
+              backendConnection.sendCommand(command, reader);
+            })
+        .then(
+            (result) -> {
+              if (autoCommit) {
+                backendConnection.enableAutoCommit();
+                frontendConnection.enableAutoCommit();
+              } else {
+                backendConnection.disableAutoCommit();
+                frontendConnection.disableAutoCommit();
+              }
               return result;
             });
   }

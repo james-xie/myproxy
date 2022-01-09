@@ -25,6 +25,7 @@ import com.alibaba.druid.sql.ast.statement.SQLNotNullConstraint;
 import com.alibaba.druid.sql.ast.statement.SQLPrimaryKey;
 import com.alibaba.druid.sql.ast.statement.SQLSelectItem;
 import com.alibaba.druid.sql.ast.statement.SQLSelectOrderByItem;
+import com.alibaba.druid.sql.ast.statement.SQLSetStatement;
 import com.alibaba.druid.sql.ast.statement.SQLSubqueryTableSource;
 import com.alibaba.druid.sql.ast.statement.SQLTableElement;
 import com.alibaba.druid.sql.ast.statement.SQLTableSource;
@@ -213,7 +214,7 @@ public class SQLStatementUtils {
       final String tableName, final boolean ignore, final List<SQLAlterTableItem> items) {
     Preconditions.checkNotNull(tableName, "tableName cannot be null.");
 
-    var newStmt = new SQLAlterTableStatement();
+    var newStmt = new SQLAlterTableStatement(DbType.mysql);
     newStmt.setDbType(DbType.mysql);
     SQLExpr tableSource = SQLUtils.toSQLExpr(quoteName(tableName), DbType.mysql);
     newStmt.setTableSource(tableSource);
@@ -440,6 +441,15 @@ public class SQLStatementUtils {
         .map(x -> new SQLSelectItem(new SQLPropertyExpr(owner, quoteName(x))))
         .collect(Collectors.toList());
   }
+
+  public static SQLSetStatement newSQLSetStatement(List<SQLAssignItem> items) {
+    var newStmt = new SQLSetStatement(DbType.mysql);
+    for (var item: items) {
+      newStmt.set(item.getTarget(), item.getValue());
+    }
+    return newStmt;
+  }
+
 
   public static SQLExprTableSource newExprTableSource(
       final String schema, final String tableName, final String alias) {

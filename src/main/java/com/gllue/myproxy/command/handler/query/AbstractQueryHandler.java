@@ -61,6 +61,10 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
     return transportService.rollbackTransaction(connectionId);
   }
 
+  protected Promise<CommandResult> setAutoCommit(int connectionId, boolean autoCommit) {
+    return transportService.setAutoCommit(connectionId, autoCommit);
+  }
+
   protected Promise<CommandResult> kill(int connectionId, int threadId, boolean killQuery) {
     return transportService.kill(connectionId, threadId, killQuery);
   }

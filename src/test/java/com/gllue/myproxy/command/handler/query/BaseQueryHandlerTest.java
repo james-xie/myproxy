@@ -21,8 +21,10 @@ import com.gllue.myproxy.command.result.query.DefaultQueryResultMetaData.Column;
 import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.command.result.query.SimpleQueryResult;
 import com.gllue.myproxy.common.Callback;
+import com.gllue.myproxy.common.FuturableCallback;
 import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.common.exception.BaseServerException;
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.metadata.model.ColumnMetaData;
@@ -39,6 +41,7 @@ import com.gllue.myproxy.transport.core.service.TransportService;
 import com.gllue.myproxy.transport.frontend.connection.SessionContext;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.mockito.Mock;
@@ -166,18 +169,11 @@ public abstract class BaseQueryHandlerTest {
     doAnswer(
             invocation -> {
               var args = invocation.getArguments();
-              try {
-                var res = sqlHandler.apply((String) args[1]);
-                return new Promise<>(
-                    (cb) -> {
-                      cb.onSuccess(res);
-                    });
-              } catch (Exception e) {
-                return new Promise<>(
-                    (cb) -> {
-                      cb.onFailure(e);
-                    });
-              }
+              return new Promise<CommandResult>(
+                  (cb) -> {
+                    transportService.submitQueryToBackendDatabase(
+                        (int) args[0], (String) args[1], cb);
+                  });
             })
         .when(transportService)
         .submitQueryToBackendDatabase(anyInt(), anyString());
@@ -283,5 +279,17 @@ public abstract class BaseQueryHandlerTest {
         0,
         "",
         new SimpleQueryResult(newQueryResultMetaData(columnNames, columnTypes), result));
+  }
+
+  protected <T> T callbackGet(FuturableCallback<T> callback)
+      throws InterruptedException, ExecutionException {
+    try {
+      return callback.get();
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof BaseServerException) {
+        throw (BaseServerException) e.getCause();
+      }
+      throw e;
+    }
   }
 }

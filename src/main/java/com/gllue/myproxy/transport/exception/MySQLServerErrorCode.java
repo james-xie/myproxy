@@ -48,6 +48,8 @@ public enum MySQLServerErrorCode implements SQLErrorCode {
 
   ER_NET_READ_ERROR(1158, "08S01", "Got an error reading communication packets"),
 
+  ER_WRONG_VALUE_FOR_VAR(1231, "42000", "Variable '%s' can't be set to the value of '%s'"),
+
   ER_DERIVED_MUST_HAVE_ALIAS(1248, "42000", "Every derived table must have its own alias"),
 
   ER_NO_SUCH_USER(1449, "HY000", "The user ('%s') does not exist"),
