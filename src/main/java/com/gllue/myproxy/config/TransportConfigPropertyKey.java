@@ -2,6 +2,7 @@ package com.gllue.myproxy.config;
 
 import com.gllue.myproxy.common.properties.TypedPropertyKey;
 import com.gllue.myproxy.common.properties.TypedPropertyValue.Type;
+import com.gllue.myproxy.constant.TimeConstants;
 import lombok.Getter;
 
 /** Typed property key of transport configuration. */
@@ -11,7 +12,8 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
 
   FRONTEND_SERVER_PORT("frontend.server_port", 13306, Type.INTEGER),
 
-  FRONTEND_WORKER_COUNT("frontend.worker_count", GenericConfigPropertyKey.availableProcessors(), Type.INTEGER),
+  FRONTEND_WORKER_COUNT(
+      "frontend.worker_count", GenericConfigPropertyKey.availableProcessors(), Type.INTEGER),
 
   FRONTEND_BACKLOG("frontend.backlog", 50, Type.INTEGER),
 
@@ -21,8 +23,18 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
   FRONTEND_WRITE_BUFFER_HIGH_WATER_MARK(
       "frontend.write_buffer_high_water_mark", 16 * 1024 * 1024, Type.INTEGER),
 
+  FRONTEND_CONNECTION_MAX_IDLE_TIME_SECONDS(
+      "frontend.connection.max_idle_time_seconds",
+      8 * TimeConstants.SECONDS_PER_HOUR,
+      Type.INTEGER),
 
-  BACKEND_WORKER_COUNT("backend.worker_count", GenericConfigPropertyKey.availableProcessors(), Type.INTEGER),
+  FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_SECONDS(
+      "frontend.connection.idle_detect_interval_seconds",
+      TimeConstants.SECONDS_PER_MINUTE,
+      Type.INTEGER),
+
+  BACKEND_WORKER_COUNT(
+      "backend.worker_count", GenericConfigPropertyKey.availableProcessors(), Type.INTEGER),
 
   BACKEND_CONNECT_TIMEOUT_MILLIS("backend.connect_timeout_millis", 10 * 1000, Type.INTEGER),
 

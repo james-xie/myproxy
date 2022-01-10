@@ -344,6 +344,7 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
         throw new UnsupportedCommandException(commandType.name());
     }
 
+    frontendConnection.onCommandReceived();
     commandExecuteEngine.execute(frontendConnection, packet);
   }
 }

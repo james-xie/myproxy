@@ -3,6 +3,7 @@ package com.gllue.myproxy.common.concurrent;
 import static com.gllue.myproxy.config.Configurations.Type.GENERIC;
 
 import com.gllue.myproxy.common.concurrent.ThreadPoolStats.ExecutorServiceStats;
+import com.gllue.myproxy.common.concurrent.executor.AbortPolicy;
 import com.gllue.myproxy.common.concurrent.executor.AccountableRejectedExecutionHandler;
 import com.gllue.myproxy.common.concurrent.executor.ExecutorBuilder;
 import com.gllue.myproxy.common.concurrent.executor.FixedExecutorBuilder;
@@ -17,7 +18,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.AbstractExecutorService;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import javax.annotation.Nonnull;
@@ -48,12 +53,14 @@ public class ThreadPool {
   private boolean isShutdown;
 
   private final Map<Name, ExecutorService> executors;
+  private final ScheduledThreadPoolExecutor scheduler;
   private final Configurations configurations;
 
   public ThreadPool(final Configurations configurations) {
     int processors = configurations.getValue(GENERIC, GenericConfigPropertyKey.PROCESSORS);
     this.configurations = configurations;
     this.executors = buildExecutors(processors);
+    this.scheduler = buildScheduler();
   }
 
   private Map<Name, ExecutorService> buildExecutors(final int processors) {
@@ -62,6 +69,19 @@ public class ThreadPool {
     addExecutor(executors, Name.COMMAND, fixedExecutorBuilder(processors));
 
     return Collections.unmodifiableMap(executors);
+  }
+
+  private ScheduledThreadPoolExecutor buildScheduler() {
+    var scheduler =
+        new ScheduledThreadPoolExecutor(1, threadFactory("scheduler"), new AbortPolicy());
+    scheduler.setExecuteExistingDelayedTasksAfterShutdownPolicy(false);
+    scheduler.setContinueExistingPeriodicTasksAfterShutdownPolicy(false);
+    scheduler.setRemoveOnCancelPolicy(true);
+    return scheduler;
+  }
+
+  private ThreadFactory threadFactory(String namePrefix) {
+    return new DaemonThreadFactory(namePrefix);
   }
 
   private ExecutorBuilder genericExecutorBuilder(final int processors) {
@@ -107,8 +127,9 @@ public class ThreadPool {
     return executorService;
   }
 
-  public ScheduledExecutorService scheduler() {
-    return null;
+  public ScheduledFuture<?> schedule(
+      Runnable runnable, long delay, TimeUnit unit, ExecutorService executor) {
+    return scheduler.schedule(() -> executor.execute(runnable), delay, unit);
   }
 
   /**
@@ -211,11 +232,13 @@ public class ThreadPool {
       return;
     }
 
-    synchronized (executors) {
+    synchronized (this) {
       if (!isShutdown) {
         for (var executor : executors.values()) {
           executor.shutdown();
         }
+
+        scheduler.shutdown();
         isShutdown = true;
       }
     }
@@ -227,14 +250,16 @@ public class ThreadPool {
     }
 
     var tasks = new ArrayList<Runnable>();
-    synchronized (executors) {
+    synchronized (this) {
       if (!isShutdown) {
         for (var executor : executors.values()) {
           tasks.addAll(executor.shutdownNow());
         }
+        scheduler.shutdownNow();
         isShutdown = true;
       }
     }
+
     return tasks;
   }
 

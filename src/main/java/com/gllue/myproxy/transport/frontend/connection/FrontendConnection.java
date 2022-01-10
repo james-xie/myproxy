@@ -11,4 +11,6 @@ public interface FrontendConnection extends Connection {
   BackendConnection getBackendConnection();
 
   SessionContext getSessionContext();
+
+  void onCommandReceived();
 }

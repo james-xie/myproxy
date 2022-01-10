@@ -19,6 +19,18 @@ public interface Connection {
 
   String currentDatabase();
 
+  /**
+   * Time of the connection created.
+   * @return connection create time in milliseconds.
+   */
+  long createTime();
+
+  /**
+   * Time of last access the connection.
+   * @return last access time in milliseconds.
+   */
+  long lastAccessTime();
+
   void begin();
 
   void commit();

@@ -169,6 +169,7 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
     sendCommandTime = System.nanoTime();
     setCommandResultReader(reader);
     writeAndFlush(packet);
+    updateLastAccessTime();
   }
 
   @Override

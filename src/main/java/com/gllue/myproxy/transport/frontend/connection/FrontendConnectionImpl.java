@@ -54,6 +54,11 @@ public class FrontendConnectionImpl extends AbstractConnection implements Fronte
   }
 
   @Override
+  public void onCommandReceived() {
+    updateLastAccessTime();
+  }
+
+  @Override
   protected void onClosed() {
     super.onClosed();
     try {

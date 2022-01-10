@@ -15,6 +15,7 @@ import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
 import com.gllue.myproxy.config.Configurations;
 import com.gllue.myproxy.config.Configurations.Type;
 import com.gllue.myproxy.config.GenericConfigPropertyKey;
+import com.gllue.myproxy.config.TransportConfigPropertyKey;
 import com.gllue.myproxy.transport.backend.command.CachedQueryResultReader;
 import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
@@ -22,6 +23,7 @@ import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultRead
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
+import com.gllue.myproxy.transport.core.connection.DefaultIdleConnectionDetector;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.google.common.base.Preconditions;
@@ -31,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -43,11 +46,25 @@ public class TransportService {
   @Getter private DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
 
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
+  private final DefaultIdleConnectionDetector idleConnectionDetector;
 
   public TransportService(final Configurations configurations, final ThreadPool threadPool) {
     this.configurations = configurations;
     this.threadPool = threadPool;
-    frontendConnectionMap = new ConcurrentHashMap<>();
+    this.frontendConnectionMap = new ConcurrentHashMap<>();
+    this.idleConnectionDetector =
+        new DefaultIdleConnectionDetector(maxFrontendConnectionIdleTime());
+  }
+
+  private int maxFrontendConnectionIdleTime() {
+    return configurations.getValue(
+        Type.TRANSPORT, TransportConfigPropertyKey.FRONTEND_CONNECTION_MAX_IDLE_TIME_SECONDS);
+  }
+
+  private int idleConnectionDetectInterval() {
+    return configurations.getValue(
+        Type.TRANSPORT,
+        TransportConfigPropertyKey.FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_SECONDS);
   }
 
   public void initialize(final List<BackendDataSource> dataSources) {
@@ -55,6 +72,32 @@ public class TransportService {
       throw new IllegalStateException("Cannot override backendDataSourceManager");
     }
     this.backendDataSourceManager = new DataSourceManager<>(dataSources);
+    this.scheduleIdleConnectionDetection();
+  }
+
+  private void closeIdleConnections() {
+    try {
+      var idleConnections =
+          idleConnectionDetector.detectIdleConnections(System.currentTimeMillis());
+
+      for (var connection : idleConnections) {
+        if (!connection.isClosed()) {
+          connection.close();
+          log.info("Close the idle connection [{}].", connection.connectionId());
+        }
+      }
+    } catch (Exception e) {
+      log.error("Failed to close idle connections.", e);
+      throw e;
+    } finally {
+      scheduleIdleConnectionDetection();
+    }
+  }
+
+  private void scheduleIdleConnectionDetection() {
+    var executor = threadPool.executor(Name.GENERIC);
+    threadPool.schedule(
+        this::closeIdleConnections, idleConnectionDetectInterval(), TimeUnit.SECONDS, executor);
   }
 
   public void registerFrontendConnection(final FrontendConnection connection) {
@@ -63,6 +106,8 @@ public class TransportService {
       throw new IllegalArgumentException(
           String.format("Frontend connection already exists. [%s]", connection.connectionId()));
     }
+
+    idleConnectionDetector.register(connection);
   }
 
   public void removeFrontendConnection(final int connectionId) {
@@ -80,6 +125,8 @@ public class TransportService {
           backendConnection.releaseOrClose();
         }
       }
+
+      idleConnectionDetector.remove(connection);
     }
   }
 

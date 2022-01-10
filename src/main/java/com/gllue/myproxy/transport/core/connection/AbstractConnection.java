@@ -6,7 +6,9 @@ import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.payload.MySQLPayload;
 import io.netty.channel.Channel;
+import io.netty.channel.ChannelFuture;
 import java.net.SocketAddress;
+import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
 import java.util.function.Consumer;
@@ -30,11 +32,16 @@ public abstract class AbstractConnection implements Connection {
 
   private volatile boolean autoCommit = true;
 
+  private final long createTime;
+
+  private long lastAccessTime;
+
   public AbstractConnection(final int connectionId, final String user, final Channel channel) {
     this.connectionId = connectionId;
     this.user = user;
     this.channel = channel;
-    writabilityChangedListeners = new LinkedTransferQueue<>();
+    this.writabilityChangedListeners = new LinkedTransferQueue<>();
+    this.createTime = System.currentTimeMillis();
   }
 
   @Override
@@ -65,6 +72,20 @@ public abstract class AbstractConnection implements Connection {
   @Override
   public String currentUser() {
     return user;
+  }
+
+  @Override
+  public long createTime() {
+    return createTime;
+  }
+
+  @Override
+  public long lastAccessTime() {
+    return lastAccessTime;
+  }
+
+  protected void updateLastAccessTime() {
+    lastAccessTime = System.currentTimeMillis();
   }
 
   @Override
@@ -102,30 +123,37 @@ public abstract class AbstractConnection implements Connection {
     return autoCommit;
   }
 
+  private ChannelFuture doChannelWrite(Object msg, boolean flush) {
+    if (!flush) {
+      return channel.write(msg);
+    } else {
+      return channel.writeAndFlush(msg);
+    }
+  }
+
   @Override
   public void write(final MySQLPacket packet) {
-    channel.write(packet);
+    doChannelWrite(packet, false);
   }
 
   @Override
   public void writeAndFlush(final MySQLPacket packet) {
-    channel.writeAndFlush(packet);
+    doChannelWrite(packet, true);
   }
 
   @Override
   public void write(MySQLPayload payload) {
-    channel.write(payload);
+    doChannelWrite(payload, false);
   }
 
   @Override
   public void writeAndFlush(MySQLPayload payload) {
-    channel.writeAndFlush(payload);
+    doChannelWrite(payload, true);
   }
 
   @Override
   public void write(final MySQLPacket packet, final SettableFuture<Connection> future) {
-    channel
-        .write(packet)
+    doChannelWrite(packet, false)
         .addListener(
             (f) -> {
               if (f.isCancelled()) {
@@ -140,8 +168,7 @@ public abstract class AbstractConnection implements Connection {
 
   @Override
   public void writeAndFlush(final MySQLPacket packet, final SettableFuture<Connection> future) {
-    channel
-        .writeAndFlush(packet)
+    doChannelWrite(packet, true)
         .addListener(
             (f) -> {
               if (f.isCancelled()) {
@@ -252,6 +279,23 @@ public abstract class AbstractConnection implements Connection {
     active = false;
     NettyUtils.closeChannel(channel, (ignore) -> onClosed.accept(thisConnection()));
     onClosed();
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    AbstractConnection that = (AbstractConnection) o;
+    return connectionId == that.connectionId;
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(connectionId);
   }
 
   protected AbstractConnection thisConnection() {
