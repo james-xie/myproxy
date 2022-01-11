@@ -16,7 +16,7 @@ public class BaseCommandResultReaderTest extends BaseTransportTest {
   }
 
   EmbeddedChannel backendChannel = new EmbeddedChannel();
-  BackendConnection backendConnection = new BackendConnectionImpl(2, "root", backendChannel);
+  BackendConnection backendConnection = new BackendConnectionImpl(2, "root", backendChannel, 2);
 
   EmbeddedChannel frontendChannel = new EmbeddedChannel();
   FrontendConnection frontendConnection =

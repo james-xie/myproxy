@@ -39,19 +39,21 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class TransportService {
+public class TransportService implements AutoCloseable {
   private final Configurations configurations;
   private final ThreadPool threadPool;
 
   @Getter private DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
 
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
+  private final Map<Integer, BackendConnection> backendConnectionMap;
   private final DefaultIdleConnectionDetector idleConnectionDetector;
 
   public TransportService(final Configurations configurations, final ThreadPool threadPool) {
     this.configurations = configurations;
     this.threadPool = threadPool;
     this.frontendConnectionMap = new ConcurrentHashMap<>();
+    this.backendConnectionMap = new ConcurrentHashMap<>();
     this.idleConnectionDetector =
         new DefaultIdleConnectionDetector(maxFrontendConnectionIdleTime());
   }
@@ -130,11 +132,20 @@ public class TransportService {
     }
   }
 
+  private void registerBackendConnection(final BackendConnection connection) {
+    var old = backendConnectionMap.putIfAbsent(connection.connectionId(), connection);
+    if (old != null) {
+      throw new IllegalArgumentException(
+          String.format("Backend connection already exists. [%s]", connection.connectionId()));
+    }
+  }
+
   public void removeBackendConnection(final int connectionId) {
-    for (var frontendConn : frontendConnectionMap.values()) {
-      var backendConn = frontendConn.getBackendConnection();
-      if (backendConn.connectionId() == connectionId) {
-        frontendConn.close();
+    var backendConnection = backendConnectionMap.remove(connectionId);
+    if (backendConnection != null) {
+      var frontendConnection = backendConnection.getFrontendConnection();
+      if (frontendConnection != null) {
+        frontendConnection.close();
       }
     }
   }
@@ -167,10 +178,13 @@ public class TransportService {
     future.addListener(
         () -> {
           if (future.isSuccess()) {
+            var backendConnection = future.getValue();
+            registerBackendConnection(backendConnection);
             if (frontendConnection.isClosed()) {
-              future.getValue().releaseOrClose();
+              backendConnection.releaseOrClose();
             } else {
-              frontendConnection.bindBackendConnection(future.getValue());
+              frontendConnection.bindBackendConnection(backendConnection);
+              backendConnection.bindFrontendConnection(frontendConnection);
             }
           }
         },
@@ -325,8 +339,8 @@ public class TransportService {
       final int connectionId, final int threadId, final boolean killQuery) {
     return new Promise<>(
         (cb) -> {
-          int backendThreadId =
-              getFrontendConnection(threadId).getBackendConnection().connectionId();
+          var backendThreadId =
+              getFrontendConnection(threadId).getBackendConnection().getDatabaseThreadId();
           String query;
           if (killQuery) {
             query = "KILL QUERY " + backendThreadId;
@@ -353,6 +367,21 @@ public class TransportService {
               frontendConnection.changeDatabase(dbName);
               return result;
             });
+  }
+
+  @Override
+  public void close() throws Exception {
+    for (var connection : frontendConnectionMap.values()) {
+      if (!connection.isClosed()) {
+        connection.close();
+      }
+    }
+
+    for (var connection: backendConnectionMap.values()) {
+      if (!connection.isClosed()) {
+        connection.close();
+      }
+    }
   }
 
   @Getter

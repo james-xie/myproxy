@@ -17,6 +17,7 @@ import com.gllue.myproxy.transport.constant.MySQLCapabilityFlag;
 import com.gllue.myproxy.transport.constant.MySQLServerInfo;
 import com.gllue.myproxy.transport.constant.MySQLStatusFlag;
 import com.gllue.myproxy.transport.core.connection.AuthenticationData;
+import com.gllue.myproxy.transport.core.connection.ConnectionIdGenerator;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.generic.ErrPacket;
@@ -35,6 +36,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter {
+  private static final ConnectionIdGenerator ID_GENERATOR = new ConnectionIdGenerator(1);
 
   private static final Summary readCommandResultLatency =
       Summary.build()
@@ -71,7 +73,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
 
   private int statusFlags;
 
-  private int connectionId;
+  private int databaseThreadId;
 
   private ConnectionPhase connectionPhase = ConnectionPhase.HANDSHAKE;
 
@@ -190,7 +192,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
     }
 
     statusFlags = initialHandshakePacket.getStatusFlags();
-    connectionId = initialHandshakePacket.getConnectionId();
+    databaseThreadId = initialHandshakePacket.getConnectionId();
     authData.setAuthResponse(initialHandshakePacket.getAuthPluginData());
 
     byte[] authResponse;
@@ -346,7 +348,9 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
     log.info("Backend connection has connected.");
     assert connection == null;
     connectionPhase = ConnectionPhase.CONNECTED;
-    connection = new BackendConnectionImpl(connectionId, authData.getUsername(), ctx.channel());
+    connection =
+        new BackendConnectionImpl(
+            ID_GENERATOR.nextId(), authData.getUsername(), ctx.channel(), databaseThreadId);
     if (MySQLStatusFlag.SERVER_STATUS_AUTOCOMMIT.isBitSet(statusFlags)) {
       connection.enableAutoCommit();
     } else {

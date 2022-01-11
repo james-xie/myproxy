@@ -27,6 +27,7 @@ public class FrontendConnectionImpl extends AbstractConnection implements Fronte
 
   @Override
   public void bindBackendConnection(final BackendConnection backendConnection) {
+    assert backendConnectionRef == null;
     backendConnectionRef = new WeakReference<>(backendConnection);
   }
 
@@ -61,6 +62,7 @@ public class FrontendConnectionImpl extends AbstractConnection implements Fronte
   @Override
   protected void onClosed() {
     super.onClosed();
+    backendConnectionRef = null;
     try {
       sessionContext.close();
     } catch (Exception e) {

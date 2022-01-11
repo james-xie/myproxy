@@ -51,7 +51,7 @@ public class BackendConnectionTest {
 
   private BackendConnection prepareConnection() {
     EmbeddedChannel ch = new EmbeddedChannel();
-    var connection = new BackendConnectionImpl(1, "root", ch);
+    var connection = new BackendConnectionImpl(1, "root", ch, 1);
     connection.setDataSource(dataSource);
     return connection;
   }

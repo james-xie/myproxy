@@ -14,6 +14,7 @@ import com.gllue.myproxy.transport.constant.MySQLCommandPacketType;
 import com.gllue.myproxy.transport.core.connection.AbstractConnection;
 import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.core.netty.NettyUtils;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.SimpleCommandPacket;
@@ -49,30 +50,57 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
 
   private volatile State state = State.INITIAL;
 
+  private final long databaseThreadId;
   private WeakReference<DataSource<BackendConnection>> dataSourceRef;
 
   private volatile CommandResultReader commandResultReader;
   private volatile CommandResultReader newCommandResultReader;
+  private volatile WeakReference<FrontendConnection> frontendConnectionRef;
   private volatile boolean firstResponse;
   private volatile long sendCommandTime;
   private long receiveFirstResponseTime;
 
-  public BackendConnectionImpl(final int connectionId, final String user, final Channel channel) {
+  public BackendConnectionImpl(
+      final int connectionId,
+      final String user,
+      final Channel channel,
+      final long databaseThreadId) {
     super(connectionId, user, channel);
+    this.databaseThreadId = databaseThreadId;
   }
 
   public BackendConnectionImpl(
       final int connectionId,
       final String user,
       final Channel channel,
+      final long databaseThreadId,
       final DataSource<BackendConnection> dataSource) {
-    this(connectionId, user, channel);
+    this(connectionId, user, channel, databaseThreadId);
     setDataSource(dataSource);
   }
 
   @Override
   public void setDataSource(final DataSource<BackendConnection> dataSource) {
     this.dataSourceRef = new WeakReference<>(dataSource);
+  }
+
+  @Override
+  public long getDatabaseThreadId() {
+    return databaseThreadId;
+  }
+
+  @Override
+  public void bindFrontendConnection(FrontendConnection frontendConnection) {
+    assert frontendConnectionRef == null;
+    frontendConnectionRef = new WeakReference<>(frontendConnection);
+  }
+
+  @Override
+  public FrontendConnection getFrontendConnection() {
+    if (frontendConnectionRef == null) {
+      return null;
+    }
+    return frontendConnectionRef.get();
   }
 
   @Override
@@ -256,19 +284,7 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
 
   @Override
   public void close() {
-    if (state == State.CLOSED) {
-      return;
-    }
-
-    synchronized (this) {
-      if (state != State.CLOSED) {
-        if (dataSourceRef != null) {
-          dataSource().closeConnection(this);
-        }
-        NettyUtils.closeChannel(channel, false);
-        state = State.CLOSED;
-      }
-    }
+    close((c) -> {});
   }
 
   @Override
@@ -288,8 +304,15 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
           dataSource().closeConnection(this);
         }
         NettyUtils.closeChannel(channel, (ignore) -> onClosed.accept(thisConnection()));
+        onClosed();
         state = State.CLOSED;
       }
     }
+  }
+
+  @Override
+  protected void onClosed() {
+    super.onClosed();
+    frontendConnectionRef = null;
   }
 }

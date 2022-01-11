@@ -264,9 +264,7 @@ public abstract class AbstractConnection implements Connection {
 
   @Override
   public void close() {
-    active = false;
-    NettyUtils.closeChannel(channel, false);
-    onClosed();
+    close((c) -> {});
   }
 
   @Override

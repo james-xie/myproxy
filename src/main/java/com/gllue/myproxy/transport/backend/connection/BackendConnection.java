@@ -5,13 +5,21 @@ import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.core.connection.Connection;
+import com.gllue.myproxy.transport.core.connection.ReusableConnection;
+import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
 import com.google.common.util.concurrent.ListenableFuture;
 
-public interface BackendConnection extends Connection {
+public interface BackendConnection extends ReusableConnection {
   DataSource<BackendConnection> dataSource();
 
   void setDataSource(DataSource<BackendConnection> dataSource);
+
+  long getDatabaseThreadId();
+
+  void bindFrontendConnection(FrontendConnection frontendConnection);
+
+  FrontendConnection getFrontendConnection();
 
   void setCommandResultReader(CommandResultReader reader);
 
@@ -26,14 +34,4 @@ public interface BackendConnection extends Connection {
   ListenableFuture<CommandResult> sendCommand(CommandPacket packet);
 
   void reset(Callback<CommandResult> callback);
-
-  void assign();
-
-  boolean isAssigned();
-
-  boolean release();
-
-  boolean isReleased();
-
-  void releaseOrClose();
 }

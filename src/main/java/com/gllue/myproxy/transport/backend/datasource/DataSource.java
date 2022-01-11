@@ -3,9 +3,10 @@ package com.gllue.myproxy.transport.backend.datasource;
 import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
 import com.gllue.myproxy.transport.backend.connection.ConnectionArguments;
 import com.gllue.myproxy.transport.core.connection.Connection;
+import com.gllue.myproxy.transport.core.connection.ReusableConnection;
 import javax.annotation.Nullable;
 
-public interface DataSource<T extends Connection> {
+public interface DataSource<T extends ReusableConnection> {
   String getName();
 
   int acquiredConnections();

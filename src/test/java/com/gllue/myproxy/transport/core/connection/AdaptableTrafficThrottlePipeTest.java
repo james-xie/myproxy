@@ -14,7 +14,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class AdaptableTrafficThrottlePipeTest {
   EmbeddedChannel inChannel = new EmbeddedChannel();
   EmbeddedChannel outChannel = new EmbeddedChannel();
-  Connection in = new BackendConnectionImpl(1, "root", inChannel);
+  Connection in = new BackendConnectionImpl(1, "root", inChannel, 1);
   Connection out = new FrontendConnectionImpl(2, "root", outChannel, "datasource");
 
   @Test

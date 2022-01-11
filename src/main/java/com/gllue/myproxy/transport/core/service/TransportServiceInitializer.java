@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Set;
 
 public class TransportServiceInitializer implements Initializer {
+  private TransportService transportService;
 
   private List<BackendDataSource> preloadDataSources(
       Configurations configurations, TransportService transportService) {
@@ -57,7 +58,7 @@ public class TransportServiceInitializer implements Initializer {
 
   @Override
   public void initialize(ServerContext context) {
-    var transportService =
+    transportService =
         new TransportService(context.getConfigurations(), context.getThreadPool());
     var dataSources = preloadDataSources(context.getConfigurations(), transportService);
     transportService.initialize(dataSources);
@@ -65,5 +66,7 @@ public class TransportServiceInitializer implements Initializer {
   }
 
   @Override
-  public void close() throws Exception {}
+  public void close() throws Exception {
+    transportService.close();
+  }
 }
