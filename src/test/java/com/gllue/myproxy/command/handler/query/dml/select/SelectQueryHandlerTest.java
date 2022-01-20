@@ -25,11 +25,6 @@ public class SelectQueryHandlerTest extends BaseQueryHandlerTest {
         repository, configurations, clusterState, transportService, threadPool);
   }
 
-  @Before
-  public void setUp() {
-    mockThreadPool();
-  }
-
   @Test
   public void testExecuteSimpleSelectQuery() throws ExecutionException, InterruptedException {
     var submitSqlList = new ArrayList<String>();
