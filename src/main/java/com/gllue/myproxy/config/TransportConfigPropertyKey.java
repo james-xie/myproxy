@@ -1,8 +1,13 @@
 package com.gllue.myproxy.config;
 
+import static com.gllue.myproxy.transport.core.connection.AbstractConnectionPool.DEFAULT_IDLE_TIMEOUT_IN_MILLS;
+import static com.gllue.myproxy.transport.core.connection.AbstractConnectionPool.DEFAULT_KEEP_ALIVE_QUERY_TIMEOUT_IN_MILLS;
+import static com.gllue.myproxy.transport.core.connection.AbstractConnectionPool.DEFAULT_KEEP_ALIVE_TIME_IN_MILLS;
+import static com.gllue.myproxy.transport.core.connection.AbstractConnectionPool.DEFAULT_MAX_LIFE_TIME_IN_MILLS;
+
 import com.gllue.myproxy.common.properties.TypedPropertyKey;
 import com.gllue.myproxy.common.properties.TypedPropertyValue.Type;
-import com.gllue.myproxy.constant.TimeConstants;
+import java.util.concurrent.TimeUnit;
 import lombok.Getter;
 
 /** Typed property key of transport configuration. */
@@ -23,14 +28,12 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
   FRONTEND_WRITE_BUFFER_HIGH_WATER_MARK(
       "frontend.write_buffer_high_water_mark", 16 * 1024 * 1024, Type.INTEGER),
 
-  FRONTEND_CONNECTION_MAX_IDLE_TIME_SECONDS(
-      "frontend.connection.max_idle_time_seconds",
-      8 * TimeConstants.SECONDS_PER_HOUR,
-      Type.INTEGER),
+  FRONTEND_CONNECTION_MAX_IDLE_TIME_IN_MILLS(
+      "frontend.connection.max_idle_time_in_mills", TimeUnit.HOURS.toMillis(8), Type.LONG),
 
   FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_SECONDS(
       "frontend.connection.idle_detect_interval_seconds",
-      TimeConstants.SECONDS_PER_MINUTE,
+      TimeUnit.MINUTES.toSeconds(3),
       Type.INTEGER),
 
   BACKEND_WORKER_COUNT(
@@ -42,7 +45,24 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
       "backend.write_buffer_low_water_mark", 8 * 1024 * 1024, Type.INTEGER),
 
   BACKEND_WRITE_BUFFER_HIGH_WATER_MARK(
-      "backend.write_buffer_high_water_mark", 16 * 1024 * 1024, Type.INTEGER);
+      "backend.write_buffer_high_water_mark", 16 * 1024 * 1024, Type.INTEGER),
+
+  BACKEND_CONNECTION_POOL_SIZE("backend.connection.connection_pool_size", 500, Type.INTEGER),
+
+  BACKEND_CONNECTION_IDLE_TIMEOUT_IN_MILLS(
+      "backend.connection.idle_timeout_in_mills", DEFAULT_IDLE_TIMEOUT_IN_MILLS, Type.LONG),
+
+  BACKEND_CONNECTION_KEEP_ALIVE_TIME_IN_MILLS(
+      "backend.connection.keep_alive_time_in_mills", DEFAULT_KEEP_ALIVE_TIME_IN_MILLS, Type.LONG),
+
+  BACKEND_CONNECTION_KEEP_ALIVE_QUERY_TIMEOUT_IN_MILLS(
+      "backend.connection.keep_alive_query_timeout_in_mills",
+      DEFAULT_KEEP_ALIVE_QUERY_TIMEOUT_IN_MILLS,
+      Type.LONG),
+
+  BACKEND_CONNECTION_MAX_LIFE_TIME_IN_MILLS(
+      "backend.connection.max_life_time_in_mills", DEFAULT_MAX_LIFE_TIME_IN_MILLS, Type.LONG),
+  ;
 
   private static final String PREFIX = "transport";
 

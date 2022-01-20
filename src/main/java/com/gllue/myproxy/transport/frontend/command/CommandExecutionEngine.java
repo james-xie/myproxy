@@ -106,7 +106,8 @@ public class CommandExecutionEngine {
     protected void doRun() throws Exception {
       var backendConnection = frontendConnection.getBackendConnection();
       if (backendConnection == null) {
-        backendConnection = transportService.assignBackendConnection(frontendConnection).get();
+        var future = transportService.assignBackendConnection(frontendConnection);
+        backendConnection = (BackendConnection) future.get();
       }
       checkDatabase(backendConnection);
     }

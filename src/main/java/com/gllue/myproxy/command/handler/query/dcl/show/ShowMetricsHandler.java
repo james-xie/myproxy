@@ -16,6 +16,7 @@ import io.prometheus.client.Collector.MetricFamilySamples;
 import io.prometheus.client.Collector.MetricFamilySamples.Sample;
 import io.prometheus.client.CollectorRegistry;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -62,6 +63,7 @@ public class ShowMetricsHandler extends AbstractQueryHandler {
             formatSamples(metric.samples)
           });
     }
+    rows.sort(Comparator.comparing(a -> a[0]));
     return rows.toArray(new String[0][]);
   }
 

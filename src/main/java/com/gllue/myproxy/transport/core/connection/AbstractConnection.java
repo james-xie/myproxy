@@ -11,6 +11,7 @@ import java.net.SocketAddress;
 import java.util.Objects;
 import java.util.Queue;
 import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,7 +27,7 @@ public abstract class AbstractConnection implements Connection {
 
   private volatile String currentDatabase;
 
-  private volatile boolean active = true;
+  private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   private volatile boolean transactionOpened;
 
@@ -34,7 +35,7 @@ public abstract class AbstractConnection implements Connection {
 
   private final long createTime;
 
-  private long lastAccessTime;
+  private volatile long lastAccessTime;
 
   public AbstractConnection(final int connectionId, final String user, final Channel channel) {
     this.connectionId = connectionId;
@@ -269,14 +270,15 @@ public abstract class AbstractConnection implements Connection {
 
   @Override
   public boolean isClosed() {
-    return !(active && channel.isActive());
+    return isClosed.get();
   }
 
   @Override
   public void close(Consumer<Connection> onClosed) {
-    active = false;
-    NettyUtils.closeChannel(channel, (ignore) -> onClosed.accept(thisConnection()));
-    onClosed();
+    if (isClosed.compareAndSet(false, true)) {
+      NettyUtils.closeChannel(channel, (ignore) -> onClosed.accept(thisConnection()));
+      onClosed();
+    }
   }
 
   @Override

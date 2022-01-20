@@ -132,6 +132,16 @@ public class ThreadPool {
     return scheduler.schedule(() -> executor.execute(runnable), delay, unit);
   }
 
+  public ScheduledFuture<?> scheduleWithFixedDelay(
+      Runnable runnable, long initialDelay, long delay, TimeUnit unit, ExecutorService executor) {
+    return scheduler.scheduleWithFixedDelay(
+        () -> executor.execute(runnable), initialDelay, delay, unit);
+  }
+
+  public ScheduledThreadPoolExecutor getScheduler() {
+    return scheduler;
+  }
+
   /**
    * Generate statistics info for the thread pool.
    *

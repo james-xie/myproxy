@@ -2,15 +2,13 @@ package com.gllue.myproxy.transport.backend.datasource;
 
 import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
 import com.gllue.myproxy.transport.core.connection.Connection;
-import com.gllue.myproxy.transport.core.connection.ReusableConnection;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
-public final class DataSourceManager<T extends DataSource<C>, C extends ReusableConnection> {
+public final class DataSourceManager<T extends DataSource> {
   private final Map<String, T> dataSources;
 
   public DataSourceManager(List<T> dataSources) {
@@ -25,12 +23,16 @@ public final class DataSourceManager<T extends DataSource<C>, C extends Reusable
   }
 
   @Nullable
-  public ExtensibleFuture<C> getBackendConnection(
+  public ExtensibleFuture<Connection> getBackendConnection(
       final String dataSourceName, @Nullable final String database) {
     var dataSource = dataSources.get(dataSourceName);
     if (dataSource == null) {
       return null;
     }
-    return dataSource.tryAcquireConnection(database);
+    return dataSource.tryGetConnection(database);
+  }
+
+  public Iterable<String> getDataSourceNames() {
+    return dataSources.keySet();
   }
 }

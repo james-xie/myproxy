@@ -9,11 +9,9 @@ import com.gllue.myproxy.common.concurrent.SettableFuture;
 import com.gllue.myproxy.transport.backend.command.CachedQueryResultReader;
 import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
-import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.constant.MySQLCommandPacketType;
 import com.gllue.myproxy.transport.core.connection.AbstractConnection;
 import com.gllue.myproxy.transport.core.connection.Connection;
-import com.gllue.myproxy.transport.core.netty.NettyUtils;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.MySQLPacket;
 import com.gllue.myproxy.transport.protocol.packet.command.CommandPacket;
@@ -23,18 +21,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.channel.Channel;
 import io.prometheus.client.Summary;
 import java.lang.ref.WeakReference;
-import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BackendConnectionImpl extends AbstractConnection implements BackendConnection {
-  private enum State {
-    INITIAL,
-    ASSIGNED,
-    RELEASED,
-    CLOSED
-  }
-
   private static final Summary backendProcessingLatency =
       Summary.build()
           .name("backend_processing_latency_summary")
@@ -48,10 +38,8 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
           .unit("second")
           .register();
 
-  private volatile State state = State.INITIAL;
-
   private final long databaseThreadId;
-  private WeakReference<DataSource<BackendConnection>> dataSourceRef;
+  private String dataSourceName;
 
   private volatile CommandResultReader commandResultReader;
   private volatile CommandResultReader newCommandResultReader;
@@ -74,14 +62,14 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
       final String user,
       final Channel channel,
       final long databaseThreadId,
-      final DataSource<BackendConnection> dataSource) {
+      final String dataSourceName) {
     this(connectionId, user, channel, databaseThreadId);
-    setDataSource(dataSource);
+    setDataSourceName(dataSourceName);
   }
 
   @Override
-  public void setDataSource(final DataSource<BackendConnection> dataSource) {
-    this.dataSourceRef = new WeakReference<>(dataSource);
+  public void setDataSourceName(final String dataSourceName) {
+    this.dataSourceName = dataSourceName;
   }
 
   @Override
@@ -96,6 +84,11 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   }
 
   @Override
+  public void unbindFrontendConnection() {
+    frontendConnectionRef = null;
+  }
+
+  @Override
   public FrontendConnection getFrontendConnection() {
     if (frontendConnectionRef == null) {
       return null;
@@ -104,13 +97,9 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   }
 
   @Override
-  public DataSource<BackendConnection> dataSource() {
-    Preconditions.checkNotNull(dataSourceRef);
-    var reference = dataSourceRef.get();
-    if (reference == null) {
-      throw new IllegalStateException("Data source was freed before connection closing.");
-    }
-    return reference;
+  public String getDataSourceName() {
+    Preconditions.checkNotNull(dataSourceName);
+    return dataSourceName;
   }
 
   @Override
@@ -134,6 +123,11 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
 
     receivingResponseLatency.observe(
         (System.nanoTime() - receiveFirstResponseTime) / NANOS_PER_SECOND);
+  }
+
+  @Override
+  public boolean readingResponse() {
+    return commandResultReader != null;
   }
 
   @Override
@@ -228,91 +222,8 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   }
 
   @Override
-  public void assign() {
-    assert dataSourceRef != null : "Does not set datasource on connection.";
-    ensureStateNotClosed();
-
-    assert state != State.ASSIGNED : "Backend connection is already assigned.";
-    state = State.ASSIGNED;
-  }
-
-  @Override
-  public boolean isAssigned() {
-    return state == State.ASSIGNED;
-  }
-
-  @Override
-  public boolean release() {
-    assert dataSourceRef != null : "Does not set datasource on connection.";
-
-    synchronized (this) {
-      if (state != State.ASSIGNED) {
-        log.warn("Connection is not assigned and the 'release' function cannot be invoked.");
-        return false;
-      }
-      dataSource().releaseConnection(this);
-      state = State.RELEASED;
-    }
-    return true;
-  }
-
-  @Override
-  public boolean isReleased() {
-    return state == State.RELEASED;
-  }
-
-  @Override
-  public void releaseOrClose() {
-    if (isClosed()) {
-      return;
-    }
-
-    // If the command is being executed, we should close the backend connection
-    // because the state is undefined. Otherwise the backend connection can be reused.
-    if (commandResultReader != null) {
-      close();
-    } else {
-      release();
-    }
-  }
-
-  private void ensureStateNotClosed() {
-    if (state == State.CLOSED) {
-      throw new IllegalStateException("Illegal backend connection state [CLOSED].");
-    }
-  }
-
-  @Override
-  public void close() {
-    close((c) -> {});
-  }
-
-  @Override
-  public boolean isClosed() {
-    return state == State.CLOSED || super.isClosed();
-  }
-
-  @Override
-  public void close(Consumer<Connection> onClosed) {
-    if (state == State.CLOSED) {
-      return;
-    }
-
-    synchronized (this) {
-      if (state != State.CLOSED) {
-        if (dataSourceRef != null) {
-          dataSource().closeConnection(this);
-        }
-        NettyUtils.closeChannel(channel, (ignore) -> onClosed.accept(thisConnection()));
-        onClosed();
-        state = State.CLOSED;
-      }
-    }
-  }
-
-  @Override
   protected void onClosed() {
     super.onClosed();
-    frontendConnectionRef = null;
+    unbindFrontendConnection();
   }
 }

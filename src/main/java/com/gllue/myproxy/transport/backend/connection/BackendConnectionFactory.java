@@ -4,6 +4,7 @@ import com.gllue.myproxy.common.concurrent.ExtensibleFuture;
 import com.gllue.myproxy.common.concurrent.PlainFuture;
 import com.gllue.myproxy.transport.backend.BackendServer;
 import com.gllue.myproxy.transport.backend.datasource.DataSource;
+import com.gllue.myproxy.transport.core.connection.Connection;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -19,9 +20,9 @@ public class BackendConnectionFactory {
     return BackendServer.getInstance();
   }
 
-  public ExtensibleFuture<BackendConnection> newConnection(
-      final DataSource<BackendConnection> dataSource, final String database) {
-    PlainFuture<BackendConnection> future = new PlainFuture<>();
+  public ExtensibleFuture<Connection> newConnection(
+      final DataSource dataSource, final String database) {
+    PlainFuture<Connection> future = new PlainFuture<>();
 
     BackendConnectionListener backendConnectionListener =
         new BackendConnectionListener() {
@@ -31,7 +32,7 @@ public class BackendConnectionFactory {
               return false;
             }
 
-            connection.setDataSource(dataSource);
+            connection.setDataSourceName(dataSource.getName());
             return future.set(connection);
           }
 
@@ -47,7 +48,7 @@ public class BackendConnectionFactory {
                 log.error(
                     "Connection abnormally close. [connectionId={}, datasource={}]",
                     connection.connectionId(),
-                    connection.dataSource().getName());
+                    connection.getDataSourceName());
               } else {
                 log.error("Connection abnormally close.");
               }

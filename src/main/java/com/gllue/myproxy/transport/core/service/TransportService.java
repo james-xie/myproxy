@@ -21,14 +21,19 @@ import com.gllue.myproxy.transport.backend.command.CommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DefaultCommandResultReader;
 import com.gllue.myproxy.transport.backend.command.DirectTransferQueryResultReader;
 import com.gllue.myproxy.transport.backend.connection.BackendConnection;
+import com.gllue.myproxy.transport.backend.connection.FIFOBackendConnectionPool;
 import com.gllue.myproxy.transport.backend.datasource.BackendDataSource;
 import com.gllue.myproxy.transport.backend.datasource.DataSourceManager;
-import com.gllue.myproxy.transport.core.connection.DefaultIdleConnectionDetector;
+import com.gllue.myproxy.transport.core.connection.Connection;
+import com.gllue.myproxy.transport.core.connection.ConnectionPool;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.google.common.base.Preconditions;
+import io.prometheus.client.Gauge;
 import java.net.SocketAddress;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,27 +45,30 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TransportService implements AutoCloseable {
+  private static final Gauge frontendConnections =
+      Gauge.build().name("frontend_connections").help("Frontend connections.").register();
+  private static final Gauge backendConnections =
+      Gauge.build().name("backend_connections").help("Backend connections.").register();
+
   private final Configurations configurations;
   private final ThreadPool threadPool;
 
-  @Getter private DataSourceManager<BackendDataSource, BackendConnection> backendDataSourceManager;
+  @Getter private DataSourceManager<BackendDataSource> backendDataSourceManager;
 
   private final Map<Integer, FrontendConnection> frontendConnectionMap;
   private final Map<Integer, BackendConnection> backendConnectionMap;
-  private final DefaultIdleConnectionDetector idleConnectionDetector;
+  private Map<String, ConnectionPool> backendConnectionPool;
 
   public TransportService(final Configurations configurations, final ThreadPool threadPool) {
     this.configurations = configurations;
     this.threadPool = threadPool;
     this.frontendConnectionMap = new ConcurrentHashMap<>();
     this.backendConnectionMap = new ConcurrentHashMap<>();
-    this.idleConnectionDetector =
-        new DefaultIdleConnectionDetector(maxFrontendConnectionIdleTime());
   }
 
-  private int maxFrontendConnectionIdleTime() {
+  private long maxFrontendConnectionIdleTimeInMills() {
     return configurations.getValue(
-        Type.TRANSPORT, TransportConfigPropertyKey.FRONTEND_CONNECTION_MAX_IDLE_TIME_SECONDS);
+        Type.TRANSPORT, TransportConfigPropertyKey.FRONTEND_CONNECTION_MAX_IDLE_TIME_IN_MILLS);
   }
 
   private int idleConnectionDetectInterval() {
@@ -69,37 +77,73 @@ public class TransportService implements AutoCloseable {
         TransportConfigPropertyKey.FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_SECONDS);
   }
 
+  private int maxBackendConnectionPoolSize() {
+    return configurations.getValue(
+        Type.TRANSPORT, TransportConfigPropertyKey.BACKEND_CONNECTION_POOL_SIZE);
+  }
+
+  private long backendConnectionIdleTimeoutInMills() {
+    return configurations.getValue(
+        Type.TRANSPORT, TransportConfigPropertyKey.BACKEND_CONNECTION_IDLE_TIMEOUT_IN_MILLS);
+  }
+
+  private long backendConnectionKeepAliveTimeInMills() {
+    return configurations.getValue(
+        Type.TRANSPORT, TransportConfigPropertyKey.BACKEND_CONNECTION_KEEP_ALIVE_TIME_IN_MILLS);
+  }
+
+  private long backendConnectionKeepAliveQueryTimeoutInMills() {
+    return configurations.getValue(
+        Type.TRANSPORT,
+        TransportConfigPropertyKey.BACKEND_CONNECTION_KEEP_ALIVE_QUERY_TIMEOUT_IN_MILLS);
+  }
+
+  private long backendConnectionMaxLifeTimeInMills() {
+    return configurations.getValue(
+        Type.TRANSPORT, TransportConfigPropertyKey.BACKEND_CONNECTION_MAX_LIFE_TIME_IN_MILLS);
+  }
+
   public void initialize(final List<BackendDataSource> dataSources) {
     if (this.backendDataSourceManager != null) {
       throw new IllegalStateException("Cannot override backendDataSourceManager");
     }
     this.backendDataSourceManager = new DataSourceManager<>(dataSources);
-    this.scheduleIdleConnectionDetection();
+    this.backendConnectionPool = buildBackendConnectionPool(this.backendDataSourceManager);
+    this.scheduleIdleFrontendConnectionDetection();
   }
 
-  private void closeIdleConnections() {
-    try {
-      var idleConnections =
-          idleConnectionDetector.detectIdleConnections(System.currentTimeMillis());
+  private Map<String, ConnectionPool> buildBackendConnectionPool(
+      DataSourceManager<BackendDataSource> dataSourceManager) {
+    Map<String, ConnectionPool> poolMap = new HashMap<>();
+    for (var name : dataSourceManager.getDataSourceNames()) {
+      var dataSource = dataSourceManager.getDataSource(name);
+      assert dataSource != null;
 
-      for (var connection : idleConnections) {
-        if (!connection.isClosed()) {
-          connection.close();
-          log.info("Close the idle connection [{}].", connection.connectionId());
-        }
-      }
-    } catch (Exception e) {
-      log.error("Failed to close idle connections.", e);
-      throw e;
-    } finally {
-      scheduleIdleConnectionDetection();
+      var pool =
+          new FIFOBackendConnectionPool(
+              dataSource.getConnectionArguments(null),
+              (arguments, database) -> dataSource.tryGetConnection(database),
+              maxBackendConnectionPoolSize(),
+              backendConnectionIdleTimeoutInMills(),
+              backendConnectionKeepAliveTimeInMills(),
+              backendConnectionKeepAliveQueryTimeoutInMills(),
+              backendConnectionMaxLifeTimeInMills(),
+              threadPool.getScheduler(),
+              threadPool.executor(Name.GENERIC));
+      poolMap.put(name, pool);
     }
+    return Collections.unmodifiableMap(poolMap);
   }
 
-  private void scheduleIdleConnectionDetection() {
+  private void scheduleIdleFrontendConnectionDetection() {
     var executor = threadPool.executor(Name.GENERIC);
-    threadPool.schedule(
-        this::closeIdleConnections, idleConnectionDetectInterval(), TimeUnit.SECONDS, executor);
+    var maxIdleTime = maxFrontendConnectionIdleTimeInMills();
+    threadPool.scheduleWithFixedDelay(
+        new IdleConnectionDetector(maxIdleTime, frontendConnectionMap.values()),
+        maxIdleTime,
+        idleConnectionDetectInterval(),
+        TimeUnit.MILLISECONDS,
+        executor);
   }
 
   public void registerFrontendConnection(final FrontendConnection connection) {
@@ -108,13 +152,13 @@ public class TransportService implements AutoCloseable {
       throw new IllegalArgumentException(
           String.format("Frontend connection already exists. [%s]", connection.connectionId()));
     }
-
-    idleConnectionDetector.register(connection);
+    frontendConnections.inc();
   }
 
   public void removeFrontendConnection(final int connectionId) {
     var connection = frontendConnectionMap.remove(connectionId);
     if (connection != null) {
+      frontendConnections.dec();
       var backendConnection = connection.getBackendConnection();
       if (backendConnection != null) {
         // if the transaction is not committed before the connection is released, the transaction
@@ -122,13 +166,11 @@ public class TransportService implements AutoCloseable {
         if (!backendConnection.isClosed() && backendConnection.isTransactionOpened()) {
           backendConnection
               .sendCommand(ROLLBACK_COMMAND)
-              .addListener(backendConnection::releaseOrClose, ThreadPool.DIRECT_EXECUTOR_SERVICE);
+              .addListener(backendConnection::close, ThreadPool.DIRECT_EXECUTOR_SERVICE);
         } else {
-          backendConnection.releaseOrClose();
+          backendConnection.close();
         }
       }
-
-      idleConnectionDetector.remove(connection);
     }
   }
 
@@ -138,11 +180,13 @@ public class TransportService implements AutoCloseable {
       throw new IllegalArgumentException(
           String.format("Backend connection already exists. [%s]", connection.connectionId()));
     }
+    backendConnections.inc();
   }
 
   public void removeBackendConnection(final int connectionId) {
     var backendConnection = backendConnectionMap.remove(connectionId);
     if (backendConnection != null) {
+      backendConnections.dec();
       var frontendConnection = backendConnection.getFrontendConnection();
       if (frontendConnection != null) {
         frontendConnection.close();
@@ -163,11 +207,12 @@ public class TransportService implements AutoCloseable {
     getFrontendConnection(connectionId).close();
   }
 
-  public ExtensibleFuture<BackendConnection> assignBackendConnection(
+  public ExtensibleFuture<Connection> assignBackendConnection(
       final FrontendConnection frontendConnection) {
     var future =
-        backendDataSourceManager.getBackendConnection(
-            frontendConnection.getDataSourceName(), frontendConnection.currentDatabase());
+        backendConnectionPool
+            .get(frontendConnection.getDataSourceName())
+            .tryAcquireConnection(frontendConnection.currentDatabase());
     if (future == null) {
       throw new IllegalArgumentException(
           String.format(
@@ -178,10 +223,10 @@ public class TransportService implements AutoCloseable {
     future.addListener(
         () -> {
           if (future.isSuccess()) {
-            var backendConnection = future.getValue();
+            var backendConnection = (BackendConnection) future.getValue();
             registerBackendConnection(backendConnection);
             if (frontendConnection.isClosed()) {
-              backendConnection.releaseOrClose();
+              backendConnection.close();
             } else {
               frontendConnection.bindBackendConnection(backendConnection);
               backendConnection.bindFrontendConnection(frontendConnection);
@@ -377,7 +422,7 @@ public class TransportService implements AutoCloseable {
       }
     }
 
-    for (var connection: backendConnectionMap.values()) {
+    for (var connection : backendConnectionMap.values()) {
       if (!connection.isClosed()) {
         connection.close();
       }
@@ -413,5 +458,36 @@ public class TransportService implements AutoCloseable {
               frontendConn.remoteAddress()));
     }
     return result;
+  }
+
+  @RequiredArgsConstructor
+  static class IdleConnectionDetector implements Runnable {
+    private final long maxIdleTimeInMills;
+    private final Iterable<? extends Connection> connectionIterable;
+
+    private boolean isConnectionIdle(Connection connection, long currentTime) {
+      return currentTime - connection.lastAccessTime() >= maxIdleTimeInMills;
+    }
+
+    private void closeIdleConnections() {
+      var currentTime = System.currentTimeMillis();
+      for (var connection : connectionIterable) {
+        if (!isConnectionIdle(connection, currentTime)) {
+          continue;
+        }
+
+        connection.close();
+        log.info("Close the idle connection [{}].", connection.connectionId());
+      }
+    }
+
+    @Override
+    public void run() {
+      try {
+        closeIdleConnections();
+      } catch (Exception e) {
+        log.error("Failed to close idle connections.", e);
+      }
+    }
   }
 }

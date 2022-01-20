@@ -44,7 +44,6 @@ public class TransportServiceInitializer implements Initializer {
               configObject.getAddress(),
               configObject.getUser(),
               configObject.getPassword(),
-              500,
               backendConnectionFactory);
       dataSources.add(dataSource);
     }

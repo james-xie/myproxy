@@ -11,7 +11,7 @@ import lombok.Getter;
 public enum ServerErrorCode implements SQLErrorCode {
   ER_LOST_BACKEND_CONNECTION(50001, "Lost backend connection."),
 
-  ER_TOO_MANY_BACKEND_CONNECTION(50002, "Too many backend connections. [%s]"),
+  ER_TOO_MANY_CONNECTIONS(50002, "Too many connections. [maxSize:%s]"),
 
   ER_TOO_MANY_EXECUTION_TASK(50010, "Too many execution tasks."),
 
