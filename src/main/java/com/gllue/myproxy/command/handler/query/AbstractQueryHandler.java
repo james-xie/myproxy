@@ -46,7 +46,7 @@ public abstract class AbstractQueryHandler implements CommandHandler<QueryHandle
     if (log.isDebugEnabled()) {
       log.debug("Submit query to backend database:\n{}", query);
     }
-    return transportService.submitQueryToBackendDatabase(connectionId, query);
+    return new Promise<>((cb) -> submitQueryToBackendDatabase(connectionId, query, cb));
   }
 
   protected Promise<CommandResult> beginTransaction(int connectionId) {

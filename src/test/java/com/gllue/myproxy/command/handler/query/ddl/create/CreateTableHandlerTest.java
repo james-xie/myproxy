@@ -36,14 +36,13 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 @RunWith(MockitoJUnitRunner.class)
 public class CreateTableHandlerTest extends BaseQueryHandlerTest {
-  @Mock PersistRepository repository;
 
-  public CreateTableHandler newHandler() {
+  CreateTableHandler newHandler() {
     return new CreateTableHandler(
         repository, configurations, clusterState, transportService, sqlParser, threadPool);
   }
 
-  protected void mockConfigurations() {
+  void mockConfigurations() {
     when(configurations.getValue(
             Type.GENERIC, GenericConfigPropertyKey.EXTENSION_TABLE_MAX_COLUMNS_PER_TABLE))
         .thenReturn(100);
@@ -59,7 +58,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
     mockConfigurations();
     mockClusterState(prepareMultiDatabasesMetaData(null));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     var query =
         "CREATE TABLE `table` (\n"
@@ -84,7 +83,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
     mockConfigurations();
     mockClusterState(prepareMultiDatabasesMetaData(null));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     when(configurations.getValue(
             Type.GENERIC, GenericConfigPropertyKey.EXTENSION_TABLE_MAX_COLUMNS_PER_TABLE))
@@ -206,7 +205,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
     mockConfigurations();
     mockClusterState(prepareMultiDatabasesMetaData(null));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     Map<SQLCommentAttributeKey, Object> attributes = Map.of();
 
@@ -273,7 +272,7 @@ public class CreateTableHandlerTest extends BaseQueryHandlerTest {
           }
           return emptyCommandResult();
         };
-    mockTransportService(sqlHandler);
+    mockSubmitQueryToBackendDatabase(sqlHandler);
 
     Map<SQLCommentAttributeKey, Object> attributes = Map.of();
 

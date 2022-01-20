@@ -55,7 +55,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
     mockConfigurations();
     mockClusterState(prepareMultiDatabasesMetaData(null));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     var query =
         "ALTER TABLE `table1`\n"
@@ -85,7 +85,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
     var table1 = prepareTable("table1", "id", "name", "name1", "name3");
     mockClusterState(prepareMultiDatabasesMetaData(table1));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     var query =
         "ALTER TABLE `table1`\n"
@@ -125,7 +125,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
           }
           return emptyCommandResult();
         };
-    mockTransportService(sqlHandler);
+    mockSubmitQueryToBackendDatabase(sqlHandler);
 
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
@@ -159,7 +159,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
     mockConfigurations();
     mockClusterState(prepareMultiDatabasesMetaData(null));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     var query =
         "ALTER TABLE `table1`\n"
@@ -195,7 +195,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
           }
           return emptyCommandResult();
         };
-    mockTransportService(sqlHandler);
+    mockSubmitQueryToBackendDatabase(sqlHandler);
 
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
@@ -246,7 +246,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
     var table1 = builder.build();
     mockClusterState(prepareMultiDatabasesMetaData(table1));
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
     mockEncryptKey(ENCRYPT_KEY);
 
     var query =
@@ -285,7 +285,7 @@ public class AlterTableHandlerTest extends BaseQueryHandlerTest {
           }
           return emptyCommandResult();
         };
-    mockTransportService(sqlHandler);
+    mockSubmitQueryToBackendDatabase(sqlHandler);
 
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();

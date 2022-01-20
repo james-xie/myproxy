@@ -372,14 +372,6 @@ public class TransportService implements AutoCloseable {
         new QueryCommandPacket(query), newCachedQueryResultReader(newCallback));
   }
 
-  public Promise<CommandResult> submitQueryToBackendDatabase(
-      final int connectionId, final String query) {
-    return new Promise<>(
-        (cb) -> {
-          submitQueryToBackendDatabase(connectionId, query, cb);
-        });
-  }
-
   public Promise<CommandResult> kill(
       final int connectionId, final int threadId, final boolean killQuery) {
     return new Promise<>(

@@ -22,8 +22,8 @@ import com.gllue.myproxy.command.result.query.QueryResultMetaData;
 import com.gllue.myproxy.command.result.query.SimpleQueryResult;
 import com.gllue.myproxy.common.Callback;
 import com.gllue.myproxy.common.FuturableCallback;
-import com.gllue.myproxy.common.Promise;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
+import com.gllue.myproxy.common.concurrent.ThreadPool.Name;
 import com.gllue.myproxy.common.exception.BaseServerException;
 import com.gllue.myproxy.common.util.RandomUtils;
 import com.gllue.myproxy.config.Configurations;
@@ -34,6 +34,7 @@ import com.gllue.myproxy.metadata.model.MultiDatabasesMetaData;
 import com.gllue.myproxy.metadata.model.PartitionTableMetaData;
 import com.gllue.myproxy.metadata.model.TableMetaData;
 import com.gllue.myproxy.metadata.model.TableType;
+import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLCommentAttributeKey;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.constant.MySQLColumnType;
@@ -42,6 +43,7 @@ import com.gllue.myproxy.transport.frontend.connection.SessionContext;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.mockito.Mock;
@@ -54,13 +56,15 @@ public abstract class BaseQueryHandlerTest {
   protected static final String ROOT_PATH = "/root";
   protected static final String ENCRYPT_KEY = "key";
 
+  @Mock protected PersistRepository repository;
+
   @Mock protected Configurations configurations;
 
   @Mock protected ClusterState clusterState;
 
   @Mock protected TransportService transportService;
 
-  protected ThreadPool threadPool;
+  @Mock protected ThreadPool threadPool;
 
   @Mock protected SessionContext sessionContext;
 
@@ -164,20 +168,17 @@ public abstract class BaseQueryHandlerTest {
         .getMetaData();
   }
 
-  @SuppressWarnings("unchecked")
-  protected void mockTransportService(Function<String, CommandResult> sqlHandler) {
-    doAnswer(
-            invocation -> {
-              var args = invocation.getArguments();
-              return new Promise<CommandResult>(
-                  (cb) -> {
-                    transportService.submitQueryToBackendDatabase(
-                        (int) args[0], (String) args[1], cb);
-                  });
-            })
-        .when(transportService)
-        .submitQueryToBackendDatabase(anyInt(), anyString());
+  protected void mockThreadPool() {
+    mockThreadPool(ThreadPool.DIRECT_EXECUTOR_SERVICE);
+  }
 
+  protected void mockThreadPool(ExecutorService executor) {
+    when(threadPool.executor(Name.COMMAND)).thenReturn(executor);
+    when(threadPool.executor(Name.GENERIC)).thenReturn(executor);
+  }
+
+  @SuppressWarnings("unchecked")
+  protected void mockSubmitQueryToBackendDatabase(Function<String, CommandResult> sqlHandler) {
     doAnswer(
             invocation -> {
               var args = invocation.getArguments();
@@ -195,8 +196,36 @@ public abstract class BaseQueryHandlerTest {
   }
 
   @SuppressWarnings("unchecked")
-  protected void mockTransportService(List<String> sqlCollector) {
-    mockTransportService(
+  protected void mockSubmitQueryToBackendDatabase(List<String> sqlCollector) {
+    mockSubmitQueryToBackendDatabase(
+        (x) -> {
+          sqlCollector.add(x);
+          return emptyCommandResult();
+        });
+  }
+
+  @SuppressWarnings("unchecked")
+  protected void mockSubmitQueryAndDirectTransferResult(
+      Function<String, CommandResult> sqlHandler) {
+    doAnswer(
+            invocation -> {
+              var args = invocation.getArguments();
+              var callback = (Callback<CommandResult>) args[2];
+              try {
+                var res = sqlHandler.apply((String) args[1]);
+                callback.onSuccess(res);
+              } catch (Exception e) {
+                callback.onFailure(e);
+              }
+              return null;
+            })
+        .when(transportService)
+        .submitQueryAndDirectTransferResult(anyInt(), anyString(), any(Callback.class));
+  }
+
+  @SuppressWarnings("unchecked")
+  protected void mockSubmitQueryAndDirectTransferResult(List<String> sqlCollector) {
+    mockSubmitQueryAndDirectTransferResult(
         (x) -> {
           sqlCollector.add(x);
           return emptyCommandResult();

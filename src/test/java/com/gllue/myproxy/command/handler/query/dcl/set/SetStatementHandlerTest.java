@@ -21,7 +21,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-@RunWith(MockitoJUnitRunner.Silent.class)
+//@RunWith(MockitoJUnitRunner.Silent.class)
+@RunWith(MockitoJUnitRunner.class)
 public class SetStatementHandlerTest extends BaseQueryHandlerTest {
 
   public SetStatementHandler newHandler() {
@@ -82,7 +83,7 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   @Test
   public void testSetGlobalAutoCommit() throws ExecutionException, InterruptedException {
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
 
     var query = "set global autocommit=off";
     var request = newQueryHandlerRequest(query, Map.of());
@@ -113,7 +114,7 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   @Test
   public void testMixedSet() throws ExecutionException, InterruptedException {
     var submitSqlList = new ArrayList<String>();
-    mockTransportService(submitSqlList);
+    mockSubmitQueryToBackendDatabase(submitSqlList);
     when(transportService.setAutoCommit(anyInt(), anyBoolean()))
         .thenReturn(Promise.emptyPromise(CommandResult.newEmptyResult()));
 
