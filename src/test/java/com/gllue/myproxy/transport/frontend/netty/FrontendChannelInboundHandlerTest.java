@@ -111,19 +111,44 @@ public class FrontendChannelInboundHandlerTest extends BaseTransportTest {
   }
 
   @Test
-  public void testInvalidDatabaseName() {
+  public void testAuthWithDefaultDataSource() {
+    Mockito.when(authHandler.authenticate(any())).thenReturn(true);
     Mockito.when(authHandler.getAuthPluginData()).thenReturn(AUTH_PLUGIN_DATA);
 
-    for (var dbname : List.of("dbname1", "#dbname1", "dbname1#")) {
+    for (var userName : List.of("dbname1")) {
       EmbeddedChannel ch = prepareChannel();
       var handshakeResponse =
           new HandshakeResponsePacket41(
               CLIENT_CAPABILITIES,
               MySQLPacket.MAX_PACKET_SIZE,
               MySQLServerInfo.DEFAULT_CHARSET,
-              "user",
+              userName,
               RandomUtils.generateRandomBytes(20),
-              dbname,
+              DATABASE_NAME,
+              MySQLAuthenticationMethod.NATIVE_PASSWORD.getMethodName());
+
+      var payload = packetToPayload(handshakeResponse);
+      ch.writeInbound(payload);
+      assertOkPacket(ch.readOutbound());
+      assertPayloadClosed(payload);
+      ch.finish();
+    }
+  }
+
+  @Test
+  public void testInvalidUserName() {
+    Mockito.when(authHandler.getAuthPluginData()).thenReturn(AUTH_PLUGIN_DATA);
+
+    for (var userName : List.of("#dbname1", "dbname1#")) {
+      EmbeddedChannel ch = prepareChannel();
+      var handshakeResponse =
+          new HandshakeResponsePacket41(
+              CLIENT_CAPABILITIES,
+              MySQLPacket.MAX_PACKET_SIZE,
+              MySQLServerInfo.DEFAULT_CHARSET,
+              userName,
+              RandomUtils.generateRandomBytes(20),
+              DATABASE_NAME,
               MySQLAuthenticationMethod.NATIVE_PASSWORD.getMethodName());
 
       var payload = packetToPayload(handshakeResponse);
