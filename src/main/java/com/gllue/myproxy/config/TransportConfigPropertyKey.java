@@ -31,10 +31,8 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
   FRONTEND_CONNECTION_MAX_IDLE_TIME_IN_MILLS(
       "frontend.connection.max_idle_time_in_mills", TimeUnit.HOURS.toMillis(8), Type.LONG),
 
-  FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_SECONDS(
-      "frontend.connection.idle_detect_interval_seconds",
-      TimeUnit.MINUTES.toSeconds(3),
-      Type.INTEGER),
+  FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_IN_MILLS(
+      "frontend.connection.idle_detect_interval_in_mills", TimeUnit.MINUTES.toMillis(1), Type.LONG),
 
   BACKEND_WORKER_COUNT(
       "backend.worker_count", GenericConfigPropertyKey.availableProcessors(), Type.INTEGER),

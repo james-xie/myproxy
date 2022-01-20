@@ -29,6 +29,7 @@ import com.gllue.myproxy.transport.core.connection.ConnectionPool;
 import com.gllue.myproxy.transport.frontend.connection.FrontendConnection;
 import com.gllue.myproxy.transport.protocol.packet.command.QueryCommandPacket;
 import com.google.common.base.Preconditions;
+import io.prometheus.client.Counter;
 import io.prometheus.client.Gauge;
 import java.net.SocketAddress;
 import java.util.ArrayList;
@@ -45,8 +46,16 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class TransportService implements AutoCloseable {
+  private static final long MIN_IDLE_TIME_IN_MILLS = TimeUnit.MINUTES.toMillis(1);
+  private static final long MIN_DETECTION_INTERVAL_IN_MILLS = TimeUnit.SECONDS.toMillis(10);
+
   private static final Gauge frontendConnections =
       Gauge.build().name("frontend_connections").help("Frontend connections.").register();
+  private static final Counter closedIdleFrontendConnections =
+      Counter.build()
+          .name("closed_idle_frontend_connections")
+          .help("Closed idle frontend connections.")
+          .register();
   private static final Gauge backendConnections =
       Gauge.build().name("backend_connections").help("Backend connections.").register();
 
@@ -71,10 +80,10 @@ public class TransportService implements AutoCloseable {
         Type.TRANSPORT, TransportConfigPropertyKey.FRONTEND_CONNECTION_MAX_IDLE_TIME_IN_MILLS);
   }
 
-  private int idleConnectionDetectInterval() {
+  private long idleConnectionDetectIntervalInMills() {
     return configurations.getValue(
         Type.TRANSPORT,
-        TransportConfigPropertyKey.FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_SECONDS);
+        TransportConfigPropertyKey.FRONTEND_CONNECTION_IDLE_DETECT_INTERVAL_IN_MILLS);
   }
 
   private int maxBackendConnectionPoolSize() {
@@ -136,14 +145,15 @@ public class TransportService implements AutoCloseable {
   }
 
   private void scheduleIdleFrontendConnectionDetection() {
-    var executor = threadPool.executor(Name.GENERIC);
     var maxIdleTime = maxFrontendConnectionIdleTimeInMills();
-    threadPool.scheduleWithFixedDelay(
-        new IdleConnectionDetector(maxIdleTime, frontendConnectionMap.values()),
-        maxIdleTime,
-        idleConnectionDetectInterval(),
-        TimeUnit.MILLISECONDS,
-        executor);
+    var detectionInterval = idleConnectionDetectIntervalInMills();
+    var detector =
+        new IdleConnectionDetector(
+            maxIdleTime,
+            detectionInterval,
+            frontendConnectionMap.values(),
+            closedIdleFrontendConnections);
+    detector.schedule(maxIdleTime);
   }
 
   public void registerFrontendConnection(final FrontendConnection connection) {
@@ -454,33 +464,56 @@ public class TransportService implements AutoCloseable {
     return result;
   }
 
-  @RequiredArgsConstructor
-  static class IdleConnectionDetector implements Runnable {
+  class IdleConnectionDetector implements Runnable {
     private final long maxIdleTimeInMills;
+    private final long detectionIntervalInMills;
     private final Iterable<? extends Connection> connectionIterable;
+    private final Counter closedIdleConnectionsMetric;
 
-    private boolean isConnectionIdle(Connection connection, long currentTime) {
-      return currentTime - connection.lastAccessTime() >= maxIdleTimeInMills;
+    public IdleConnectionDetector(
+        final long maxIdleTimeInMills,
+        final long detectionIntervalInMills,
+        final Iterable<? extends Connection> connectionIterable,
+        final Counter closedIdleConnectionsMetric) {
+      Preconditions.checkArgument(maxIdleTimeInMills >= MIN_IDLE_TIME_IN_MILLS);
+      Preconditions.checkArgument(detectionIntervalInMills >= MIN_DETECTION_INTERVAL_IN_MILLS);
+
+      this.maxIdleTimeInMills = maxIdleTimeInMills;
+      this.detectionIntervalInMills = detectionIntervalInMills;
+      this.connectionIterable = connectionIterable;
+      this.closedIdleConnectionsMetric = closedIdleConnectionsMetric;
     }
 
-    private void closeIdleConnections() {
+    void schedule(final long delay) {
+      threadPool.schedule(this, delay, TimeUnit.MILLISECONDS, threadPool.executor(Name.GENERIC));
+    }
+
+    private long closeIdleConnections() {
+      long minTimeDiff = Long.MAX_VALUE;
       var currentTime = System.currentTimeMillis();
       for (var connection : connectionIterable) {
-        if (!isConnectionIdle(connection, currentTime)) {
-          continue;
+        var idleTime = currentTime - connection.lastAccessTime();
+        if (idleTime >= maxIdleTimeInMills) {
+          connection.close();
+          closedIdleConnectionsMetric.inc();
+          log.info("Close the idle connection [{}].", connection.connectionId());
+        } else {
+          var timeDiff = maxIdleTimeInMills - idleTime;
+          minTimeDiff = Math.min(timeDiff, minTimeDiff);
         }
-
-        connection.close();
-        log.info("Close the idle connection [{}].", connection.connectionId());
       }
+      return minTimeDiff == Long.MAX_VALUE ? 0 : minTimeDiff;
     }
 
     @Override
     public void run() {
+      long minTimeDiff = 0;
       try {
-        closeIdleConnections();
+        minTimeDiff = closeIdleConnections();
       } catch (Exception e) {
         log.error("Failed to close idle connections.", e);
+      } finally {
+        schedule(Math.max(minTimeDiff, detectionIntervalInMills));
       }
     }
   }
