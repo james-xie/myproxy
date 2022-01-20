@@ -6,6 +6,8 @@ import com.gllue.myproxy.transport.core.connection.Connection;
 import javax.annotation.Nullable;
 
 public interface DataSource {
+  String DEFAULT = "DEFAULT";
+
   String getName();
 
   Connection getConnection(@Nullable String database);

@@ -1,6 +1,7 @@
 package com.gllue.myproxy.transport.frontend.netty;
 
 import com.gllue.myproxy.constant.ServerConstants;
+import com.gllue.myproxy.transport.backend.datasource.DataSource;
 import com.gllue.myproxy.transport.constant.MySQLAuthenticationMethod;
 import com.gllue.myproxy.transport.constant.MySQLCapabilityFlag;
 import com.gllue.myproxy.transport.constant.MySQLCharsets;
@@ -167,18 +168,35 @@ public final class FrontendChannelInboundHandler extends ChannelInboundHandlerAd
     ctx.channel().writeAndFlush(packet);
   }
 
+  private String[] parseUserName(String userName) {
+    if (Strings.isNullOrEmpty(userName)) {
+      return null;
+    }
+
+    var index = userName.indexOf('#');
+    if (index < 0) {
+      // Use the default data source.
+      return new String[] {DataSource.DEFAULT, userName};
+    }
+    if (index > 0 && index < userName.length() - 1) {
+      // The userName format: "datasource#username"
+      return userName.split("#", 2);
+    }
+    return null;
+  }
+
   private void authFastPath(final ChannelHandlerContext ctx, final MySQLPayload payload) {
     var handshakeResponse = new HandshakeResponsePacket41(payload);
     var userName = handshakeResponse.getUsername();
-    if (!checkUserNameFormat(userName)) {
+    var userNameTuple = parseUserName(userName);
+    if (userNameTuple == null) {
       connectionPhase = ConnectionPhase.FAILED;
       sendErrorPacket(ctx, MySQLServerErrorCode.ER_NO_SUCH_USER, userName);
       return;
     }
 
-    var result = userName.split("#", 2);
-    var dataSource = result[0];
-    var realUserName = result[1];
+    var dataSource = userNameTuple[0];
+    var realUserName = userNameTuple[1];
     var database = handshakeResponse.getDatabase();
     if (!checkDataSourceExists(dataSource) || !checkDatabaseExists(database)) {
       connectionPhase = ConnectionPhase.FAILED;

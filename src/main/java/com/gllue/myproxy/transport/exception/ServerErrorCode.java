@@ -32,6 +32,8 @@ public enum ServerErrorCode implements SQLErrorCode {
 
   ER_QUERY_RESULT_OUT_OF_MEMORY(50107, "Query result buffer out of memory. [size: %sKB]"),
 
+  ER_BAD_DATA_SOURCE(50108, "Bad data source. [%s]"),
+
   ER_SERVER_ERROR(50000, "Server error. [%s]");
 
   private final int errorCode;

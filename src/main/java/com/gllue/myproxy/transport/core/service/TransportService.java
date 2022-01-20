@@ -209,10 +209,12 @@ public class TransportService implements AutoCloseable {
 
   public ExtensibleFuture<Connection> assignBackendConnection(
       final FrontendConnection frontendConnection) {
-    var future =
-        backendConnectionPool
-            .get(frontendConnection.getDataSourceName())
-            .tryAcquireConnection(frontendConnection.currentDatabase());
+    var pool = backendConnectionPool.get(frontendConnection.getDataSourceName());
+    if (pool == null) {
+      throw new BadDataSourceException(frontendConnection.getDataSourceName());
+    }
+
+    var future = pool.tryAcquireConnection(frontendConnection.currentDatabase());
     if (future == null) {
       throw new IllegalArgumentException(
           String.format(
