@@ -29,6 +29,7 @@ public abstract class AbstractConnectionPool implements ConnectionPool {
   private static final long MIN_KEEP_ALIVE_TIME_IN_MILLS = TimeUnit.SECONDS.toMillis(30);
   private static final long MIN_LIFE_TIME_IN_MILLS = TimeUnit.SECONDS.toMillis(30);
   private static final long MAX_KEEP_ALIVE_QUERY_TIMEOUT_IN_MILLS = TimeUnit.SECONDS.toMillis(60);
+  private static final long IDLE_DETECTION_INTERVAL = TimeUnit.MINUTES.toMillis(1);
   private static final double ALWAYS_ALIVE_RATIO = 0.1;
 
   private final AtomicBoolean isClosed = new AtomicBoolean();
@@ -339,7 +340,7 @@ public abstract class AbstractConnectionPool implements ConnectionPool {
     scheduler.scheduleWithFixedDelay(
         () -> executor.execute(new ConnectionIdleDetectionRunner()),
         idleTimeoutInMills,
-        idleTimeoutInMills,
+        IDLE_DETECTION_INTERVAL,
         TimeUnit.MILLISECONDS);
   }
 

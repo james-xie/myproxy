@@ -38,7 +38,7 @@ import lombok.extern.slf4j.Slf4j;
 public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter {
   private static final ConnectionIdGenerator ID_GENERATOR = new ConnectionIdGenerator(1);
 
-  private static final Summary readCommandResultLatency =
+  private static final Summary READ_COMMAND_RESULT_LATENCY =
       Summary.build()
           .name("read_command_result_latency_summary")
           .help("Read command result latency summary in seconds.")
@@ -376,7 +376,7 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
         connection.setCommandExecutionDone();
       }
 
-      readCommandResultLatency.observe((System.nanoTime() - startTime) / NANOS_PER_SECOND);
+      READ_COMMAND_RESULT_LATENCY.observe((System.nanoTime() - startTime) / NANOS_PER_SECOND);
     } catch (Exception e) {
       log.error("An error was occurred when reading the command result.", e);
       NettyUtils.closeChannel(ctx.channel(), false);

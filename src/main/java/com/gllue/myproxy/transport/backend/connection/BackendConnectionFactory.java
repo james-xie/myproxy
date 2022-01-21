@@ -33,6 +33,7 @@ public class BackendConnectionFactory {
             }
 
             connection.setDataSourceName(dataSource.getName());
+            transportService.registerBackendConnection(connection);
             return future.set(connection);
           }
 
@@ -56,8 +57,8 @@ public class BackendConnectionFactory {
             }
 
             if (connection != null) {
-              connection.close();
               transportService.removeBackendConnection(connection.connectionId());
+              connection.close();
             }
           }
         };

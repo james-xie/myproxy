@@ -14,7 +14,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Consumer;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class FIFOBackendConnectionPool extends FIFOConnectionPool {
 
   public FIFOBackendConnectionPool(
@@ -146,6 +148,7 @@ public class FIFOBackendConnectionPool extends FIFOConnectionPool {
         // If the command is being executed, we should close the backend connection
         // because the state is undefined. Otherwise the backend connection can be reused.
         backendConnection.close();
+        log.warn("Close the real backend connection when closing the pooled connection.");
       }
 
       super.close(

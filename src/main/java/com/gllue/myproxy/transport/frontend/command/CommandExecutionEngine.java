@@ -52,17 +52,17 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class CommandExecutionEngine {
-  private static final Counter totalCommands =
-      Counter.build().name("total_commands").help("Total commands.").register();
-  private static final Gauge inprogressQueries =
+  private static final Gauge TOTAL_COMMANDS =
+      Gauge.build().name("total_commands").help("Total commands.").register();
+  private static final Gauge INPROGRESS_QUERIES =
       Gauge.build().name("inprogress_queries").help("Inprogress queries.").register();
-  private static final Histogram queryLatency =
+  private static final Histogram QUERY_LATENCY =
       Histogram.build()
           .name("query_latency")
           .help("Query latency in microseconds.")
           .unit("microsecond")
           .register();
-  private static final Summary queryLatencySummary =
+  private static final Summary QUERY_LATENCY_SUMMARY =
       Summary.build()
           .name("query_latency_summary")
           .help("Query latency summary in seconds")
@@ -108,6 +108,16 @@ public class CommandExecutionEngine {
       if (backendConnection == null) {
         var future = transportService.assignBackendConnection(frontendConnection);
         backendConnection = (BackendConnection) future.get();
+
+        if (frontendConnection.bindBackendConnection(backendConnection)) {
+          backendConnection.bindFrontendConnection(frontendConnection);
+        } else {
+          // maybe the frontend connection was closed during the allocation of the backend
+          // connection.
+          backendConnection.close();
+          frontendConnection.close();
+          return;
+        }
       }
       checkDatabase(backendConnection);
     }
@@ -239,7 +249,7 @@ public class CommandExecutionEngine {
       log.debug("Executing command type: " + commandType.name());
     }
 
-    totalCommands.inc();
+    TOTAL_COMMANDS.inc();
 
     switch (commandType) {
       case COM_QUIT:
@@ -337,7 +347,7 @@ public class CommandExecutionEngine {
       log.debug("Executing query command: " + packet.getQuery());
     }
 
-    inprogressQueries.inc();
+    INPROGRESS_QUERIES.inc();
     var startTime = System.nanoTime();
 
     handlerExecutor.execute(
@@ -381,9 +391,9 @@ public class CommandExecutionEngine {
 
           private void observeDuration() {
             var duration = System.nanoTime() - startTime;
-            queryLatency.observe(duration / NANOS_PER_MICRO);
-            queryLatencySummary.observe(duration / NANOS_PER_SECOND);
-            inprogressQueries.dec();
+            QUERY_LATENCY.observe(duration / NANOS_PER_MICRO);
+            QUERY_LATENCY_SUMMARY.observe(duration / NANOS_PER_SECOND);
+            INPROGRESS_QUERIES.dec();
           }
         });
   }

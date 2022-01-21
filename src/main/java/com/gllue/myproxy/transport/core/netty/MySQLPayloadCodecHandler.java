@@ -18,7 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
-  private static final Summary proxyLatencySummary =
+  private static final Summary PROXY_LATENCY_SUMMARY =
       Summary.build()
           .name("proxy_latency_summary")
           .help("Proxy latency summary in seconds")
@@ -113,7 +113,7 @@ public class MySQLPayloadCodecHandler extends ByteToMessageCodec<MySQLPacket> {
       writePayload(payload, out);
     } else {
       if (encodeFirstPayloadTime > 0) {
-        proxyLatencySummary.observe((System.nanoTime() - encodeFirstPayloadTime) / NANOS_PER_SECOND);
+        PROXY_LATENCY_SUMMARY.observe((System.nanoTime() - encodeFirstPayloadTime) / NANOS_PER_SECOND);
         encodeFirstPayloadTime = 0;
       }
 

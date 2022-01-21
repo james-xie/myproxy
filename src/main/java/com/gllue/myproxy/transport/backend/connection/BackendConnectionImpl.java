@@ -25,13 +25,13 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 public class BackendConnectionImpl extends AbstractConnection implements BackendConnection {
-  private static final Summary backendProcessingLatency =
+  private static final Summary BACKEND_PROCESSING_LATENCY =
       Summary.build()
           .name("backend_processing_latency_summary")
           .help("Backend processing latency summary in seconds.")
           .unit("second")
           .register();
-  private static final Summary receivingResponseLatency =
+  private static final Summary RECEIVING_RESPONSE_LATENCY =
       Summary.build()
           .name("receiving_response_latency_summary")
           .help("Receiving response latency summary in seconds.")
@@ -121,7 +121,7 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
     // We must invoke fireReadCompletedEvent at the end of the method.
     reader.fireReadCompletedEvent();
 
-    receivingResponseLatency.observe(
+    RECEIVING_RESPONSE_LATENCY.observe(
         (System.nanoTime() - receiveFirstResponseTime) / NANOS_PER_SECOND);
   }
 
@@ -134,7 +134,7 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   public void onResponseReceived() {
     if (firstResponse) {
       receiveFirstResponseTime = System.nanoTime();
-      backendProcessingLatency.observe(
+      BACKEND_PROCESSING_LATENCY.observe(
           (receiveFirstResponseTime - sendCommandTime) / NANOS_PER_SECOND);
       firstResponse = false;
     }
@@ -224,6 +224,5 @@ public class BackendConnectionImpl extends AbstractConnection implements Backend
   @Override
   protected void onClosed() {
     super.onClosed();
-    unbindFrontendConnection();
   }
 }

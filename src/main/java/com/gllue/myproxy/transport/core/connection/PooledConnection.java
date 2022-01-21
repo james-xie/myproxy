@@ -32,7 +32,7 @@ public class PooledConnection extends DelegateConnection {
     if (isReleased.compareAndSet(false, true)) {
       var pool = poolRef.get();
       if (pool != null) {
-        pool.releaseConnection(connection);
+        pool.releaseConnection(this);
       } else {
         log.error("Connection pool object has been garbage collected before pooled connection.");
       }

@@ -6,7 +6,7 @@ import com.gllue.myproxy.transport.core.connection.Connection;
 public interface FrontendConnection extends Connection {
   String getDataSourceName();
 
-  void bindBackendConnection(BackendConnection backendConnection);
+  boolean bindBackendConnection(BackendConnection backendConnection);
 
   BackendConnection getBackendConnection();
 
