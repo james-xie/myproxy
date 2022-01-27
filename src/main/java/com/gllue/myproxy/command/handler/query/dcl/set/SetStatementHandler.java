@@ -30,7 +30,7 @@ import java.util.function.Supplier;
 
 public class SetStatementHandler extends AbstractQueryHandler {
   private static final String NAME = "Set statement handler";
-  private static final String ENCRYPT_KEY = "ENCRYPT_KEY";
+  private static final String ENCRYPT_KEY = "@ENCRYPT_KEY";
   private static final String AUTOCOMMIT = "AUTOCOMMIT";
 
   private static final Set<String> AUTOCOMMIT_ENABLE_VALUES = Set.of("ON", "1", "TRUE");
