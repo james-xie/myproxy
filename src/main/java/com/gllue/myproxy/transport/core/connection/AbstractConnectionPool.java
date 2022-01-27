@@ -42,7 +42,7 @@ public abstract class AbstractConnectionPool implements ConnectionPool {
   protected final long idleTimeoutInMills;
   /**
    * How frequently the pool will attempt to keep a connection alive. To keep the connection alive,
-   * a connectionTestQuery will be sent to the database when the keep alive time is reached. 0 meas
+   * a connectionTestQuery will be sent to the database when the keep alive time is reached. 0 means
    * do not keep the connection alive.
    */
   protected final long keepAliveTimeInMills;
