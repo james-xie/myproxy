@@ -44,6 +44,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.mockito.Mock;
@@ -55,6 +57,9 @@ public abstract class BaseQueryHandlerTest {
   protected static final String DATABASE = "db";
   protected static final String ROOT_PATH = "/root";
   protected static final String ENCRYPT_KEY = "key";
+
+  private static final long CALLBACK_WAIT_TIMEOUT = TimeUnit.SECONDS.toMillis(1);
+
 
   @Mock protected PersistRepository repository;
 
@@ -311,10 +316,10 @@ public abstract class BaseQueryHandlerTest {
   }
 
   protected <T> T callbackGet(FuturableCallback<T> callback)
-      throws InterruptedException, ExecutionException {
+      throws InterruptedException, ExecutionException, TimeoutException {
     try {
-      return callback.get();
-    } catch (ExecutionException e) {
+      return callback.get(CALLBACK_WAIT_TIMEOUT, TimeUnit.MILLISECONDS);
+    } catch (ExecutionException | TimeoutException e) {
       if (e.getCause() instanceof BaseServerException) {
         throw (BaseServerException) e.getCause();
       }

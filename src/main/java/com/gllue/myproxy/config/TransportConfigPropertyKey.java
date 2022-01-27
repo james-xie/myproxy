@@ -20,7 +20,7 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
   FRONTEND_WORKER_COUNT(
       "frontend.worker_count", GenericConfigPropertyKey.availableProcessors(), Type.INTEGER),
 
-  FRONTEND_BACKLOG("frontend.backlog", 50, Type.INTEGER),
+  FRONTEND_BACKLOG("frontend.backlog", 500, Type.INTEGER),
 
   FRONTEND_WRITE_BUFFER_LOW_WATER_MARK(
       "frontend.write_buffer_low_water_mark", 8 * 1024 * 1024, Type.INTEGER),
@@ -45,7 +45,7 @@ public enum TransportConfigPropertyKey implements TypedPropertyKey {
   BACKEND_WRITE_BUFFER_HIGH_WATER_MARK(
       "backend.write_buffer_high_water_mark", 16 * 1024 * 1024, Type.INTEGER),
 
-  BACKEND_CONNECTION_POOL_SIZE("backend.connection.connection_pool_size", 500, Type.INTEGER),
+  BACKEND_CONNECTION_POOL_SIZE("backend.connection.connection_pool_size", 2000, Type.INTEGER),
 
   BACKEND_CONNECTION_IDLE_TIMEOUT_IN_MILLS(
       "backend.connection.idle_timeout_in_mills", DEFAULT_IDLE_TIMEOUT_IN_MILLS, Type.LONG),

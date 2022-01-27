@@ -17,11 +17,12 @@ import com.gllue.myproxy.common.Promise;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.junit.MockitoJUnitRunner;
 
-//@RunWith(MockitoJUnitRunner.Silent.class)
+// @RunWith(MockitoJUnitRunner.Silent.class)
 @RunWith(MockitoJUnitRunner.class)
 public class SetStatementHandlerTest extends BaseQueryHandlerTest {
 
@@ -30,8 +31,9 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   }
 
   @Test
-  public void testSetEncryptKey() throws ExecutionException, InterruptedException {
-    var query = String.format("set encrypt_key='%s:%s'", DATABASE, ENCRYPT_KEY);
+  public void testSetEncryptKey()
+      throws ExecutionException, InterruptedException, TimeoutException {
+    var query = String.format("set @encrypt_key='%s:%s'", DATABASE, ENCRYPT_KEY);
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
 
@@ -45,7 +47,7 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
 
   @Test(expected = BadEncryptKeyException.class)
   public void testSetMalformedEncryptKey() {
-    var query = String.format("set encrypt_key='%s:'", DATABASE);
+    var query = String.format("set @encrypt_key='%s:'", DATABASE);
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
 
@@ -55,7 +57,7 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
 
   @Test(expected = BadEncryptKeyException.class)
   public void testSetEncryptKeyWithBadDatabase() {
-    var query = String.format("set encrypt_key='%s:%s'", "bad_db", ENCRYPT_KEY);
+    var query = String.format("set @encrypt_key='%s:%s'", "bad_db", ENCRYPT_KEY);
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
 
@@ -64,7 +66,8 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   }
 
   @Test
-  public void testSetAutoCommit() throws ExecutionException, InterruptedException {
+  public void testSetAutoCommit()
+      throws ExecutionException, InterruptedException, TimeoutException {
     when(transportService.setAutoCommit(anyInt(), anyBoolean()))
         .thenReturn(Promise.emptyPromise(CommandResult.newEmptyResult()));
 
@@ -81,7 +84,8 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   }
 
   @Test
-  public void testSetGlobalAutoCommit() throws ExecutionException, InterruptedException {
+  public void testSetGlobalAutoCommit()
+      throws ExecutionException, InterruptedException, TimeoutException {
     var submitSqlList = new ArrayList<String>();
     mockSubmitQueryToBackendDatabase(submitSqlList);
 
@@ -100,7 +104,8 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   }
 
   @Test(expected = BadVariableValueException.class)
-  public void testSetAutoCommitWithWrongValue() throws ExecutionException, InterruptedException {
+  public void testSetAutoCommitWithWrongValue()
+      throws ExecutionException, InterruptedException, TimeoutException {
     var query = "set autocommit=GOOD";
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
@@ -112,13 +117,14 @@ public class SetStatementHandlerTest extends BaseQueryHandlerTest {
   }
 
   @Test
-  public void testMixedSet() throws ExecutionException, InterruptedException {
+  public void testMixedSet() throws ExecutionException, InterruptedException, TimeoutException {
     var submitSqlList = new ArrayList<String>();
     mockSubmitQueryToBackendDatabase(submitSqlList);
     when(transportService.setAutoCommit(anyInt(), anyBoolean()))
         .thenReturn(Promise.emptyPromise(CommandResult.newEmptyResult()));
 
-    var query = String.format("set autocommit=off, encrypt_key='%s:%s', @a=1", DATABASE, ENCRYPT_KEY);
+    var query =
+        String.format("set autocommit=off, @encrypt_key='%s:%s', @a=1", DATABASE, ENCRYPT_KEY);
     var request = newQueryHandlerRequest(query, Map.of());
     var callback = new FuturableCallback<HandlerResult>();
 

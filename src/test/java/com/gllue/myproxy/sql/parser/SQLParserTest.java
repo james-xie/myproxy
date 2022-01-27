@@ -311,6 +311,7 @@ public class SQLParserTest {
     var stmt2 = parser.parse("set autocommit=true;");
     var stmt3 = parser.parse("set global autocommit=1");
     var stmt4 = parser.parse("set session autocommit=1");
+    var stmt5 = parser.parse("set @encrypt_key='123'");
     printStatement(stmt);
   }
 
