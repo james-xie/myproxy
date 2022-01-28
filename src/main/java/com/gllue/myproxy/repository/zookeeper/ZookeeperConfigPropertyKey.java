@@ -16,7 +16,7 @@ public enum ZookeeperConfigPropertyKey implements TypedPropertyKey {
   CONNECT_TIMEOUT_MS("connect_timeout_in_mills", TimeUnit.SECONDS.toMillis(15), Type.INTEGER),
 
   RETRY_BASE_TIME_MS("retry.base_time_in_mills", TimeUnit.SECONDS.toMillis(3), Type.INTEGER),
-  MAX_RETRIES("retry.max_retries", TimeUnit.SECONDS.toMillis(3), Type.INTEGER),
+  MAX_RETRIES("retry.max_retries", 3, Type.INTEGER),
   RETRY_MAX_TIME_MS("retry.max_time_in_mills", TimeUnit.SECONDS.toMillis(15), Type.INTEGER),
   ;
 
