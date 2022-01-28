@@ -78,6 +78,12 @@ public class TransportService implements AutoCloseable {
           .labelNames("data_source")
           .help("Cached backend connections in the connection pool.")
           .register();
+  private static final Gauge CALLBACKS_BEING_BLOCKED =
+      Gauge.build()
+          .name("callbacks_being_blocked")
+          .help("Callbacks being blocked in the transport service.")
+          .register();
+
 
   private final Configurations configurations;
   private final ThreadPool threadPool;
@@ -343,6 +349,8 @@ public class TransportService implements AutoCloseable {
 
   private Callback<CommandResult> wrappedCallback(
       FrontendConnection connection, Callback<CommandResult> callback) {
+    CALLBACKS_BEING_BLOCKED.inc();
+
     return new Callback<>() {
       @Override
       public void onSuccess(CommandResult result) {
@@ -351,6 +359,7 @@ public class TransportService implements AutoCloseable {
         } catch (Exception e) {
           callback.onFailure(e);
         }
+        CALLBACKS_BEING_BLOCKED.dec();
       }
 
       @Override
@@ -363,6 +372,7 @@ public class TransportService implements AutoCloseable {
               exception);
           connection.close();
         }
+        CALLBACKS_BEING_BLOCKED.dec();
       }
 
       public Executor executor() {
