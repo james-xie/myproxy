@@ -34,7 +34,9 @@ task integrationTest(type: Test) {
 
 dependencies {
     implementation("io.sentry:sentry-log4j2:1.7.27")
-    implementation("com.aliyun.openservices:aliyun-log-log4j2-appender:0.1.11")
+    implementation("com.aliyun.openservices:aliyun-log-producer:0.3.10")
+    implementation("com.aliyun.openservices:aliyun-log:0.6.33")
+    implementation("com.aliyun.openservices:aliyun-log-log4j2-appender:0.1.12")
 
     implementation("io.netty:netty-all:4.1.50.Final")
     implementation("com.google.guava:guava:11.0.2")
