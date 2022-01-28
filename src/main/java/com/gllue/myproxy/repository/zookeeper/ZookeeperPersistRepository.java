@@ -78,12 +78,20 @@ public class ZookeeperPersistRepository implements ClusterPersistRepository {
     client.start();
 
     int maxWaitTime = properties.getValue(ZookeeperConfigPropertyKey.CONNECT_TIMEOUT_MS);
+    boolean isConnected;
     try {
-      client.blockUntilConnected(maxWaitTime, TimeUnit.MILLISECONDS);
+      isConnected = client.blockUntilConnected(maxWaitTime, TimeUnit.MILLISECONDS);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();
       var msg = "Interrupted while waiting for connect to the zookeeper server.";
       throw new PersistRepositoryException(msg, e);
+    }
+
+    if (!isConnected) {
+      throw new PersistRepositoryException(
+          String.format(
+              "Cannot connect to the zookeeper server. [%s]",
+              client.getZookeeperClient().getCurrentConnectionString()));
     }
   }
 
