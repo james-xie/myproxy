@@ -6,7 +6,7 @@ plugins {
 }
 
 group 'com.gllue'
-version '1.0.0'
+version '5.7.0'
 
 repositories {
     mavenCentral()

@@ -6,6 +6,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 public final class ServerConstants {
   /**
+   * Key of the properties' location.
+   */
+  public static final String KEY_OF_PROPERTIES_LOCATION = "myproxy.properties.location";
+
+  /**
+   * Default properties file name.
+   */
+  public static final String DEFAULT_PROPERTIES_FILE_NAME = "myproxy.properties";
+
+  /**
    * Path separator.
    */
   public static final String PATH_SEPARATOR = "/";

@@ -1,5 +1,8 @@
 package com.gllue.myproxy.bootstrap;
 
+import static com.gllue.myproxy.constant.ServerConstants.DEFAULT_PROPERTIES_FILE_NAME;
+import static com.gllue.myproxy.constant.ServerConstants.KEY_OF_PROPERTIES_LOCATION;
+
 import com.gllue.myproxy.cluster.ClusterState;
 import com.gllue.myproxy.common.concurrent.ThreadPool;
 import com.gllue.myproxy.common.generator.IdGenerator;
@@ -11,11 +14,16 @@ import com.gllue.myproxy.repository.PersistRepository;
 import com.gllue.myproxy.sql.parser.SQLParser;
 import com.gllue.myproxy.transport.core.service.TransportService;
 import com.google.common.base.Preconditions;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Properties;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @RequiredArgsConstructor
 public final class ServerContext {
   private final Properties properties;
@@ -99,8 +107,6 @@ public final class ServerContext {
   }
 
   public static class Builder {
-    private static final String PROPERTIES_FILE_NAME = "myproxy.properties";
-
     private final Properties properties;
     private final Configurations configurations;
 
@@ -113,22 +119,59 @@ public final class ServerContext {
                   new TransportConfigProperties(properties)));
     }
 
+    private InputStream getPropertiesResource(ClassLoader classLoader) {
+      // First, read properties location from application arguments,
+      // if not found, read properties location from environment variables.
+      InputStream stream = null;
+      var location = System.getProperty(KEY_OF_PROPERTIES_LOCATION);
+      if (location == null) {
+        location = System.getenv(KEY_OF_PROPERTIES_LOCATION);
+      }
+
+      if (location != null) {
+        try {
+          stream = new FileInputStream(location);
+          log.info("Read properties file from location [{}].", location);
+        } catch (FileNotFoundException e) {
+          throw new BadPropertiesLocationException(location);
+        }
+      }
+      if (stream == null) {
+        stream = classLoader.getResourceAsStream(DEFAULT_PROPERTIES_FILE_NAME);
+        log.info("Read properties file from default.");
+      }
+      return stream;
+    }
+
     private Properties loadConfigurationProperties() {
       var properties = new Properties();
-      var stream = this.getClass().getClassLoader().getResourceAsStream(PROPERTIES_FILE_NAME);
+      var stream = getPropertiesResource(this.getClass().getClassLoader());
       if (stream == null) {
         throw new ConfigurationException(
-            String.format("Properties file [%s] is not found.", PROPERTIES_FILE_NAME));
+            String.format("Properties file [%s] is not found.", DEFAULT_PROPERTIES_FILE_NAME));
       }
 
       try {
-        properties.load(stream);
-      } catch (IOException e) {
-        throw new ConfigurationException(
-            String.format(
-                "An exception is occurred when loading the properties file. [%s]",
-                PROPERTIES_FILE_NAME));
+        try {
+          properties.load(stream);
+        } catch (IOException e) {
+          throw new ConfigurationException(
+              String.format(
+                  "An exception is occurred when loading the properties file. [%s]",
+                  DEFAULT_PROPERTIES_FILE_NAME));
+        }
+      } finally {
+        try {
+          stream.close();
+        } catch (IOException e) {
+          log.error("Failed to close properties stream.", e);
+        }
       }
+
+      if (log.isDebugEnabled()) {
+        log.debug("Loaded properties: [{}]", properties);
+      }
+
       return properties;
     }
 
