@@ -11,13 +11,14 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
-import org.apache.curator.framework.recipes.cache.CuratorCache;
-import org.apache.curator.framework.recipes.cache.CuratorCacheListener;
+import org.apache.curator.framework.recipes.cache.TreeCache;
 import org.apache.curator.framework.recipes.cache.TreeCacheEvent;
 import org.apache.curator.framework.recipes.cache.TreeCacheListener;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
@@ -39,14 +40,17 @@ public class ZookeeperPersistRepository implements ClusterPersistRepository {
   private final AtomicReference<State> state = new AtomicReference<>(State.LATENT);
 
   private final ZookeeperConfigProperties properties;
+  private final ExecutorService executorService;
   private CuratorFramework client;
 
-  private final Map<String, CuratorCache> caches = new ConcurrentHashMap<>();
+  private final Map<String, TreeCache> caches = new ConcurrentHashMap<>();
 
   private final Map<String, InterProcessLock> locks = new ConcurrentHashMap<>();
 
-  public ZookeeperPersistRepository(final ZookeeperConfigProperties properties) {
+  public ZookeeperPersistRepository(
+      final ZookeeperConfigProperties properties, final ExecutorService executorService) {
     this.properties = properties;
+    this.executorService = executorService;
   }
 
   @Override
@@ -95,9 +99,17 @@ public class ZookeeperPersistRepository implements ClusterPersistRepository {
     }
   }
 
-  private CuratorCache addCache(final String path) {
-    var cache = CuratorCache.build(client, path);
-    cache.start();
+  private TreeCache addCache(final String path) {
+    var cache =
+        TreeCache.newBuilder(client, path)
+            .setExecutor(executorService)
+            .setCreateParentNodes(true)
+            .build();
+    try {
+      cache.start();
+    } catch (Exception e) {
+      handleException(e);
+    }
 
     var old = caches.putIfAbsent(path, cache);
     if (old != null) {
@@ -115,23 +127,28 @@ public class ZookeeperPersistRepository implements ClusterPersistRepository {
     }
 
     var cache = addCache(key);
-    TreeCacheListener treeCacheListener =
-        (client, event) -> {
-          var eventType = getChangeEventType(event.getType());
-          if (eventType != null) {
-            listener.onChange(
-                new DataChangedEvent(
-                    event.getData().getPath(), event.getData().getData(), eventType));
-          }
-        };
+    cache.getListenable().addListener(newCacheListener(key, listener));
+  }
 
+  private TreeCacheListener newCacheListener(String path, DataChangedEventListener listener) {
+    var isInitialized = new AtomicBoolean(false);
     // The listener becomes active once the cache has been initialized.
-    var cacheListener =
-        CuratorCacheListener.builder()
-            .forTreeCache(client, treeCacheListener)
-            .afterInitialized()
-            .build();
-    cache.listenable().addListener(cacheListener);
+    return (client, event) -> {
+      if (event.getType() == TreeCacheEvent.Type.INITIALIZED) {
+        isInitialized.set(true);
+        log.info("Cache for path [{}] has been initialized.", path);
+        return;
+      }
+      if (!isInitialized.get()) {
+        return;
+      }
+
+      var eventType = getChangeEventType(event.getType());
+      if (eventType != null) {
+        listener.onChange(
+            new DataChangedEvent(event.getData().getPath(), event.getData().getData(), eventType));
+      }
+    };
   }
 
   private Type getChangeEventType(TreeCacheEvent.Type eventType) {
@@ -241,7 +258,7 @@ public class ZookeeperPersistRepository implements ClusterPersistRepository {
   @Override
   public void close() {
     if (state.compareAndSet(State.STARTED, State.CLOSED)) {
-      caches.values().forEach(CuratorCache::close);
+      caches.values().forEach(TreeCache::close);
       waitForCacheClose();
       CloseableUtils.closeQuietly(client);
     }

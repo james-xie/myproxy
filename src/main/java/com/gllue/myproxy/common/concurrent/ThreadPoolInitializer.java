@@ -19,6 +19,6 @@ public class ThreadPoolInitializer implements Initializer {
 
   @Override
   public void close() throws Exception {
-    threadPool.shutdown();
+    if (threadPool != null) threadPool.shutdown();
   }
 }

@@ -32,7 +32,7 @@ import org.junit.Test;
 public class BackendConnectionTest extends BaseIntegrationTest {
   static final String DATABASE = "testdb";
 
-  public DataSource<BackendConnection> getDataSource(final String name) {
+  public DataSource getDataSource(final String name) {
     var serverContext = getServerContext();
     var transportService = serverContext.getTransportService();
     var dataSource = transportService.getBackendDataSourceManager().getDataSource(name);

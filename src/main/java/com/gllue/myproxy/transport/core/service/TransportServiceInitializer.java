@@ -66,6 +66,6 @@ public class TransportServiceInitializer implements Initializer {
 
   @Override
   public void close() throws Exception {
-    transportService.close();
+    if (transportService != null) transportService.close();
   }
 }
