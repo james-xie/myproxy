@@ -207,8 +207,8 @@ public class BackendChannelOutboundHandler extends ChannelInboundHandlerAdapter 
 
     var clientCapabilityFlags =
         MySQLCapabilityFlag.handshakeClientCapabilityFlags(serverCapabilityFlags);
-    if (connectionArguments.getDatabase() == null) {
-      clientCapabilityFlags &= ~MySQLCapabilityFlag.CLIENT_CONNECT_WITH_DB.getValue();
+    if (connectionArguments.getDatabase() != null) {
+      clientCapabilityFlags |= MySQLCapabilityFlag.CLIENT_CONNECT_WITH_DB.getValue();
     }
 
     var handshakeResponsePacket =

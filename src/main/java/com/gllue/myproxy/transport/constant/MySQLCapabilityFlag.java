@@ -98,12 +98,13 @@ public enum MySQLCapabilityFlag {
 
     // The client should only announce the capabilities in the Handshake Response Packet
     // that it has in common with the server.
+    // note: flag of CLIENT_SECURE_CONNECTION is required for mysql 5.6 & 5.7
     var flags =
         new MySQLCapabilityFlag[] {
           CLIENT_PLUGIN_AUTH,
-          CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA,
           CLIENT_CONNECT_ATTRS,
-          CLIENT_CONNECT_WITH_DB
+          CLIENT_SECURE_CONNECTION,
+          CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA,
         };
 
     for (var each : flags) {
