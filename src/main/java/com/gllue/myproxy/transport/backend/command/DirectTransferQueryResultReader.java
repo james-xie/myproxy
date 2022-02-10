@@ -79,9 +79,6 @@ public class DirectTransferQueryResultReader extends AbstractQueryResultReader {
     } else if (packet instanceof EofPacket) {
       afterReadRows();
       handleEofPacket((EofPacket) packet);
-    } else if (packet instanceof OKPacket) {
-      afterReadRows();
-      handleOkPacket((OKPacket) packet);
     }
 
     if (packet == null) {

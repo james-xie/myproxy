@@ -18,8 +18,6 @@ public class TextResultSetRowPacketWrapper extends AbstractPacketWrapper {
       return packet;
     } else if (EofPacket.match(payload)) {
       return new EofPacket(payload);
-    } else if (OKPacket.match(payload)) {
-      return new OKPacket(payload);
     }
     return null;
   }

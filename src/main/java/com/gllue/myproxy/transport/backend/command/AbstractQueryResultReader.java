@@ -107,9 +107,6 @@ public abstract class AbstractQueryResultReader extends AbstractCommandResultRea
     } else if (wrapper.isEofPacket()) {
       afterReadRows();
       handleEofPacket((EofPacket) wrapper.getPacket());
-    } else if (wrapper.isOkPacket()) {
-      afterReadRows();
-      handleOkPacket((OKPacket) wrapper.getPacket());
     } else {
       onRowRead((TextResultSetRowPacket) wrapper.getPacket());
     }
