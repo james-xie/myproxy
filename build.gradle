@@ -9,7 +9,28 @@ group 'com.gllue'
 version '5.7.0'
 
 repositories {
+    maven {
+        url "https://maven.aliyun.com/nexus/content/groups/public/"
+    }
+    maven {
+        url "https://nexus.gllue.com/repository/releases/"
+        credentials {
+            username = System.getenv("MAVEN_REPOSITORY_USERNAME")
+            password = System.getenv("MAVEN_REPOSITORY_PASSWORD")
+        }
+        metadataSources {
+            artifact()
+            mavenPom()
+        }
+    }
     mavenCentral()
+    mavenLocal()
+    maven {
+        url "https://repo.spring.io/snapshot"
+    }
+    maven {
+        url "https://repo.spring.io/release"
+    }
 }
 
 // Referrals: https://www.petrikainulainen.net/programming/gradle/getting-started-with-gradle-integration-testing/
