@@ -1,6 +1,7 @@
 package com.gllue.myproxy.transport.frontend.command;
 
 import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_MICRO;
+import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_MILLS;
 import static com.gllue.myproxy.constant.TimeConstants.NANOS_PER_SECOND;
 
 import com.gllue.myproxy.cluster.ClusterState;
@@ -59,8 +60,9 @@ public class CommandExecutionEngine {
   private static final Histogram QUERY_LATENCY =
       Histogram.build()
           .name("query_latency")
-          .help("Query latency in microseconds.")
-          .unit("microsecond")
+          .help("Query latency in milliseconds.")
+          .unit("milliseconds")
+          .buckets(0.3, 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 5000, 10000, 30000)
           .register();
   private static final Summary QUERY_LATENCY_SUMMARY =
       Summary.build()
@@ -391,7 +393,7 @@ public class CommandExecutionEngine {
 
           private void observeDuration() {
             var duration = System.nanoTime() - startTime;
-            QUERY_LATENCY.observe(duration / NANOS_PER_MICRO);
+            QUERY_LATENCY.observe(duration / NANOS_PER_MILLS);
             QUERY_LATENCY_SUMMARY.observe(duration / NANOS_PER_SECOND);
             INPROGRESS_QUERIES.dec();
           }
