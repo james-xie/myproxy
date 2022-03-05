@@ -30,5 +30,19 @@ java -Dmyproxy.properties.location=[location of myproxy.properties] -jar [locati
 mysql -h[proxy host] -u[user] -p[password] --port=[port]   --default-auth=mysql_native_password --default-character-set=utf8 
 ```
 
+## 架构
+### 加密字段工作流程图
+![加密字段工作流程图](https://github.com/James-xie/myproxy/blob/master/static/img/加密字段工作流程.png)
 
-
+### 系统架构图
+![系统架构图](https://github.com/James-xie/myproxy/blob/master/static/img/MyProxy架构图.png)
+模块介绍：
+* Transport: 负责网络通信的模块，目前仅支持MySQL Protocol
+* Command Dispatcher: 将从客户端接收的Command分发到指定的CommandHandler进行处理
+* SQL Parser: 负责SQL的解析，解析器基于 [druid](https://github.com/alibaba/druid) 的SQL解析器实现
+* Command Handler: 核心业务处理模块；针对不同的SQL Statement，使用不同的SQL Handler进行处理
+* SQL Rewriter: 负责SQL的重写
+* ThreadPool: 线程池，管理线程池的分配和获取
+* MetaData: 元数据模块，主要用于保存表结构等信息
+* Repository: 负责元数据等信息的持久化，目前仅支持Zookeeper作为底层存储
+* Metric Collector: 负责各种指标的收集（基于Prometheus实现）
