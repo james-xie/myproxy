@@ -31,8 +31,6 @@ mysql -h[proxy host] -u[user] -p[password] --port=[port]   --default-auth=mysql_
 ```
 
 ## 架构
-### 加密字段工作流程图
-![加密字段工作流程图](https://github.com/James-xie/myproxy/blob/master/static/img/加密字段工作流程.png)
 
 ### 系统架构图
 ![系统架构图](https://github.com/James-xie/myproxy/blob/master/static/img/MyProxy架构图.png)
@@ -46,3 +44,7 @@ mysql -h[proxy host] -u[user] -p[password] --port=[port]   --default-auth=mysql_
 * MetaData: 元数据模块，主要用于保存表结构等信息
 * Repository: 负责元数据等信息的持久化，目前仅支持Zookeeper作为底层存储
 * Metric Collector: 负责各种指标的收集（基于Prometheus实现）
+
+### 加密字段工作流程图
+![加密字段工作流程图](https://github.com/James-xie/myproxy/blob/master/static/img/加密字段工作流程.png)
+
